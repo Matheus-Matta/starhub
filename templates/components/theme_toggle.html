@@ -1,0 +1,7 @@
+{# Botao claro/escuro/automatico. O clique e tratado pelo admin/js/theme.js do Django. #}
+<button type="button" class="theme-toggle btn btn-ghost btn-icon btn-circle" title="Trocar tema">
+  <span class="visually-hidden">Trocar tema</span>
+  {% icone "monitor" "theme-icon when-auto" %}
+  {% icone "sun" "theme-icon when-light" %}
+  {% icone "moon" "theme-icon when-dark" %}
+</button>

@@ -1,0 +1,126 @@
+/* Grade de 12 colunas dos formularios: colunas dentro das colunas.
+
+   Campo comum ocupa 6 (meia linha, como antes). .celula-cN ocupa N: na secao
+   Endereco a linha "CEP | Endereco | Numero" fica 3 + 7 + 2. Quem define N e o
+   ModelAdmin (`larguras`) ou o padrao de apps/core/ui/entradas.py. O widget de
+   endereco (ObjetoTema) usa a mesma ideia com .sh-objeto-cN.
+   Carrega depois de admin-campos.css: no empate de especificidade, vence. */
+
+.aligned .form-row:not(.hidden),
+.form-multiline {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+}
+
+.aligned .form-row > .celula:not(.celula-larga),
+.form-multiline > .celula:not(.celula-larga) {
+  grid-column: span 6;
+}
+
+.aligned .form-row > .celula.celula-c1,
+.form-multiline > .celula.celula-c1,
+.sh-objeto > .sh-objeto-c1 {
+  grid-column: span 1;
+}
+
+.aligned .form-row > .celula.celula-c2,
+.form-multiline > .celula.celula-c2,
+.sh-objeto > .sh-objeto-c2 {
+  grid-column: span 2;
+}
+
+.aligned .form-row > .celula.celula-c3,
+.form-multiline > .celula.celula-c3,
+.sh-objeto > .sh-objeto-c3 {
+  grid-column: span 3;
+}
+
+.aligned .form-row > .celula.celula-c4,
+.form-multiline > .celula.celula-c4,
+.sh-objeto > .sh-objeto-c4 {
+  grid-column: span 4;
+}
+
+.aligned .form-row > .celula.celula-c5,
+.form-multiline > .celula.celula-c5,
+.sh-objeto > .sh-objeto-c5 {
+  grid-column: span 5;
+}
+
+.aligned .form-row > .celula.celula-c6,
+.form-multiline > .celula.celula-c6,
+.sh-objeto > .sh-objeto-c6 {
+  grid-column: span 6;
+}
+
+.aligned .form-row > .celula.celula-c7,
+.form-multiline > .celula.celula-c7,
+.sh-objeto > .sh-objeto-c7 {
+  grid-column: span 7;
+}
+
+.aligned .form-row > .celula.celula-c8,
+.form-multiline > .celula.celula-c8,
+.sh-objeto > .sh-objeto-c8 {
+  grid-column: span 8;
+}
+
+.aligned .form-row > .celula.celula-c9,
+.form-multiline > .celula.celula-c9,
+.sh-objeto > .sh-objeto-c9 {
+  grid-column: span 9;
+}
+
+.aligned .form-row > .celula.celula-c10,
+.form-multiline > .celula.celula-c10,
+.sh-objeto > .sh-objeto-c10 {
+  grid-column: span 10;
+}
+
+.aligned .form-row > .celula.celula-c11,
+.form-multiline > .celula.celula-c11,
+.sh-objeto > .sh-objeto-c11 {
+  grid-column: span 11;
+}
+
+.aligned .form-row > .celula.celula-c12,
+.form-multiline > .celula.celula-c12,
+.sh-objeto > .sh-objeto-c12 {
+  grid-column: span 12;
+}
+
+/* Celular: uma coluna, cada campo na linha inteira. */
+@media (max-width: 600px) {
+  .aligned .form-row:not(.hidden),
+  .form-multiline {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .aligned .form-row > .celula,
+  .form-multiline > .celula {
+    grid-column: 1 / -1;
+  }
+}
+
+/* O widget de endereco vira uma coluna ja em 767px (json-widgets.css). */
+@media (max-width: 767px) {
+  .sh-objeto > .sh-objeto-campo {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Aviso da mascara (mascaras.js) ao sair do campo: "CPF invalido". */
+.sh-mascara-erro {
+  display: block;
+  margin-top: 4px;
+  color: var(--destructive);
+  font-size: 0.75rem;
+}
+
+input[data-mascara][aria-invalid="true"] {
+  border-color: var(--destructive);
+}
+
+/* Campo, secao ou inline escondido pela regra do ModelAdmin (condicoes.js). */
+.sh-oculto {
+  display: none !important;
+}

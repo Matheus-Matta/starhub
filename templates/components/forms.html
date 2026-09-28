@@ -1,0 +1,23 @@
+{% comment %}
+Renderiza QUALQUER form do Django com o visual do tema: erros gerais, campos
+ocultos e cada campo visivel via components/field.html.
+
+Uso (a tag <form> e o botao ficam com quem chama, porque cada tela tem os seus):
+  <form method="post">{% csrf_token %}
+    {% include "components/forms.html" with form=form %}
+    <button class="btn btn-primary">Salvar</button>
+  </form>
+
+Opcional: icones=True mostra o icone de usuario/senha/e-mail dentro do input.
+{% endcomment %}
+{% if form.non_field_errors %}
+  {% componente "alert" classe="mb-4" tom="destructive" icone="triangle-alert" %}
+    {% for erro in form.non_field_errors %}<div>{{ erro }}</div>{% endfor %}
+  {% endcomponente %}
+{% endif %}
+
+{% for campo in form.hidden_fields %}{{ campo }}{% endfor %}
+
+{% for campo in form.visible_fields %}
+  {% include "components/field.html" with field=campo %}
+{% endfor %}

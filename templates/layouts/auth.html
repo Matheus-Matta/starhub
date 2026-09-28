@@ -1,0 +1,44 @@
+{% load static %}<!DOCTYPE html>
+{% comment %}
+Layout das paginas sem login (entrar, saiu, recuperar senha). Blocks:
+  title, auth_titulo, auth_subtitulo, content (o formulario), auth_arte (lado direito).
+{% endcomment %}
+<html lang="pt-br" data-theme="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="NONE,NOARCHIVE">
+  <title>{% block title %}Entrar | StarHub{% endblock %}</title>
+  <script src="{% static 'admin/js/theme.js' %}"></script>
+  {% include "components/styles.html" %}
+  <link rel="stylesheet" href="{% static 'starhub/css/auth.css' %}">
+  {% block extrahead %}{% endblock %}
+</head>
+<body class="{% block bodyclass %}{% endblock %}">
+  <div class="auth-theme">{% include "components/theme_toggle.html" %}</div>
+  <div class="auth">
+    <div class="auth-form-side">
+      <div class="auth-card">
+        <a class="brand" href="{% url 'admin:index' %}">
+          <img src="{% static 'starhub/img/logo.svg' %}" alt=""><span>StarHub</span>
+        </a>
+        <h1>{% block auth_titulo %}{% endblock %}</h1>
+        <p class="auth-subtitle">{% block auth_subtitulo %}{% endblock %}</p>
+        {% include "components/messages.html" %}
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+    <aside class="auth-art">
+      {% block auth_arte %}
+        <h2>Seus marketplaces, produtos e pedidos num lugar so.</h2>
+        <p>O StarHub recebe o catalogo do ERP e distribui para cada canal de venda.</p>
+        <ul>
+          <li>{% icone "package" %} Produtos e estoque sincronizados</li>
+          <li>{% icone "clipboard-list" %} Pedidos de todos os canais</li>
+          <li>{% icone "plug" %} API compativel com WooCommerce para o ERP</li>
+        </ul>
+      {% endblock %}
+    </aside>
+  </div>
+</body>
+</html>

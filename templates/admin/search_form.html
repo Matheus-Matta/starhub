@@ -1,0 +1,18 @@
+{% load i18n %}
+{# Busca da listagem sem botao: busca-lista.js envia sozinho ao parar de digitar (Enter tambem envia). #}
+{% if cl.search_fields %}
+  <div id="toolbar" class="list-search">
+    <form id="changelist-search" method="get" role="search" data-busca-automatica>
+      <label for="searchbar" class="list-search-label">
+        {% icone "search" "icon-sm" %}<span class="visually-hidden">Buscar</span>
+      </label>
+      <input type="search" name="{{ search_var }}" value="{{ cl.query }}" id="searchbar"
+             placeholder="Buscar {{ cl.opts.verbose_name_plural|lower }}"
+             {% if cl.search_help_text %}aria-describedby="searchbar_helptext"{% endif %}>
+      {% for pair in cl.params.items %}
+        {% if pair.0 != search_var %}<input type="hidden" name="{{ pair.0 }}" value="{{ pair.1 }}">{% endif %}
+      {% endfor %}
+    </form>
+    {% if cl.search_help_text %}<span class="visually-hidden" id="searchbar_helptext">{{ cl.search_help_text }}</span>{% endif %}
+  </div>
+{% endif %}

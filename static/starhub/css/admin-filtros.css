@@ -1,0 +1,172 @@
+/* Filtros da listagem numa gaveta (drawer) que abre pela direita.
+   Altura = tela inteira (100dvh, que respeita a barra do navegador no
+   celular); topo e rodape fixos e SO o miolo rola, com a barra fina do tema.
+   Com a gaveta aberta o body nao rola (body.drawer-aberto). */
+
+body.drawer-aberto {
+  overflow: hidden;
+}
+
+.drawer-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+body.drawer-aberto .drawer-fundo {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#changelist-filter.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  width: min(380px, 100vw);
+  height: 100vh;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  background: var(--card);
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: var(--shadow-md);
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform 0.2s, visibility 0.2s;
+  overflow: hidden;
+}
+
+body.drawer-aberto #changelist-filter.drawer {
+  transform: none;
+  visibility: visible;
+}
+
+.drawer-topo,
+.drawer-rodape {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px;
+  min-height: 60px;
+}
+
+.drawer-topo {
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+
+.drawer-topo h2 {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--mono);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.drawer-corpo {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 12px 16px;
+}
+
+.drawer-rodape {
+  justify-content: flex-end;
+  border-top: 1px solid var(--border);
+}
+
+/* Conteudo dos filtros */
+#changelist-filter details summary,
+#changelist-filter h3 {
+  margin: 14px 8px 6px;
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+#changelist-filter ul {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+#changelist-filter li {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#changelist-filter a {
+  display: block;
+  padding: 7px 8px;
+  border-radius: var(--radius-md);
+  color: var(--accent-foreground);
+  font-size: 0.8125rem;
+}
+
+#changelist-filter a:hover {
+  background: var(--accent);
+  color: var(--primary);
+}
+
+#changelist-filter li.selected a {
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 500;
+}
+
+/* "Mostrar/ocultar contagem": o Django desenha o icone no fundo do link. */
+#changelist-filter-extra-actions {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+#changelist-filter a.viewlink,
+#changelist-filter a.hidelink {
+  padding-left: 28px;
+  background-position: 8px center;
+}
+
+.btn-filtros .badge {
+  height: 18px;
+  padding: 0 6px;
+}
+
+.filtro-periodo {
+  display: grid;
+  gap: 6px;
+  padding: 0 8px;
+}
+
+#changelist-filter a.filtro-periodo-limpar {
+  padding: 2px 0;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+/* O Django poe o h2 do filtro em caixa alta e o link como bloco com padding. */
+#changelist-filter .drawer-topo h2 {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+#changelist-filter .drawer-rodape a.btn {
+  display: inline-flex;
+  padding: 0 12px;
+  color: var(--accent-foreground);
+}

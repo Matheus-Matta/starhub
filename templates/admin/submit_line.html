@@ -1,0 +1,19 @@
+{% load admin_urls %}
+<div class="submit-row">
+  <div class="submit-secondary">
+    {% if show_delete_link and original %}
+      {% url opts|admin_urlname:'delete' original.pk|admin_urlquote as delete_url %}
+      <a href="{% add_preserved_filters delete_url %}" class="deletelink">Excluir</a>
+    {% endif %}
+  </div>
+  <div class="submit-actions">
+    {% if show_close %}
+      {% url opts|admin_urlname:'changelist' as changelist_url %}
+      <a href="{% add_preserved_filters changelist_url %}" class="btn btn-outline closelink">Fechar</a>
+    {% endif %}
+    {% if show_save_as_new %}<button type="submit" name="_saveasnew" class="btn btn-outline">Salvar como novo</button>{% endif %}
+    {% if show_save_and_add_another %}<button type="submit" name="_addanother" class="btn btn-outline">Salvar e adicionar outro</button>{% endif %}
+    {% if show_save_and_continue %}<button type="submit" name="_continue" class="btn btn-outline">Salvar e continuar</button>{% endif %}
+    {% if show_save %}<button type="submit" name="_save" class="btn btn-mono">Salvar</button>{% endif %}
+  </div>
+</div>

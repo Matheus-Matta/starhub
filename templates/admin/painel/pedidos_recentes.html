@@ -1,0 +1,26 @@
+{% url 'admin:loja_pedido_changelist' as url_pedidos %}
+{% componente "card" titulo="Pedidos recentes" icone="clipboard-list" flush=True %}
+  {% slot "acoes" %}<a class="btn btn-sm btn-outline" href="{{ url_pedidos }}">Ver todos</a>{% endslot %}
+  {% if painel.pedidos_recentes %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>Pedido</th><th>Cliente</th><th>Status</th><th>Data</th><th class="num">Total</th></tr>
+        </thead>
+        <tbody>
+          {% for pedido in painel.pedidos_recentes %}
+            <tr>
+              <td class="celula-principal"><a href="{% url 'admin:loja_pedido_change' pedido.pk %}">#{{ pedido.number }}</a></td>
+              <td>{{ pedido.cliente|default:"Visitante" }}</td>
+              <td>{% include "components/badge.html" with texto=pedido.get_status_display tom=pedido.status|tom_status %}</td>
+              <td class="text-muted nowrap">{{ pedido.created_at|date:"d/m/Y H:i" }}</td>
+              <td class="num font-medium nowrap">{{ pedido.total|moeda }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    {% include "components/empty_state.html" with icone="shopping-cart" texto="Nenhum pedido ainda." detalhe="Pedidos chegam pelos marketplaces ou pela API Woo." %}
+  {% endif %}
+{% endcomponente %}

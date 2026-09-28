@@ -1,0 +1,6 @@
+{% extends "admin/base.html" %}
+{# Mesmo papel do base_site.html do Django: titulo da aba. A marca fica no base.html. #}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:"StarHub" }}{% endblock %}
+
+{% block nav-global %}{% endblock %}

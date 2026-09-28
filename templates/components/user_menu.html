@@ -1,0 +1,38 @@
+{# Menu do usuario (avatar do header). O tema claro/escuro fica aqui dentro, como no template. #}
+<div class="dropdown" data-dropdown>
+  <button type="button" class="header-avatar" data-acao="dropdown" aria-haspopup="true"
+          aria-expanded="false" title="{% firstof user.get_full_name user.get_username %}">
+    <span class="avatar avatar-sm">{{ user|iniciais }}</span>
+    <span class="avatar-status" aria-hidden="true"></span>
+  </button>
+  <div class="dropdown-menu dropdown-usuario" role="menu">
+    <div class="dropdown-header">
+      <span class="avatar">{{ user|iniciais }}</span>
+      <div class="min-w-0">
+        <div class="font-semibold text-mono">{% firstof user.get_full_name user.get_username %}</div>
+        <div class="text-xs text-muted">{{ user.email|default:user.get_username }}</div>
+      </div>
+    </div>
+    <a class="dropdown-item" href="{% url 'admin:perfil' %}">{% icone "user" %} Meu perfil</a>
+    {% if user.has_usable_password %}
+      <a class="dropdown-item" href="{% url 'admin:password_change' %}">{% icone "lock" %} Trocar senha</a>
+    {% endif %}
+    {% if site_url and site_url != "/" %}
+      <a class="dropdown-item" href="{{ site_url }}">{% icone "external-link" %} Ver site</a>
+    {% endif %}
+    <div class="dropdown-divider"></div>
+    {# .theme-toggle: o clique e tratado pelo admin/js/theme.js (auto > claro > escuro). #}
+    <button type="button" class="dropdown-item theme-toggle">
+      {% icone "monitor" "theme-icon when-auto" %}{% icone "sun" "theme-icon when-light" %}{% icone "moon" "theme-icon when-dark" %}
+      Tema:
+      <span class="theme-label when-auto">automatico</span>
+      <span class="theme-label when-light">claro</span>
+      <span class="theme-label when-dark">escuro</span>
+    </button>
+    <div class="dropdown-divider"></div>
+    <form id="logout-form" method="post" action="{% url 'admin:logout' %}">
+      {% csrf_token %}
+      <button type="submit">{% icone "log-out" %} Sair</button>
+    </form>
+  </div>
+</div>

@@ -1,0 +1,15 @@
+{% load i18n static %}<!DOCTYPE html>
+{% comment %}
+Resposta do Django depois de salvar num popup de relacao ("+", lapis, lixeira).
+Igual a do Django, mas o script avisa o window.parent quando nao ha opener: o
+popup agora abre num modal com iframe (static/starhub/js/modal-relacionado.js).
+{% endcomment %}
+<html>
+  <head><title>{% translate 'Popup closing…' %}</title></head>
+  <body>
+    <script id="django-admin-popup-response-constants"
+            src="{% static "starhub/js/popup-resposta.js" %}"
+            data-popup-response="{{ popup_response_data }}">
+    </script>
+  </body>
+</html>

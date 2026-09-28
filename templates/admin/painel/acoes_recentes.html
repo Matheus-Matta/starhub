@@ -1,0 +1,30 @@
+{% load log %}
+{% get_admin_log 8 as admin_log for_user user %}
+<div id="recent-actions-module">
+{% componente "card" titulo="Minhas acoes recentes" icone="history" %}
+  {% if admin_log %}
+    <div class="stack">
+      {% for entry in admin_log %}
+        <div class="row-between">
+          <div class="min-w-0">
+            {% if entry.is_deletion or not entry.get_admin_url %}
+              <span class="font-medium">{{ entry.object_repr }}</span>
+            {% else %}
+              <a class="font-medium" href="{{ entry.get_admin_url }}">{{ entry.object_repr }}</a>
+            {% endif %}
+            <div class="text-xs text-muted">
+              {% if entry.content_type %}{{ entry.content_type.name|capfirst }}{% endif %}
+              &middot; {{ entry.action_time|timesince }} atras
+            </div>
+          </div>
+          {% if entry.is_addition %}{% include "components/badge.html" with texto="Criado" tom="success" %}
+          {% elif entry.is_change %}{% include "components/badge.html" with texto="Alterado" tom="primary" %}
+          {% else %}{% include "components/badge.html" with texto="Excluido" tom="destructive" %}{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    {% include "components/empty_state.html" with icone="history" texto="Nenhuma acao ainda." %}
+  {% endif %}
+{% endcomponente %}
+</div>

@@ -1,0 +1,6 @@
+{# Uso: {% include "components/empty_state.html" with icone="package" texto="Nenhum produto ainda." %} #}
+<div class="empty-state">
+  {% icone icone|default:"info" %}
+  <div class="font-medium text-mono">{{ texto|default:"Nada por aqui ainda." }}</div>
+  {% if detalhe %}<div class="text-xs">{{ detalhe }}</div>{% endif %}
+</div>

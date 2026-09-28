@@ -1,0 +1,11 @@
+<span class="table-identity table-customer">
+  {% if avatar_url %}
+    <img class="table-customer-avatar" src="{{ avatar_url }}" alt="" loading="lazy">
+  {% else %}
+    <span class="avatar table-customer-avatar" aria-hidden="true">{{ iniciais }}</span>
+  {% endif %}
+  <span class="table-identity-copy">
+    <span class="table-identity-title" title="{{ nome }}">{{ nome }}</span>
+    <span class="table-identity-meta">{{ email }}</span>
+  </span>
+</span>

@@ -1,0 +1,46 @@
+{% extends "admin/base_site.html" %}
+{% comment %}
+Painel inicial (dashboard do store-inventory). Os numeros vem de
+apps/loja/painel.py via StarHubAdminSite.index. Blocks do admin mantidos:
+content (principal) e sidebar (acoes recentes).
+{% endcomment %}
+
+{% block bodyclass %}{{ block.super }} dashboard{% endblock %}
+{% block nav-breadcrumbs %}<nav aria-label="Trilha"><div class="breadcrumbs">Painel</div></nav>{% endblock %}
+{% block content_title %}
+  {% include "components/page_header.html" with titulo="Painel" subtitulo="Resumo da loja e das integracoes" %}
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="grid">
+  {% if painel %}
+    <div class="grid grid-4">
+      {% for item in painel.indicadores %}
+        {% include "components/stat_card.html" with rotulo=item.rotulo valor=item.valor eh_moeda=item.eh_moeda icone=item.icone tom=item.tom detalhe=item.detalhe %}
+      {% endfor %}
+    </div>
+
+    <div class="grid grid-3">
+      <div class="span-2">{% include "admin/painel/pedidos_recentes.html" %}</div>
+      {% include "admin/painel/status_pedidos.html" %}
+    </div>
+
+    <div class="grid grid-3">
+      {% include "admin/painel/estoque_baixo.html" %}
+      <div class="span-2">
+        {% componente "card" titulo="Modulos" icone="layout-grid" subtitulo="Tudo o que voce pode administrar" flush=True %}
+          {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+        {% endcomponente %}
+      </div>
+    </div>
+  {% else %}
+    {% include "admin/app_list.html" with app_list=app_list show_changelinks=True %}
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block sidebar %}
+<div id="content-related">
+  {% include "admin/painel/acoes_recentes.html" %}
+</div>
+{% endblock %}

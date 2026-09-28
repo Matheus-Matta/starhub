@@ -1,0 +1,19 @@
+{% url 'admin:loja_produto_changelist' as url_produtos %}
+{% componente "card" titulo="Estoque baixo" icone="triangle-alert" %}
+  {% slot "acoes" %}<a class="btn btn-sm btn-outline" href="{{ url_produtos }}?variantes__stock_status__exact=outofstock">Sem estoque</a>{% endslot %}
+  {% if painel.estoque_baixo %}
+    <div class="stack">
+      {% for variante in painel.estoque_baixo %}
+        <div class="row-between">
+          <div class="min-w-0">
+            <a class="font-medium" href="{% url 'admin:loja_produto_change' variante.produto_id %}">{{ variante.produto }}{% if not variante.is_default %} - {{ variante.titulo }}{% endif %}</a>
+            <div class="text-xs text-muted">SKU {{ variante.sku|default:"-" }}</div>
+          </div>
+          {% include "components/badge.html" with texto=variante.inventory_quantity tom=variante.stock_status|tom_status %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    {% include "components/empty_state.html" with icone="circle-check" texto="Estoque em dia." %}
+  {% endif %}
+{% endcomponente %}

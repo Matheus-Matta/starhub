@@ -1,0 +1,35 @@
+{% load static %}{# Menu lateral: montado do available_apps do admin (apps/core/ui/menu.py). #}
+<aside class="sidebar" aria-label="Menu principal">
+  <div class="sidebar-header">
+    <a class="brand" href="{% url 'admin:index' %}">
+      <img src="{% static 'starhub/img/logo.svg' %}" alt="">
+      <span class="brand-name">{{ site_header|default:"StarHub" }}</span>
+    </a>
+    <button type="button" class="sidebar-toggle btn btn-outline btn-icon btn-sm" data-acao="recolher-menu"
+            title="Recolher menu" aria-label="Recolher menu">
+      {% icone "chevron-first" "icon-sm" %}
+    </button>
+  </div>
+
+  <nav class="sidebar-menu">
+    {% url 'admin:index' as url_painel %}
+    <a class="menu-link{% if request.path == url_painel %} active{% endif %}" href="{{ url_painel }}" title="Painel">
+      {% icone "layout-grid" %}<span class="menu-label">Painel</span>
+    </a>
+
+    {# Uma secao por app (titulo + separador); cada item com o proprio icone. #}
+    {% menu_lateral as secoes %}
+    {% for secao in secoes %}
+      <div class="menu-secao">
+        <div class="menu-heading">{{ secao.nome }}</div>
+        {% for item in secao.itens %}
+          <a class="menu-link{% if item.ativo %} active{% endif %}" href="{{ item.url }}" title="{{ item.nome }}"
+             {% if item.ativo %}aria-current="page"{% endif %}>
+            {% icone item.icone %}<span class="menu-label">{{ item.nome }}</span>
+          </a>
+        {% endfor %}
+      </div>
+    {% endfor %}
+  </nav>
+</aside>
+<div class="sidebar-backdrop" data-acao="fechar-menu"></div>

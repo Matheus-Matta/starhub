@@ -1,0 +1,189 @@
+/* Widgets de formulario do tema (select, multi-select, lista flutuante).
+   O JS (static/starhub/js/) monta estes elementos ao lado do campo do Django,
+   que fica escondido (.sh-nativo) mas continua sendo o que o form envia. */
+
+.sh-nativo {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Gatilho do select (igual ao SelectTrigger do template) */
+.sh-select,
+.sh-multi {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 640px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  box-shadow: var(--shadow-xs);
+  color: var(--foreground);
+  font: 400 0.8125rem var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.sh-select:focus-visible,
+.sh-multi:focus-within,
+.sh-select.sh-aberto,
+.sh-multi.sh-aberto {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 20%, transparent);
+}
+
+.sh-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.sh-select-valor {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sh-vazio {
+  color: var(--muted-foreground);
+}
+
+.sh-select > .icon,
+.sh-multi > .icon {
+  margin-left: auto;
+  color: var(--muted-foreground);
+}
+
+/* Multi-select: etiquetas dentro da caixa */
+.sh-multi {
+  flex-wrap: wrap;
+  padding: 5px 10px 5px 5px;
+}
+
+.sh-chips {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sh-chips .sh-vazio {
+  padding: 3px 6px;
+}
+
+.sh-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 4px 0 8px;
+  border-radius: var(--radius-md);
+  background: var(--muted-2);
+  color: var(--secondary-foreground);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.sh-chip button {
+  display: inline-flex;
+  padding: 2px;
+  border: 0;
+  background: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.sh-chip button:hover {
+  color: var(--destructive);
+}
+
+/* Painel flutuante (lista de opcoes e calendario) */
+.sh-flutuante {
+  position: fixed;
+  z-index: 60;
+  box-sizing: border-box;
+  padding: 4px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.sh-lista-busca {
+  padding: 4px 4px 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.sh-lista-busca input {
+  width: 100%;
+  height: 30px;
+}
+
+.sh-lista-itens {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.sh-lista-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--foreground);
+  font: 400 0.8125rem var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+
+.sh-lista-item:hover,
+.sh-lista-item:focus-visible {
+  outline: none;
+  background: var(--accent);
+}
+
+.sh-lista-item .sh-check {
+  margin-left: auto;
+  color: var(--primary);
+}
+
+.sh-lista-item.sh-selecionado {
+  font-weight: 500;
+}
+
+.sh-lista-vazia {
+  padding: 12px 8px;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.sh-lista-rodape {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 4px 2px;
+  margin-top: 4px;
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.sh-lista-item input[type="checkbox"] {
+  pointer-events: none;
+}

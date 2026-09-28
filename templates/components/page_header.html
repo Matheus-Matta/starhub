@@ -1,0 +1,7 @@
+{# Titulo da pagina. Uso: {% include "components/page_header.html" with titulo=title subtitulo=subtitle %} #}
+<div class="page-header">
+  <div>
+    {% if titulo %}<h1>{{ titulo }}</h1>{% endif %}
+    {% if subtitulo %}<p>{{ subtitulo }}</p>{% endif %}
+  </div>
+</div>

@@ -1,0 +1,18 @@
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.dev"
+python_files = ["test_*.py"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["example_templetes_react_to_convert_html", "*/migrations/*"]
+
+[tool.ruff.lint]
+# E/F: erros reais (nome indefinido, import sem uso). B: armadilhas do Python
+# (argumento default mutavel, except amplo). I: ordem de import, evita conflito
+# de merge. DJ: defeitos de Django (null=True em CharField, __str__ ausente).
+select = ["E", "F", "B", "I", "DJ"]
+# DJ001 fica ligado. B008 desligado: Django usa chamada em default de campo
+# (timezone.now e similares) de proposito.
+ignore = ["B008"]

@@ -1,0 +1,2 @@
+{# Uso: {% include "components/badge.html" with texto=pedido.get_status_display tom=pedido.status|tom_status %} #}
+<span class="badge badge-{{ tom|default:'secondary' }}">{{ texto }}</span>

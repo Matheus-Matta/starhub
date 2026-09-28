@@ -1,0 +1,23 @@
+{% comment %}
+Variante unica do produto (simples, externo, agrupado, bundle) desenhada como secoes
+da pagina: um card por fieldset (Identificacao, Imagens, Preco...), igual as secoes
+do produto. E um inline de verdade por baixo (management form, id, fk), so sem a
+casca de inline. O id "<prefixo>-0" e o que o condicoes.js usa para as regras.
+{% endcomment %}
+<div class="sh-variante-secoes" id="{{ inline_admin_formset.formset.prefix }}-group">
+  {{ inline_admin_formset.formset.management_form }}
+  {{ inline_admin_formset.formset.non_form_errors }}
+  {% for inline_admin_form in inline_admin_formset %}
+    {# O ultimo, quando ha permissao de adicionar, e o molde vazio do Django: nao desenha. #}
+    {% if not forloop.last or not inline_admin_formset.has_add_permission %}
+      <div class="form-card-grid form-card-grid-single" id="{{ inline_admin_formset.formset.prefix }}-{{ forloop.counter0 }}">
+        {% if inline_admin_form.form.non_field_errors %}{{ inline_admin_form.form.non_field_errors }}{% endif %}
+        {% for fieldset in inline_admin_form %}
+          {% include "admin/includes/fieldset.html" with heading_level=2 prefix="variante" id_prefix=forloop.parentloop.counter0 id_suffix=forloop.counter0 %}
+        {% endfor %}
+        {% if inline_admin_form.needs_explicit_pk_field %}{{ inline_admin_form.pk_field.field }}{% endif %}
+        {% if inline_admin_form.fk_field %}{{ inline_admin_form.fk_field.field }}{% endif %}
+      </div>
+    {% endif %}
+  {% endfor %}
+</div>

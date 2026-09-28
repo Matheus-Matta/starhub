@@ -1,0 +1,45 @@
+{% extends "admin/base_site.html" %}
+{# Resultado da busca do header (StarHubAdminSite.busca_view -> apps/core/busca.py). #}
+
+{% block breadcrumbs %}
+  <div class="breadcrumbs"><a href="{% url 'admin:index' %}">Painel</a> &rsaquo; Busca</div>
+{% endblock %}
+
+{% block content_title %}
+  {% if termo_busca %}
+    {% include "components/page_header.html" with titulo="Busca" subtitulo=total|stringformat:"d"|add:" resultado(s) para \""|add:termo_busca|add:"\"" %}
+  {% else %}
+    {% include "components/page_header.html" with titulo="Busca" subtitulo="Procure produtos, pedidos, clientes e chaves de API" %}
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  {% if grupos %}
+    <div class="grid grid-2">
+      {% for grupo in grupos %}
+        {% componente "card" titulo=grupo.titulo subtitulo=grupo.total|stringformat:"d"|add:" encontrado(s)" %}
+          {% if grupo.url_todos and grupo.total > grupo.itens|length %}
+            {% slot "acoes" %}<a class="btn btn-sm btn-outline" href="{{ grupo.url_todos }}">Ver todos</a>{% endslot %}
+          {% endif %}
+          <div class="stack">
+            {% for item in grupo.itens %}
+              <a class="row-between busca-item" href="{{ item.url }}">
+                <span class="font-medium">{{ item.texto }}</span>{% icone "chevron-right" "icon-sm text-muted" %}
+              </a>
+            {% endfor %}
+          </div>
+        {% endcomponente %}
+      {% endfor %}
+    </div>
+  {% else %}
+    {% componente "card" %}
+      {% if termo_busca|length < tamanho_minimo %}
+        {% include "components/empty_state.html" with icone="search" texto="Digite pelo menos 2 letras." detalhe="Use a caixa de busca no topo (Ctrl K)." %}
+      {% else %}
+        {% include "components/empty_state.html" with icone="search" texto="Nada encontrado." detalhe="Tente o SKU, o e-mail do cliente ou o numero do pedido." %}
+      {% endif %}
+    {% endcomponente %}
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,155 @@
+/* Casca de criar/editar inspirada no sheet do store-inventory. */
+
+.form-page > form { display: block; }
+
+.form-workspace {
+  display: grid;
+  gap: 20px;
+  overflow: visible;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.form-workspace-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 62px;
+  box-sizing: border-box;
+  padding: 0;
+  border: 0;
+}
+
+.form-workspace-heading {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.form-workspace-heading h1 {
+  overflow: hidden;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.form-workspace-heading p,
+.form-workspace-kicker {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.form-workspace-kicker {
+  color: var(--primary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.form-workspace-tools,
+.form-workspace-tools .object-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.change-form .form-workspace-tools .object-tools { position: static; }
+
+.form-workspace-body {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+}
+
+/* Inlines (variantes, tipos, midias, componentes...): um bloco por grupo, com o
+   mesmo respiro das secoes. Bloco escondido (condicoes.js) nao deixa vao: o gap
+   so conta entre os visiveis. */
+.form-related {
+  display: grid;
+  gap: var(--gap-pagina);
+  min-width: 0;
+}
+
+/* Grade sem nenhum card (ex.: form sem secao "sh-final"): some, senao o gap da
+   pagina deixaria um vao no fim do formulario. */
+.form-card-grid:not(:has(> *)) {
+  display: none;
+}
+
+.form-card-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.form-workspace-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  min-height: 64px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(8px);
+}
+
+.form-submit-top {
+  border-bottom: 1px solid var(--border);
+}
+
+.submit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-sizing: border-box;
+  min-height: 64px;
+  margin: 0;
+  padding: 12px 20px;
+  background: transparent;
+  border: 0;
+  white-space: normal;
+}
+
+.submit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.submit-row a.deletelink {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  margin: 0;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  background: var(--destructive-soft);
+  color: var(--destructive);
+}
+
+@media (max-width: 900px) {
+  .form-workspace-header { align-items: stretch; flex-direction: column; }
+  .form-workspace-tools { flex-wrap: wrap; }
+}
+
+@media (max-width: 600px) {
+  .form-workspace-header { padding: 0; }
+  .submit-row { align-items: stretch; flex-direction: column; }
+  .submit-actions { justify-content: stretch; }
+  .submit-actions .btn { flex: 1 1 100%; }
+}

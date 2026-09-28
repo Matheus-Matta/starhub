@@ -1,0 +1,70 @@
+/* Menu que abre do header: menu do usuario (avatar). */
+
+/* O base.css do Django estiliza #user-tools (caixa alta, 11px, texto a
+   direita, borda nos links). Os nossos menus moram ali dentro: desfaz. */
+#user-tools.header-tools {
+  padding: 0;
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-align: left;
+  text-transform: none;
+}
+
+#user-tools.header-tools a,
+#user-tools.header-tools button,
+#user-tools.header-tools #logout-form button {
+  border-bottom: 0;
+  font-size: 0.8125rem;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.dropdown-titulo {
+  padding: 6px 8px 10px;
+  color: var(--mono);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.dropdown-usuario {
+  width: 256px;
+  top: calc(100% + 11px);
+}
+
+/* "Sair" e um <button> dentro de <form id="logout-form">: o base.css do Django
+   zera o padding dele (#logout-form button), e ele ficava desalinhado dos
+   links acima. O id na regra e para vencer a do Django. */
+#user-tools .dropdown-menu #logout-form {
+  display: block;
+  margin: 0;
+}
+
+#user-tools .dropdown-menu #logout-form button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  color: var(--accent-foreground);
+  font-weight: 400;
+}
+
+.dropdown-item.theme-toggle {
+  font-size: 0.8125rem;
+}
+
+.dropdown-item .theme-label {
+  margin-left: -6px;
+}
+
+.busca-item {
+  padding: 4px 0;
+  color: var(--mono) !important;
+}
+
+.busca-item:hover {
+  color: var(--primary) !important;
+}

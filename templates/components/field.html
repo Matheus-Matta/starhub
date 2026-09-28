@@ -1,0 +1,25 @@
+{% comment %}
+Um campo (BoundField). Uso: {% include "components/field.html" with field=form.email %}
+Todos: rotulo em cima, campo embaixo. Booleano vira switch (.field-switch).
+{% endcomment %}
+{% with widget=field.field.widget.input_type %}
+<div class="field{% if field.errors %} errors{% endif %} field-{{ field.name }}">
+  {% if widget == "checkbox" %}
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+    <div class="field-switch">{{ field }}</div>
+  {% else %}
+    <label for="{{ field.id_for_label }}">
+      {{ field.label }}{% if field.field.required %}<span class="required-mark" aria-hidden="true">*</span>{% endif %}
+    </label>
+    {% if icones and widget == "password" %}
+      <div class="input-icon">{% icone "lock" %}{{ field }}</div>
+    {% elif icones and field.name == "username" or icones and widget == "email" %}
+      <div class="input-icon">{% icone "user" %}{{ field }}</div>
+    {% else %}
+      {{ field }}
+    {% endif %}
+  {% endif %}
+  {% if field.help_text %}<div class="field-help" id="{{ field.auto_id }}_helptext">{{ field.help_text|safe }}</div>{% endif %}
+  {% if field.errors %}<ul class="field-errors">{% for erro in field.errors %}<li>{{ erro }}</li>{% endfor %}</ul>{% endif %}
+</div>
+{% endwith %}

@@ -1,0 +1,9 @@
+{% comment %}
+Alerta com conteudo livre. Uso:
+  {% componente "alert" tom="warning" icone="triangle-alert" %}Texto do aviso.{% endcomponente %}
+tom: info, success, warning, destructive.
+{% endcomment %}
+<div class="alert alert-{{ tom|default:'info' }} {{ classe|default:'' }}" role="{% if tom == 'destructive' %}alert{% else %}status{% endif %}">
+  {% icone icone|default:"info" %}
+  <div>{{ slot }}</div>
+</div>

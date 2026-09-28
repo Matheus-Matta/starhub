@@ -1,0 +1,112 @@
+/* Paginas sem login (entrar, saiu): formulario a esquerda, arte a direita,
+   como as telas de autenticacao do Metronic. */
+
+.auth {
+  display: grid;
+  min-height: 100vh;
+  background: var(--background);
+}
+
+.auth-form-side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+}
+
+.auth-card .brand {
+  margin-bottom: 32px;
+}
+
+.auth-card h1 {
+  font-size: 1.375rem;
+  line-height: 1.3;
+}
+
+.auth-card .auth-subtitle {
+  margin: 6px 0 24px;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+.auth-card .btn-block {
+  height: 40px;
+  margin-top: 4px;
+}
+
+.auth-links {
+  display: flex;
+  justify-content: flex-end;
+  margin: -6px 0 16px;
+  font-size: 0.8125rem;
+}
+
+.auth-art {
+  display: none;
+  position: relative;
+  margin: 16px;
+  padding: 48px;
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.18), transparent 40%),
+    linear-gradient(135deg, #1b84ff 0%, #0b4fb3 100%);
+  color: #fff;
+  overflow: hidden;
+}
+
+.auth-art h2 {
+  color: #fff;
+  font-size: 1.75rem;
+  line-height: 1.25;
+  max-width: 440px;
+}
+
+.auth-art p {
+  max-width: 440px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9375rem;
+}
+
+.auth-art ul {
+  display: grid;
+  gap: 12px;
+  margin: 32px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.auth-art li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+}
+
+.auth-art li .icon {
+  padding: 6px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.auth-theme {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+}
+
+@media (min-width: 1024px) {
+  .auth {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .auth-art {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+}

@@ -1,0 +1,61 @@
+{% load static %}{% comment %}
+Secao "Variantes" da pagina do produto (apps/loja/admin/variantes.py, lista_variantes).
+A secao inteira e a lista: tabela encostada nas bordas do card e o "+" no titulo.
+Linha e botoes com data-modal-url abrem o form da variante num modal (modal-lista.js).
+{% endcomment %}
+<div class="sh-lista-variantes">
+  {# Vai para a direita do titulo da secao (lista-modal.css): a secao e a propria lista. #}
+  {% if pode_adicionar %}
+    <div class="sh-lista-acoes">
+      {# Mesmo "+" verde dos campos de relacao: abre o cadastro no modal. #}
+      <button type="button" class="btn btn-sm btn-outline sh-adicionar-relacionado" data-modal-chave="variantes"
+              data-modal-titulo="Adicionar variante"
+              {% if url_adicionar %}data-modal-url="{{ url_adicionar }}"{% else %}data-modal-salvar-antes{% endif %}>
+        <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="" width="14" height="14"> Adicionar variante
+      </button>
+    </div>
+  {% endif %}
+  {% if linhas %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th class="sh-coluna-imagem"><span class="visually-hidden">Imagem</span></th>
+            <th>Variante</th><th>SKU</th><th class="num">Preco</th><th class="num">Estoque</th>
+            <th>Situacao</th><th class="sh-coluna-acoes"><span class="visually-hidden">Acoes</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for linha in linhas %}{% with v=linha.variante %}
+            <tr class="sh-linha-modal" tabindex="0" data-modal-url="{{ linha.url_editar }}"
+                data-modal-titulo="Editar variante: {{ v.titulo }}">
+              <td class="sh-coluna-imagem">
+                {% if linha.imagem %}<img class="sh-miniatura" src="{{ linha.imagem.url }}" alt="">
+                {% else %}<span class="sh-miniatura sh-miniatura-vazia">{% icone "package" "icon-sm" %}</span>{% endif %}
+              </td>
+              <td>
+                <span class="font-medium">{{ v.titulo }}</span>
+                {% if v.is_default %}{% include "components/badge.html" with texto="Padrao" tom="primary" %}{% endif %}
+                {% if not v.active %}{% include "components/badge.html" with texto="Inativa" %}{% endif %}
+              </td>
+              <td class="text-muted">{{ v.sku|default:"-" }}</td>
+              <td class="num nowrap">{% if v.current_price is not None %}{{ v.current_price|moeda }}{% else %}-{% endif %}</td>
+              <td class="num">{% if v.manage_inventory %}{{ v.inventory_quantity }}{% else %}-{% endif %}</td>
+              <td>{% include "components/badge.html" with texto=v.get_stock_status_display tom=v.stock_status|tom_status %}</td>
+              <td class="sh-coluna-acoes">
+                <button type="button" class="btn btn-sm btn-outline" data-modal-url="{{ linha.url_editar }}"
+                        data-modal-titulo="Editar variante: {{ v.titulo }}"{% if forloop.first %} data-modal-chave="variante-editar"{% endif %}>Editar</button>
+                {% if not v.is_default %}
+                  <button type="button" class="btn btn-sm btn-ghost sh-perigo" data-modal-url="{{ linha.url_excluir }}"
+                          data-modal-titulo="Excluir variante: {{ v.titulo }}">Excluir</button>
+                {% endif %}
+              </td>
+            </tr>
+          {% endwith %}{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    {% include "components/empty_state.html" with icone="package" texto="Nenhuma variante ainda." detalhe="A variante guarda preco, estoque, SKU e imagens do produto." %}
+  {% endif %}
+</div>

@@ -1,0 +1,81 @@
+/* Lista de filhos com modal (variantes do produto): templates/admin/loja/lista_variantes.html.
+   A secao do form E a lista: sem o recuo das linhas de campo, a tabela encosta nas
+   bordas do card (colunas alinhadas ao titulo) e o "+ Adicionar" sobe para o titulo. */
+.sh-lista-variantes {
+  min-width: 0;
+}
+
+.form-card-grid fieldset.module.secao-variantes {
+  position: relative;
+}
+
+.form-card-grid fieldset.module.secao-variantes > .form-row,
+.form-card-grid fieldset.module.secao-variantes > .form-row:first-of-type {
+  padding: 0;
+}
+
+.sh-lista-acoes {
+  position: absolute;
+  top: 0;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  height: 42px; /* altura do titulo da secao (admin-form.css) */
+}
+
+.sh-lista-variantes .table-wrap {
+  border-bottom-left-radius: var(--radius-lg);
+  border-bottom-right-radius: var(--radius-lg);
+}
+
+.sh-lista-variantes > .empty-state {
+  padding: 24px 16px;
+}
+
+.sh-linha-modal {
+  cursor: pointer;
+}
+
+.sh-linha-modal:hover,
+.sh-linha-modal:focus-visible {
+  background: var(--accent);
+  outline: none;
+}
+
+.sh-coluna-imagem {
+  width: 48px;
+}
+
+.sh-coluna-acoes {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.sh-miniatura {
+  display: block;
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.sh-miniatura-vazia {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  color: var(--muted-foreground);
+  background: var(--muted);
+}
+
+.btn.sh-perigo {
+  color: var(--destructive);
+}
+
+.sh-adicionar-relacionado {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

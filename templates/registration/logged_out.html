@@ -1,0 +1,10 @@
+{% extends "layouts/auth.html" %}
+{# Tela depois do "Sair" do admin, no layout de autenticacao. #}
+
+{% block title %}Ate logo | StarHub{% endblock %}
+{% block auth_titulo %}Voce saiu{% endblock %}
+{% block auth_subtitulo %}Obrigado por usar o StarHub hoje.{% endblock %}
+
+{% block content %}
+  <a class="btn btn-primary btn-block" href="{% url 'admin:index' %}">Entrar de novo</a>
+{% endblock %}

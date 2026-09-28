@@ -1,0 +1,192 @@
+/* Componentes reutilizaveis: card, botao, badge, alerta, avatar, dropdown.
+   O HTML de cada um fica em templates/components/. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xs);
+  min-width: 0;
+}
+
+.card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 56px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--mono);
+}
+
+.card-subtitle {
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  font-weight: 400;
+}
+
+.card-body {
+  flex: 1;
+  padding: 20px;
+}
+
+.card-body.flush {
+  padding: 0;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 20px;
+  border-top: 1px solid var(--border);
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Botoes */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font: 500 0.8125rem/1 var(--font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.btn-primary,
+a.btn-primary:link,
+a.btn-primary:visited {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+  color: var(--primary-foreground);
+}
+
+.btn-mono,
+a.btn-mono:link,
+a.btn-mono:visited {
+  background: var(--mono);
+  color: var(--background);
+}
+
+.btn-mono:hover { opacity: 0.9; }
+
+.btn-outline,
+a.btn-outline:link,
+a.btn-outline:visited {
+  background: var(--background);
+  border-color: var(--input);
+  color: var(--accent-foreground);
+}
+
+.btn-outline:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.btn-ghost,
+a.btn-ghost:link,
+a.btn-ghost:visited {
+  background: transparent;
+  color: var(--accent-foreground);
+}
+
+.btn-ghost:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.btn-destructive {
+  background: var(--destructive);
+  color: #fff;
+}
+
+.btn-sm { height: 28px; padding: 0 10px; font-size: 0.75rem; }
+.btn-lg { height: 40px; padding: 0 16px; font-size: 0.875rem; }
+.btn-icon { width: 34px; padding: 0; }
+.btn-circle { border-radius: 999px; }
+.btn-block { width: 100%; }
+
+/* Badges: tom sai do status (apps/core/ui/formatos.py -> tom_status). */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.badge-primary { background: var(--primary-soft); color: var(--primary); }
+.badge-success { background: var(--success-soft); color: var(--success); }
+.badge-warning { background: var(--warning-soft); color: #c28a00; }
+.badge-info { background: var(--info-soft); color: var(--info); }
+.badge-destructive { background: var(--destructive-soft); color: var(--destructive); }
+.badge-secondary { background: var(--muted-2); color: var(--secondary-foreground); }
+
+/* Avatar com iniciais */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Dropdown (menu do usuario). Abre com [data-dropdown].open (starhub.js). */
+.dropdown {
+  position: relative;
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  min-width: 240px;
+  padding: 6px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.dropdown.open .dropdown-menu {
+  display: block;
+}

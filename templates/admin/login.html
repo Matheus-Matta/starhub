@@ -1,0 +1,30 @@
+{% extends "layouts/auth.html" %}
+{% comment %}
+Login do admin com o layout de autenticacao do tema. Mantem o contrato do
+admin/login.html do Django: action={{ app_path }}, campo "next" e o form
+AdminAuthenticationForm renderizado pelo components/forms.html.
+{% endcomment %}
+
+{% block title %}Entrar | {{ site_title|default:"StarHub" }}{% endblock %}
+{% block bodyclass %}login{% endblock %}
+{% block auth_titulo %}Entrar{% endblock %}
+{% block auth_subtitulo %}Use seu usuario e senha do StarHub.{% endblock %}
+
+{% block content %}
+  {% if user.is_authenticated %}
+    {% componente "alert" classe="mb-4" tom="warning" icone="triangle-alert" %}
+      Voce entrou como {{ username }}, mas nao tem acesso a esta pagina. Quer entrar com outra conta?
+    {% endcomponente %}
+  {% endif %}
+
+  <form action="{{ app_path }}" method="post" id="login-form" novalidate>
+    {% csrf_token %}
+    {% include "components/forms.html" with form=form icones=True %}
+    <input type="hidden" name="next" value="{{ next }}">
+    {% url 'admin_password_reset' as password_reset_url %}
+    {% if password_reset_url %}
+      <div class="auth-links"><a href="{{ password_reset_url }}">Esqueceu a senha?</a></div>
+    {% endif %}
+    <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+  </form>
+{% endblock %}

@@ -1,0 +1,13 @@
+<span class="table-identity table-product">
+  <span class="table-identity-media table-product-thumb">
+    {% if imagem_url %}
+      <img src="{{ imagem_url }}" alt="" loading="lazy">
+    {% else %}
+      {% icone "package" %}
+    {% endif %}
+  </span>
+  <span class="table-identity-copy">
+    <span class="table-identity-title" title="{{ nome }}">{{ nome }}</span>
+    <span class="table-identity-meta">SKU: {{ sku }}</span>
+  </span>
+</span>

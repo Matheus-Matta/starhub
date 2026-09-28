@@ -1,0 +1,161 @@
+/* Header fixo igual ao do store-inventory: trilha a esquerda; busca (280px,
+   com Ctrl K), botoes redondos e avatar com bolinha "online" a direita. */
+
+.app-header {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 10;
+  height: var(--header-height);
+  display: flex;
+  align-items: stretch;
+  background: var(--background);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+body.is-scrolled .app-header {
+  border-bottom-color: var(--border);
+}
+
+.app-header .container-fluid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.header-mobile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-mobile .brand img {
+  width: 26px;
+  height: 26px;
+}
+
+.header-trilha {
+  display: none;
+  min-width: 0;
+}
+
+.header-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+/* Botao redondo do header (apps, busca no celular) */
+.btn-header {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--secondary-foreground) !important;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.btn-header:hover,
+[data-dropdown].open > .btn-header {
+  background: var(--primary-soft);
+  color: var(--primary) !important;
+}
+
+.btn-header .icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Busca */
+.header-search {
+  position: relative;
+  display: none;
+  width: 280px;
+}
+
+.header-search > .icon {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  transform: translateY(-50%);
+  color: var(--muted-foreground);
+  pointer-events: none;
+}
+
+.header-search input[type="search"] {
+  width: 100%;
+  padding: 0 54px 0 30px;
+}
+
+.header-kbd {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  height: 20px;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--muted-foreground);
+  font: 500 0.6875rem/18px var(--font-sans);
+  text-transform: none;
+  pointer-events: none;
+}
+
+/* Avatar (28px) com indicador online */
+.header-avatar {
+  position: relative;
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  cursor: pointer;
+}
+
+.avatar-sm {
+  width: 28px;
+  height: 28px;
+  font-size: 0.6875rem;
+}
+
+.avatar-status {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--background);
+  border-radius: 999px;
+  background: var(--success);
+}
+
+@media (min-width: 1024px) {
+  .app-header {
+    left: var(--sidebar-width);
+    transition: left 0.2s;
+  }
+
+  body.sidebar-collapse .app-header {
+    left: var(--sidebar-width-collapse);
+  }
+
+  .header-mobile,
+  .header-search-mobile {
+    display: none;
+  }
+
+  .header-trilha,
+  .header-search {
+    display: block;
+  }
+}

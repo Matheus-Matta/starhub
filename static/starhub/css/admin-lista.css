@@ -1,0 +1,92 @@
+/* Listagem do admin: card da tabela ocupando a altura da tela, rolagem so no
+   corpo da tabela (cabecalho fixo) e checkbox de linha alinhado ao do topo.
+
+   Altura: a pagina de lista vira uma coluna flex com a altura EXATA da tela
+   (.wrapper = 100dvh), e cada nivel ate a tabela usa flex: 1 + min-height: 0.
+   Com poucas linhas o card estica ate embaixo; com muitas, so a tabela rola.
+   No celular (< 768px) a pagina rola normal: tabela espremida nao da para usar. */
+
+@media (min-width: 768px) {
+  body.change-list {
+    overflow: hidden;
+  }
+
+  body.change-list .wrapper {
+    box-sizing: border-box;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  body.change-list .app-main,
+  body.change-list .app-main > .container-fluid,
+  body.change-list #content,
+  body.change-list #content-main,
+  body.change-list #changelist.list-card,
+  body.change-list .changelist-form-container,
+  body.change-list #changelist-form {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  body.change-list #changelist.list-card {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  body.change-list .list-card-table {
+    flex: 1;
+    min-height: 240px;
+    overflow: auto;
+  }
+
+  /* Um so container de rolagem (o .list-card-table), senao o cabecalho
+     fixo gruda no div .results do Django e nao no card. */
+  body.change-list #changelist .list-card-table .results {
+    overflow: visible;
+  }
+
+  body.change-list .list-card-header,
+  body.change-list #changelist .actions,
+  body.change-list .list-card-footer {
+    flex-shrink: 0;
+  }
+}
+
+/* Cabecalho da tabela fixo enquanto o corpo rola */
+.list-card-table #result_list thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--muted);
+  box-shadow: inset 0 -1px 0 var(--border);
+}
+
+.list-card-table > .empty-state {
+  box-sizing: border-box;
+  justify-content: center;
+  min-height: 100%;
+}
+
+/* Checkbox da linha alinhado com o do cabecalho: o Django centraliza os dois
+   em larguras diferentes. Aqui: mesma largura, mesmo recuo, a esquerda. */
+#changelist #result_list th.action-checkbox-column,
+#changelist #result_list td.action-checkbox {
+  width: 20px;
+  padding: 0 8px 0 16px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+#changelist #result_list th.action-checkbox-column .text > span {
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+}
+
+#changelist #result_list td.action-checkbox input,
+#changelist #result_list th.action-checkbox-column input {
+  margin: 0;
+}

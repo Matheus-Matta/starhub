@@ -1,0 +1,152 @@
+/* Calendario flutuante (data unica e periodo com dois meses), como o
+   Calendar do template: dia em quadrado 32px, selecionado azul, faixa clara. */
+
+.sh-campo-data {
+  position: relative;
+  display: inline-flex;
+  width: 100%;
+  max-width: 200px;
+}
+
+.sh-campo-data input {
+  width: 100%;
+  padding-right: 34px;
+}
+
+.sh-campo-data .sh-abrir-calendario {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  padding: 5px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.sh-campo-data .sh-abrir-calendario:hover {
+  color: var(--primary);
+}
+
+.sh-data-hora {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sh-data-hora input[type="time"] {
+  width: 120px;
+}
+
+.sh-calendario {
+  padding: 8px;
+}
+
+.sh-cal-meses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.sh-cal-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  margin-bottom: 6px;
+  color: var(--mono);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+/* "setembro de 2026" -> "Setembro de 2026" (capitalize faria "De"). */
+.sh-cal-topo span {
+  display: inline-block;
+}
+
+.sh-cal-topo span::first-letter {
+  text-transform: uppercase;
+}
+
+.sh-cal-nav {
+  display: inline-flex;
+  padding: 6px;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  color: var(--accent-foreground);
+  cursor: pointer;
+}
+
+.sh-cal-nav[hidden] {
+  visibility: hidden;
+  display: inline-flex;
+}
+
+.sh-cal-grade {
+  display: grid;
+  grid-template-columns: repeat(7, 32px);
+  gap: 2px 0;
+}
+
+.sh-cal-semana {
+  height: 28px;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  line-height: 28px;
+  text-align: center;
+}
+
+.sh-cal-dia {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--foreground);
+  font: 400 0.8125rem var(--font-sans);
+  cursor: pointer;
+}
+
+.sh-cal-dia:hover {
+  background: var(--accent);
+}
+
+.sh-cal-dia.sh-fora {
+  visibility: hidden;
+}
+
+.sh-cal-dia.sh-hoje {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.sh-cal-dia.sh-faixa {
+  border-radius: 0;
+  background: var(--primary-soft);
+}
+
+.sh-cal-dia.sh-escolhido,
+.sh-cal-dia.sh-escolhido:hover {
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.sh-cal-rodape {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+/* A regra .aligned do formulario estica todo input; a hora fica curta. */
+.aligned .sh-data-hora input[type="time"] {
+  width: 120px;
+}

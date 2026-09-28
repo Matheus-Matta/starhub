@@ -1,0 +1,143 @@
+/* Tokens do tema (cores do Metronic "store-inventory").
+   Toda cor sai daqui: tema claro em :root, escuro em [data-theme=dark] e no
+   "auto" quando o sistema esta escuro. As variaveis do admin do Django
+   (--primary, --body-bg...) tambem apontam para ca, entao as telas nativas
+   (changelist, change form, widgets) herdam o tema sem CSS por tela.
+
+   Seletores com :root[data-theme] (especificidade 0,2,0) de proposito: o
+   admin/css/base.css declara as MESMAS variaveis em :root e em
+   html[data-theme="light"] (0,1,1). Com :root simples o Django ganhava e o
+   tema claro virava o azul-petroleo do admin. Todo layout poe data-theme. */
+
+:root[data-theme] {
+  --background: #ffffff;
+  --foreground: #071437;
+  --mono: #071437;
+  --card: #ffffff;
+  --muted: #f9f9f9;
+  --muted-2: #f1f1f4;
+  --muted-foreground: #78829d;
+  --secondary-foreground: #4b5675;
+  --accent: #f9f9f9;
+  --accent-foreground: #252f4a;
+  --border: #f1f1f4;
+  --input: #dbdfe9;
+  --ring: #1b84ff;
+
+  --primary: #1b84ff;
+  --primary-hover: #056ee9;
+  --primary-soft: #eff6ff;
+  --primary-foreground: #ffffff;
+  --success: #17c653;
+  --success-soft: #eafff1;
+  --warning: #f6b100;
+  --warning-soft: #fff8dd;
+  --info: #7239ea;
+  --info-soft: #f8f5ff;
+  --destructive: #f8285a;
+  --destructive-soft: #ffeef3;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+  --sidebar-width: 280px;
+  --sidebar-width-collapse: 80px;
+  --header-height: 70px;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --background: #0d0e12;
+  --foreground: #f5f5f5;
+  --mono: #f5f5f5;
+  --card: #111217;
+  --muted: #15171c;
+  --muted-2: #1b1c22;
+  --muted-foreground: #808290;
+  --secondary-foreground: #9a9cae;
+  --accent: #1b1c22;
+  --accent-foreground: #e4e4e7;
+  --border: #26272f;
+  --input: #363843;
+  --primary-soft: #172331;
+  --success-soft: #1f212a;
+  --warning-soft: #242320;
+  --info-soft: #1f1d2b;
+  --destructive-soft: #302024;
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] {
+    --background: #0d0e12;
+    --foreground: #f5f5f5;
+    --mono: #f5f5f5;
+    --card: #111217;
+    --muted: #15171c;
+    --muted-2: #1b1c22;
+    --muted-foreground: #808290;
+    --secondary-foreground: #9a9cae;
+    --accent: #1b1c22;
+    --accent-foreground: #e4e4e7;
+    --border: #26272f;
+    --input: #363843;
+    --primary-soft: #172331;
+    --success-soft: #1f212a;
+    --warning-soft: #242320;
+    --info-soft: #1f1d2b;
+    --destructive-soft: #302024;
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+  }
+}
+
+/* Ponte para as variaveis do admin do Django (admin/css/base.css). */
+:root[data-theme] {
+  --secondary: var(--primary);
+  --primary-fg: var(--primary-foreground);
+  --body-fg: var(--foreground);
+  --body-bg: var(--background);
+  --body-quiet-color: var(--muted-foreground);
+  --body-medium-color: var(--secondary-foreground);
+  --body-loud-color: var(--mono);
+  --header-color: var(--foreground);
+  --header-branding-color: var(--foreground);
+  --header-bg: var(--background);
+  --header-link-color: var(--foreground);
+  --breadcrumbs-fg: var(--muted-foreground);
+  --breadcrumbs-link-fg: var(--muted-foreground);
+  --breadcrumbs-bg: transparent;
+  --link-fg: var(--primary);
+  --link-hover-color: var(--primary-hover);
+  --link-selected-fg: var(--primary);
+  --hairline-color: var(--border);
+  --border-color: var(--input);
+  --error-fg: var(--destructive);
+  --message-success-bg: var(--success-soft);
+  --message-warning-bg: var(--warning-soft);
+  --message-error-bg: var(--destructive-soft);
+  --darkened-bg: var(--muted);
+  --selected-bg: var(--primary-soft);
+  --selected-row: var(--primary-soft);
+  --button-fg: var(--primary-foreground);
+  --button-bg: var(--primary);
+  --button-hover-bg: var(--primary-hover);
+  --default-button-bg: var(--primary);
+  --default-button-hover-bg: var(--primary-hover);
+  --close-button-bg: var(--muted-foreground);
+  --close-button-hover-bg: var(--secondary-foreground);
+  --delete-button-bg: var(--destructive);
+  --delete-button-hover-bg: #d81a48;
+  --object-tools-fg: var(--primary-foreground);
+  --object-tools-bg: var(--primary);
+  --object-tools-hover-bg: var(--primary-hover);
+  --font-family-primary: var(--font-sans);
+  --font-family-monospace: var(--font-mono);
+}

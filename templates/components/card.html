@@ -1,0 +1,22 @@
+{% comment %}
+Card. Uso:
+  {% componente "card" titulo="Pedidos" subtitulo="ultimos 7 dias" icone="clipboard-list" flush=True %}
+    {% slot "acoes" %}<a class="btn btn-sm btn-outline" href="#">Ver todos</a>{% endslot %}
+    {% slot "rodape" %}<a href="#">Abrir lista</a>{% endslot %}
+    ...conteudo...
+  {% endcomponente %}
+flush=True tira o respiro do corpo (para tabela encostar na borda).
+{% endcomment %}
+<div class="card {{ classe|default:'' }}">
+  {% if titulo or slots.acoes %}
+    <div class="card-header">
+      <div>
+        {% if titulo %}<h3 class="card-title">{% if icone %}{% icone icone "text-muted" %}{% endif %}{{ titulo }}</h3>{% endif %}
+        {% if subtitulo %}<div class="card-subtitle">{{ subtitulo }}</div>{% endif %}
+      </div>
+      {% if slots.acoes %}<div class="card-actions">{{ slots.acoes }}</div>{% endif %}
+    </div>
+  {% endif %}
+  <div class="card-body{% if flush %} flush{% endif %}">{{ slot }}</div>
+  {% if slots.rodape %}<div class="card-footer">{{ slots.rodape }}</div>{% endif %}
+</div>

@@ -1,0 +1,10 @@
+{# Campo JSON do tema: o textarea e o valor enviado; o JS (json-*.js) monta a interface e o esconde. #}
+<div class="sh-json sh-json-{{ widget.tipo }}" data-json-widget="{{ widget.tipo }}" data-config="{{ widget.config_json }}">
+  <textarea name="{{ widget.name }}" class="sh-json-valor"{% include "django/forms/widgets/attrs.html" %}>
+{% if widget.value %}{{ widget.value }}{% endif %}</textarea>
+  {% if widget.tipo == "imagens" %}
+    <input type="file" name="{{ widget.name }}__arquivos" accept="image/png,image/jpeg,image/gif,image/webp"
+           class="sh-nativo" data-arquivos{% if widget.attrs.id %} id="{{ widget.attrs.id }}__arquivos"{% endif %}
+           {% if widget.multiplas %}multiple{% endif %}>
+  {% endif %}
+</div>

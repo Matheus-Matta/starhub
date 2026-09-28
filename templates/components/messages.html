@@ -1,0 +1,15 @@
+{# Mensagens do Django (messages framework) como alertas do tema. #}
+{% if messages %}
+  <ul class="messages">
+    {% for message in messages %}
+      {% with tom=message.tags|default:"info" %}
+        <li class="alert alert-{{ tom }}">
+          {% if tom == "success" %}{% icone "circle-check" %}
+          {% elif tom == "error" or tom == "warning" %}{% icone "triangle-alert" %}
+          {% else %}{% icone "info" %}{% endif %}
+          <div>{{ message|capfirst }}</div>
+        </li>
+      {% endwith %}
+    {% endfor %}
+  </ul>
+{% endif %}

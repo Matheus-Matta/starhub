@@ -1,0 +1,11 @@
+{% url 'admin:loja_pedido_changelist' as url_pedidos %}
+{% componente "card" titulo="Pedidos por status" icone="trending-up" %}
+  <div class="stack">
+    {% for item in painel.status_pedidos %}
+      <a href="{{ url_pedidos }}?status__exact={{ item.valor }}" class="row-between">
+        {% include "components/badge.html" with texto=item.rotulo tom=item.valor|tom_status %}
+        <span class="font-semibold text-mono">{{ item.qtd }}</span>
+      </a>
+    {% endfor %}
+  </div>
+{% endcomponente %}

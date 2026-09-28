@@ -1,0 +1,17 @@
+{% comment %}
+Indicador numerico. Uso:
+  {% include "components/stat_card.html" with rotulo="Pedidos" valor=12 icone="shopping-cart" tom="primary" detalhe="no mes" %}
+Para dinheiro passe eh_moeda=True: o valor sai como "R$ 1.234,50".
+{% endcomment %}
+<div class="card">
+  <div class="card-body">
+    <div class="stat">
+      <div>
+        <div class="stat-label">{{ rotulo }}</div>
+        <div class="stat-value">{% if eh_moeda %}{{ valor|moeda }}{% else %}{{ valor }}{% endif %}</div>
+        {% if detalhe %}<div class="stat-detail">{{ detalhe }}</div>{% endif %}
+      </div>
+      {% if icone %}<span class="stat-icon tone-{{ tom|default:'primary' }}">{% icone icone "icon-lg" %}</span>{% endif %}
+    </div>
+  </div>
+</div>

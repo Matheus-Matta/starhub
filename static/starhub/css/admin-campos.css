@@ -1,0 +1,198 @@
+/* Campos do change_form como no template: rotulo EM CIMA e colado no input
+   (6px), em vez da coluna fixa de 160px do Django que deixava o rotulo longe.
+   Campos da mesma linha (fieldsets com tupla) viram colunas iguais. */
+
+.form-row {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  padding: 0 16px 16px;
+  border-bottom: 0;
+  overflow: visible;
+}
+
+.form-card-grid fieldset.module > .form-row:first-of-type,
+.form-card-grid fieldset.module > details > .form-row:first-of-type {
+  padding-top: 16px;
+}
+
+.aligned .form-row .flex-container {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+/* Booleano: rotulo EM CIMA (como os outros campos) e o switch centralizado
+   numa faixa de 34px, a altura dos inputs. Assim o rotulo alinha com o rotulo
+   vizinho e o switch fica no meio da altura do input ao lado. O Django gera
+   input antes do label; a grade inverte a ordem visual. */
+.aligned .form-row .flex-container.checkbox-row {
+  display: grid;
+  grid-template-rows: auto 34px;
+  justify-items: start;
+  align-items: center;
+  gap: 8px;
+}
+
+.aligned .checkbox-row label {
+  grid-row: 1;
+}
+
+.aligned .checkbox-row input[type="checkbox"] {
+  grid-row: 2;
+}
+
+/* Grade de 2 colunas em TODA linha de campos (fieldset.html marca as celulas):
+   campo comum = 1 coluna, mesmo sozinho na linha (select e texto nao esticam);
+   .celula-larga = 2 colunas (imagens, textarea, tabelas JSON); erros tambem.
+   :not(.hidden): o Django esconde linha com .hidden, e display:grid venceria. */
+.aligned .form-row:not(.hidden),
+.form-multiline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 20px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.aligned .form-row > *,
+.form-multiline > .celula-larga {
+  grid-column: 1 / -1;
+}
+
+.aligned .form-row > .celula:not(.celula-larga) {
+  grid-column: auto;
+}
+
+/* Celula do switch alinha pelo topo: o rotulo dela fica na linha dos rotulos
+   vizinhos e o switch no meio da faixa do input (ver .checkbox-row acima). */
+.form-multiline > .celula-switch,
+.aligned .form-row > .celula-switch {
+  align-self: start;
+}
+
+.form-multiline > div {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.aligned label {
+  width: auto;
+  min-width: 0;
+  padding: 0;
+  color: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.aligned label.required::after,
+.field-label.required::after {
+  content: " *";
+  color: var(--destructive);
+}
+
+/* :where() zera a especificidade: widget especifico (hora, busca) ajusta a largura. */
+.aligned input:where(:not([type="checkbox"]):not([type="radio"])),
+.aligned select,
+.aligned textarea,
+.aligned .vTextField {
+  width: 100%;
+  max-width: 640px;
+}
+
+.form-card-grid .aligned input:where(:not([type="checkbox"]):not([type="radio"])),
+.form-card-grid .aligned select,
+.form-card-grid .aligned textarea,
+.form-card-grid .aligned .vTextField,
+.form-card-grid .related-widget-wrapper,
+.form-card-grid .sh-select,
+.form-card-grid .sh-multi {
+  max-width: none;
+}
+
+.form-card-grid .form-multiline,
+.form-card-grid .fieldBox,
+.form-card-grid textarea {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* O responsive.css do Django fixa filhos da linha em 100vw - 30px. */
+.form-card-grid .aligned .form-row > div,
+.form-card-grid .aligned textarea.vLargeTextField {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.aligned .help,
+.aligned p.help,
+form .aligned div.help,
+form .aligned ul {
+  margin: 6px 0 0;
+  padding: 0;
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.form-row .errorlist {
+  margin: 0 0 6px;
+}
+
+.readonly,
+.aligned label + div.readonly {
+  margin: 0;
+  padding: 0;
+  color: var(--foreground);
+  font-size: 0.8125rem;
+}
+
+/* Lapis/+/x/olho do Django ao lado do select de chave estrangeira */
+.related-widget-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 640px;
+}
+
+.related-widget-wrapper > select,
+.related-widget-wrapper > .sh-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.related-widget-wrapper > .sh-multi {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Select "Acao" da listagem fica dentro do <label>: largura do conteudo. */
+#changelist .actions .sh-select {
+  display: inline-flex;
+  width: auto;
+  min-width: 200px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+@media (max-width: 600px) {
+  .aligned .form-row:not(.hidden),
+  .form-multiline {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Celula larga usa as duas colunas inteiras (sem o limite de 900px do widget). */
+.celula-larga .sh-json,
+.celula-larga .sh-imagem-url,
+.celula-larga .sh-tags {
+  max-width: none;
+}

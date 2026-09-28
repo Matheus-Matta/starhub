@@ -1,0 +1,93 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls static admin_list %}
+
+{% comment %}
+Mantem o contrato do change_list do Django, mas agrupa toolbar, tabela e
+paginacao no mesmo card usado pelo template store-inventory.
+{% endcomment %}
+
+{% block content_title %}
+  {% include "components/page_header.html" with titulo=cl.opts.verbose_name_plural|capfirst subtitulo=cl.result_count|stringformat:"d"|add:" registro(s)" %}
+{% endblock %}
+
+{% block content %}
+  <div id="content-main">
+    {% block object-tools %}
+      <ul class="object-tools">
+        {% block object-tools-items %}{% change_list_object_tools %}{% endblock %}
+      </ul>
+    {% endblock %}
+
+    {% if cl.formset and cl.formset.errors %}
+      <p class="errornote">
+        {% blocktranslate count counter=cl.formset.total_error_count %}Corrija o erro abaixo.{% plural %}Corrija os erros abaixo.{% endblocktranslate %}
+      </p>
+      {{ cl.formset.non_form_errors }}
+    {% endif %}
+
+    <section class="list-card module{% if cl.has_filters %} filtered{% endif %}" id="changelist">
+      <header class="list-card-header">
+        <div class="list-card-summary">
+          <span class="list-card-tab">Todos</span>
+          <span class="badge badge-secondary">{{ cl.result_count }}</span>
+        </div>
+        <div class="list-card-tools">
+          {% block search %}{% search_form cl %}{% endblock %}
+          {% if cl.has_filters %}
+            {% with ativos=cl|filtros_ativos %}
+              <button type="button" class="btn btn-outline btn-filtros" data-acao="abrir-filtros" aria-controls="changelist-filter">
+                {% icone "sliders-horizontal" %}<span>Filtros</span>
+                {% if ativos %}<span class="badge badge-primary">{{ ativos }}</span>{% endif %}
+              </button>
+            {% endwith %}
+          {% endif %}
+        </div>
+      </header>
+
+      {% block date_hierarchy %}{% if cl.date_hierarchy %}{% date_hierarchy cl %}{% endif %}{% endblock %}
+
+      <div class="changelist-form-container">
+        <form id="changelist-form" method="post"{% if cl.formset and cl.formset.is_multipart %} enctype="multipart/form-data"{% endif %} novalidate>{% csrf_token %}
+          {% if cl.formset %}<div>{{ cl.formset.management_form }}</div>{% endif %}
+          {% block result_list %}
+            {% if action_form and actions_on_top and cl.show_admin_actions %}{% admin_actions %}{% endif %}
+            <div class="list-card-table">
+              {% if cl.result_count %}
+                {% result_list cl %}
+              {% else %}
+                {% include "components/empty_state.html" with icone="archive" texto="Nenhum registro encontrado." detalhe="Ajuste a busca ou os filtros, ou adicione um novo registro." %}
+              {% endif %}
+            </div>
+            {% if action_form and actions_on_bottom and cl.show_admin_actions %}{% admin_actions %}{% endif %}
+          {% endblock %}
+          <footer class="list-card-footer">{% block pagination %}{% pagination cl %}{% endblock %}</footer>
+        </form>
+      </div>
+    </section>
+
+    {% block filters %}
+      {% if cl.has_filters %}
+        <div class="drawer-fundo" data-acao="fechar-filtros"></div>
+        <nav id="changelist-filter" class="drawer" aria-labelledby="changelist-filter-header">
+          <div class="drawer-topo">
+            <h2 id="changelist-filter-header">Filtros</h2>
+            <button type="button" class="btn-header" data-acao="fechar-filtros" aria-label="Fechar filtros">{% icone "x" %}</button>
+          </div>
+          <div class="drawer-corpo">
+            {% if cl.is_facets_optional %}
+              <div id="changelist-filter-extra-actions">
+                {% if cl.add_facets %}<a href="{{ cl.remove_facet_link }}" class="hidelink">Ocultar contagem</a>
+                {% else %}<a href="{{ cl.add_facet_link }}" class="viewlink">Mostrar contagem</a>{% endif %}
+              </div>
+            {% endif %}
+            {% for spec in cl.filter_specs %}{% admin_list_filter cl spec %}{% endfor %}
+          </div>
+          <div class="drawer-rodape">
+            {% if cl.has_active_filters %}<a class="btn btn-outline" href="{{ cl.clear_all_filters_qs }}">{% icone "x" "icon-sm" %} Limpar filtros</a>{% endif %}
+            <button type="button" class="btn btn-primary" data-acao="fechar-filtros">Aplicar</button>
+          </div>
+        </nav>
+      {% endif %}
+    {% endblock %}
+  </div>
+{% endblock %}

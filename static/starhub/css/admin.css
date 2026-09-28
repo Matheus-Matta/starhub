@@ -1,0 +1,183 @@
+/* Ajustes gerais sobre o admin/css/base.css do Django, para caber na nossa casca.
+   A estrutura (ids, classes, blocks) continua a do Django: so o visual muda. */
+
+#container {
+  min-width: 0;
+  flex-direction: row;
+  height: auto;
+}
+
+#content {
+  padding: 0;
+}
+
+/* #header do Django tem padding e cores proprias; o id ganha da classe. */
+#header.app-header {
+  height: var(--header-height);
+  padding: 0;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+#header.app-header a:link,
+#header.app-header a:visited {
+  color: inherit;
+}
+
+.dashboard #content {
+  width: auto;
+}
+
+#content-main {
+  float: none;
+}
+
+.colMS {
+  margin-right: 0;
+}
+
+#content-related {
+  float: none;
+  width: auto;
+  margin: 0;
+}
+
+/* O admin coloca um <br class="clear"> no fim do conteudo; no flex ele sobra. */
+#content > br.clear {
+  display: none;
+}
+
+/* Breadcrumbs do admin viram a trilha do header (como no template): itens
+   anteriores em cinza, o atual escuro; o JS troca o "›" do Django por seta. */
+.app-header .breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  background: none;
+  color: var(--mono);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.app-header .breadcrumbs a {
+  color: var(--muted-foreground) !important;
+}
+
+.app-header .breadcrumbs a:hover {
+  color: var(--primary) !important;
+}
+
+.app-header .breadcrumbs .icon {
+  width: 14px;
+  height: 14px;
+  color: var(--muted-foreground);
+}
+
+/* Modulo generico do admin (.module) com cara de card */
+.module {
+  margin: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+}
+
+.module h2,
+.module caption,
+.inline-group h2 {
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0 20px;
+  background: transparent;
+  border-bottom: 1px solid var(--border);
+  color: var(--mono);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.module table {
+  width: 100%;
+}
+
+/* Mensagens do admin (ul.messagelist) com o visual do nosso alerta */
+ul.messagelist {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+ul.messagelist li {
+  margin: 0;
+  padding: 12px 14px 12px 40px;
+  border-radius: var(--radius-lg);
+  background-color: var(--primary-soft);
+  background-position: 14px 13px;
+  color: var(--foreground);
+  font-size: 0.8125rem;
+}
+
+ul.messagelist li.success { background-color: var(--success-soft); }
+ul.messagelist li.warning { background-color: var(--warning-soft); }
+ul.messagelist li.error { background-color: var(--destructive-soft); }
+
+.errornote {
+  margin: 0;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--destructive-soft);
+  color: var(--destructive);
+  font-size: 0.8125rem;
+}
+
+/* Botao de tema: o admin/js/theme.js troca html[data-theme]; aqui so
+   mostramos o icone do modo atual (o dark_mode.css do Django nao e carregado). */
+.theme-toggle .theme-icon,
+.theme-toggle .theme-label {
+  display: none;
+}
+
+html[data-theme="auto"] .theme-toggle .when-auto,
+html[data-theme="light"] .theme-toggle .when-light,
+html[data-theme="dark"] .theme-toggle .when-dark {
+  display: inline-block;
+}
+
+/* Paginas de historico, exclusao e senha: listas soltas ganham respiro */
+#content-main > ul:not(.object-tools),
+.delete-confirmation ul {
+  padding-left: 20px;
+  line-height: 1.8;
+}
+
+.delete-confirmation form input[type="submit"],
+.delete-confirmation .cancel-link {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  font: 500 0.8125rem var(--font-sans);
+}
+
+.delete-confirmation .cancel-link {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--input);
+  background: var(--background);
+  color: var(--accent-foreground);
+}
+
+@media (max-width: 1023px) {
+  #content {
+    padding: 0;
+  }
+}

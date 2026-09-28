@@ -1,0 +1,27 @@
+/* Lista de apps do admin (admin/app_list.html): painel e pagina de cada app. */
+
+/* app_list do admin dentro de um card (painel): sem card dentro de card */
+.card .module {
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.card .module:last-child {
+  border-bottom: 0;
+}
+
+.module td,
+.module th {
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8125rem;
+}
+
+/* caption de tabela nao aceita flex: com flex a borda so cobre o texto. */
+.module caption {
+  display: table-caption;
+  line-height: 52px;
+}

@@ -1,0 +1,101 @@
+from django.contrib import admin
+from django.template.loader import render_to_string
+
+from apps.core.admin_base import TemaModelAdmin
+from apps.core.admin_utils import badge_status, imagem_principal, valor_moeda
+from apps.core.filtros import FiltroPeriodo
+from apps.loja.admin import campos
+from apps.loja.admin.bundle import ComponenteInline, estoque_calculado
+from apps.loja.admin.variante_unica import VarianteUnicaInline
+from apps.loja.admin.variantes import lista_variantes
+from apps.loja.models import Produto, VarianteProduto
+
+# Tres jeitos de mostrar o produto, pelo tipo (condicoes.js troca na hora):
+#   simples/externo/agrupado: a variante unica vira secoes da pagina (Preco, Estoque...);
+#   variavel: lista de variantes, cada uma no modal com as opcoes (Cor, Tamanho);
+#   bundle: secoes da variante unica SEM estoque + lista de componentes.
+UNICA = ["simple", "external", "grouped", "bundle"]
+
+
+@admin.register(Produto)
+class ProdutoAdmin(TemaModelAdmin):
+    campos_json = campos.PRODUTO
+    list_display = [
+        "produto_info", "preco_regular_fmt", "preco_promocional_fmt",
+        "estoque", "situacao_estoque_badge", "status_badge", "updated_at",
+    ]
+    list_display_links = ["produto_info"]
+    list_filter = [
+        ("created_at", FiltroPeriodo), "status", "variantes__stock_status", "tipo", "destaque",
+        "categorias", "origin",
+    ]
+    search_fields = ["nome", "variantes__sku", "variantes__barcode", "slug"]
+    list_per_page = 25
+    readonly_fields = ["lista_variantes", "estoque_bundle", "total_vendas", "created_at",
+                       "updated_at"]
+    # Campo so de leitura que ocupa a linha toda (tabela), e nao meia coluna.
+    readonly_largos = ["lista_variantes", "estoque_bundle"]
+    inlines = [VarianteUnicaInline, ComponenteInline]
+    condicoes = {
+        "#variantes-group": {"campo": "tipo", "em": UNICA},
+        ".secao-estoque": {"campo": "tipo", "em": ["simple", "external", "grouped"]},
+        ".secao-variantes": {"campo": "tipo", "em": ["variable"]},
+        "#componentes-group": {"campo": "tipo", "em": ["bundle"]},
+        ".secao-estoque-bundle": {"campo": "tipo", "em": ["bundle"]},
+        "url_externa": {"campo": "tipo", "em": ["external"]},
+        "texto_botao": {"campo": "tipo", "em": ["external"]},
+    }
+    fieldsets = [
+        ("Geral", {"fields": [
+            ("nome", "slug"), ("tipo", "status"), ("visibilidade", "destaque"),
+            ("fornecedor", "marca"), "categoria", "categorias", "tags",
+        ]}),
+        ("Variantes", {"classes": ["secao-variantes"], "fields": ["lista_variantes"]}),
+        ("Estoque", {"classes": ["secao-estoque-bundle"], "fields": ["estoque_bundle"]}),
+        # "sh-final": depois das secoes da variante (Preco, Estoque...) e dos componentes.
+        ("Descricao", {"classes": ["collapse", "sh-final"],
+                       "fields": ["descricao_curta", "descricao"]}),
+        ("SEO", {"classes": ["collapse", "sh-final"], "fields": ["seo_titulo", "seo_descricao"]}),
+        ("Atributos", {"classes": ["collapse", "sh-final"], "fields": ["atributos"]}),
+        ("Avancado", {"classes": ["collapse", "sh-final"], "fields": [
+            "metadados", ("url_externa", "texto_botao"), ("ordem_menu", "id_pai"),
+            ("avaliacoes_permitidas", "nota_compra"), "publicado_em",
+            "total_vendas", ("created_at", "updated_at"),
+        ]}),
+    ]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("variantes", "midias__variante")
+
+    @admin.display(description="Variantes")
+    def lista_variantes(self, obj):
+        return lista_variantes(obj)
+
+    @admin.display(description="Estoque")
+    def estoque_bundle(self, obj):
+        return estoque_calculado(obj)
+
+    @admin.display(description="produto", ordering="nome")
+    def produto_info(self, obj):
+        return render_to_string("components/table_produto.html", {
+            "imagem_url": imagem_principal(obj.imagens),
+            "nome": obj.nome or f"Produto {obj.pk}",
+            "sku": obj.sku or "-",
+        })
+
+    @admin.display(description="preco")
+    def preco_regular_fmt(self, obj):
+        return valor_moeda(obj.preco_regular)
+
+    @admin.display(description="promocional")
+    def preco_promocional_fmt(self, obj):
+        return valor_moeda(obj.preco_promocional) if obj.preco_promocional is not None else "-"
+
+    @admin.display(description="estoque")
+    def situacao_estoque_badge(self, obj):
+        situacao = VarianteProduto.SituacaoEstoque(obj.situacao_estoque)
+        return badge_status(situacao.value, situacao.label)
+
+    @admin.display(description="status", ordering="status")
+    def status_badge(self, obj):
+        return badge_status(obj.status, obj.get_status_display())

@@ -1,0 +1,108 @@
+/* Modal dos botoes de relacao ("+", lapis, olho): static/starhub/js/modal-relacionado.js.
+   A pagina do Django abre num iframe dentro dele. */
+.sh-modal {
+  width: min(960px, calc(100vw - 32px));
+  height: min(85vh, 900px);
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: var(--shadow-md);
+}
+
+.sh-modal[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.sh-modal::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.sh-modal-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px 10px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sh-modal-titulo {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.sh-modal-corpo {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+  background: var(--card);
+}
+
+/* Rodape fixo do modal: Cancelar e Salvar (o Salvar clica no _save do form do iframe). */
+.sh-modal-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+}
+
+.sh-modal-rodape [hidden] {
+  display: none;
+}
+
+/* A pagina DENTRO do iframe (html.em-modal, ver em-modal.js): so o formulario.
+   Titulo e botoes ficam no cabecalho e no rodape do proprio modal. */
+html.em-modal body,
+html.em-modal .wrapper,
+html.em-modal .app-main {
+  background: var(--card);
+}
+
+html.em-modal .app-main {
+  padding: 16px 20px 20px;
+}
+
+/* Tres recuos somavam ~60px de cada lado (app-main, container e o #content do Django). */
+html.em-modal .container-fluid,
+html.em-modal #content {
+  padding: 0;
+}
+
+html.em-modal .form-workspace-header,
+html.em-modal .form-workspace-footer,
+html.em-modal .form-submit-top {
+  display: none;
+}
+
+/* O responsive.css do Django sobe input para 16px abaixo de 1024px (evita o zoom do
+   celular). O modal tem ~960px no desktop: volta ao tamanho do resto do sistema. */
+@media (min-width: 601px) {
+  html.em-modal .form-row input:not([type]),
+  html.em-modal .form-row input[type=text],
+  html.em-modal .form-row input[type=email],
+  html.em-modal .form-row input[type=url],
+  html.em-modal .form-row input[type=tel],
+  html.em-modal .form-row input[type=number],
+  html.em-modal .form-row textarea,
+  html.em-modal .form-row select,
+  html.em-modal .form-row .vTextField {
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .sh-modal {
+    width: 100vw;
+    height: 100dvh;
+    border-radius: 0;
+  }
+}

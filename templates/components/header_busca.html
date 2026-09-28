@@ -1,0 +1,13 @@
+{% comment %}
+Busca do header (a "Search shop" do template). Procura em todos os models do
+admin que tem search_fields (apps/core/busca.py). Ctrl+K / Cmd+K foca o campo.
+No celular vira so o botao com a lupa, que abre a pagina de busca.
+{% endcomment %}
+{% url 'admin:busca' as url_busca %}
+<form class="header-search" action="{{ url_busca }}" method="get" role="search">
+  {% icone "search" "icon-sm" %}
+  <input type="search" name="q" value="{{ termo_busca|default:'' }}" placeholder="Buscar no hub"
+         aria-label="Buscar" autocomplete="off" data-atalho-busca>
+  <kbd class="header-kbd" aria-hidden="true">Ctrl K</kbd>
+</form>
+<a class="btn-header header-search-mobile" href="{{ url_busca }}" aria-label="Buscar">{% icone "search" %}</a>

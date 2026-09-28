@@ -1,0 +1,148 @@
+/* Campos JSON do tema: tags, chave/valor, tabela de linhas e objeto.
+   O JS (static/starhub/js/json-*.js) monta estes blocos; o textarea com o
+   JSON fica escondido (.sh-nativo) e continua sendo o valor enviado. */
+
+.sh-json {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  max-width: 900px;
+}
+
+.sh-json-add {
+  justify-self: start;
+}
+
+/* Tags (estilo Tagify): etiquetas e o campo de digitar na mesma caixa */
+.sh-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 34px;
+  padding: 4px;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  box-shadow: var(--shadow-xs);
+  cursor: text;
+}
+
+.sh-tags:focus-within {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 20%, transparent);
+}
+
+.sh-tags input[type="text"],
+.aligned .sh-tags input[type="text"] {
+  flex: 1;
+  width: auto;
+  min-width: 120px;
+  height: 24px;
+  padding: 0 6px;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.sh-tags input:focus {
+  box-shadow: none;
+}
+
+/* Chave/valor e "outros campos" */
+.sh-kv,
+.sh-kv-linhas,
+.sh-lista-tabela,
+.sh-lista-linhas {
+  display: grid;
+  gap: 8px;
+}
+
+.sh-kv-linha {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(160px, 2fr) 34px;
+  align-items: center;
+  gap: 8px;
+}
+
+.sh-kv-vazio {
+  padding: 10px 12px;
+  border: 1px dashed var(--input);
+  border-radius: var(--radius-md);
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+/* Tabela de linhas (frete, taxas, cupons, atributos) */
+.sh-lista-cabecalho,
+.sh-lista-linha {
+  display: grid;
+  align-items: center;
+  gap: 8px;
+}
+
+.sh-lista-cabecalho {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.sh-lista-cabecalho[hidden] {
+  display: none;
+}
+
+.sh-lista-switch {
+  display: flex;
+  justify-content: center;
+}
+
+.sh-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Objeto: grade de rotulo + campo (endereco em 2 colunas, dimensoes em 3) */
+.sh-objeto {
+  display: grid;
+  grid-template-columns: repeat(var(--sh-colunas, 2), minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.sh-objeto-campo {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--secondary-foreground);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.aligned .sh-json label.sh-objeto-campo {
+  padding: 0;
+  font-weight: 500;
+}
+
+.sh-objeto-extras > summary {
+  cursor: pointer;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 767px) {
+  .sh-objeto {
+    grid-template-columns: 1fr;
+  }
+
+  .sh-lista-cabecalho {
+    display: none;
+  }
+
+  .sh-lista-linha,
+  .sh-kv-linha {
+    grid-template-columns: 1fr 34px !important;
+  }
+}

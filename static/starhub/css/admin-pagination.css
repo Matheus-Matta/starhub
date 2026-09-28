@@ -1,0 +1,61 @@
+/* Rodape do data grid separado da tabela: contagem, paginas e acoes. */
+
+.list-card-footer {
+  min-height: 58px;
+  padding: 0 16px;
+  border-top: 1px solid var(--border);
+}
+
+.list-pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 58px;
+}
+
+.list-pagination-info {
+  margin-right: auto;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+.list-pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.list-pagination-pages a,
+.list-pagination-pages .this-page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  box-sizing: border-box;
+  padding: 0 7px;
+  border-radius: var(--radius-md);
+  color: var(--accent-foreground);
+  font-size: 0.8125rem;
+}
+
+.list-pagination-pages .this-page {
+  background: var(--muted-2);
+  color: var(--mono);
+  font-weight: 600;
+}
+
+.list-pagination-pages a:hover {
+  background: var(--accent);
+  color: var(--primary);
+}
+
+@media (max-width: 767px) {
+  .list-pagination {
+    flex-wrap: wrap;
+    padding: 10px 0;
+  }
+
+  .list-pagination-info { width: 100%; }
+}

@@ -1,0 +1,15 @@
+{# Filtro "Periodo" (apps/core/filtros.py). O datas.js abre o calendario em modo periodo. #}
+{% with c=choices|first %}
+<details data-filter-title="{{ title }}" open>
+  <summary>Por {{ title }}</summary>
+  <form method="get" class="filtro-periodo" data-filtro-periodo>
+    {% for nome, valor in c.manter %}<input type="hidden" name="{{ nome }}" value="{{ valor }}">{% endfor %}
+    <input type="hidden" name="{{ spec.param_de }}" value="{{ c.de }}" data-periodo-de>
+    <input type="hidden" name="{{ spec.param_ate }}" value="{{ c.ate }}" data-periodo-ate>
+    <button type="button" class="sh-select" data-abrir-periodo>
+      {% icone "calendar" "icon-sm text-muted" %}<span class="sh-select-valor">Escolha o periodo</span>
+    </button>
+    {% if c.ativo %}<a class="filtro-periodo-limpar" href="{{ c.limpar }}">Limpar periodo</a>{% endif %}
+  </form>
+</details>
+{% endwith %}

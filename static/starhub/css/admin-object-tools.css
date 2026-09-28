@@ -1,0 +1,72 @@
+/* Botoes do topo das telas do admin ("Adicionar", "Historico"): no canto do
+   cabecalho da pagina, alinhados com o titulo. */
+
+#content {
+  position: relative;
+}
+
+ul.object-tools {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  float: none;
+}
+
+ul.object-tools li {
+  display: block;
+  margin: 0;
+  height: auto;
+}
+
+ul.object-tools a:link,
+ul.object-tools a:visited {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font: 500 0.8125rem var(--font-sans);
+  letter-spacing: 0;
+  text-transform: none;
+  float: none;
+}
+
+ul.object-tools a.historylink {
+  background: var(--background);
+  border: 1px solid var(--input);
+  color: var(--accent-foreground);
+}
+
+ul.object-tools a.addlink,
+ul.object-tools a.viewsitelink {
+  background-image: none;
+  padding-right: 12px;
+}
+
+/* "Adicionar" = botao mono do template (preto no claro, claro no escuro). */
+ul.object-tools a.addlink:link,
+ul.object-tools a.addlink:visited {
+  gap: 6px;
+  background: var(--mono);
+  color: var(--background);
+}
+
+ul.object-tools a.addlink::before {
+  content: "+";
+  font-size: 1rem;
+  line-height: 1;
+}
+
+@media (max-width: 767px) {
+  ul.object-tools {
+    position: static;
+    margin: 0;
+  }
+
+}

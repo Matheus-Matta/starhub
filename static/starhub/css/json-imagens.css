@@ -1,0 +1,136 @@
+/* Galeria de imagens (produto e categoria): miniaturas + area de envio. */
+
+.sh-galeria {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.sh-galeria:empty {
+  display: none;
+}
+
+.sh-imagem {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+}
+
+.sh-imagem img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  background: var(--muted);
+}
+
+.sh-imagem input[type="text"],
+.aligned .sh-imagem input[type="text"] {
+  width: 100%;
+  height: 28px;
+  font-size: 0.75rem;
+}
+
+.sh-imagem-acoes {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 4px;
+}
+
+.sh-imagem-botao {
+  display: inline-flex;
+  padding: 4px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  cursor: pointer;
+}
+
+.sh-imagem-botao:hover {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.sh-imagem-botao.sh-perigo:hover {
+  background: var(--destructive);
+}
+
+.sh-principal {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+
+.sh-imagem-pendente {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.sh-zona-upload {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 20px 16px;
+  border: 1px dashed var(--input);
+  border-radius: var(--radius-lg);
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.sh-zona-upload strong {
+  color: var(--mono);
+  font-size: 0.8125rem;
+}
+
+.sh-zona-upload:hover,
+.sh-zona-upload:focus-visible,
+.sh-zona-upload.sh-arrastando {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  outline: none;
+}
+
+.sh-zona-upload[hidden] {
+  display: none;
+}
+
+.sh-imagem-url {
+  display: flex;
+  gap: 8px;
+}
+
+.sh-imagem-url input[type="url"],
+.aligned .sh-imagem-url input[type="url"] {
+  flex: 1;
+  width: auto;
+}
+
+/* Arrastar para ordenar (json-imagens.js): a imagem e a alca; a primeira e a capa. */
+.sh-imagem-alca {
+  cursor: grab;
+}
+
+.sh-imagem-alca:active {
+  cursor: grabbing;
+}
+
+.sh-imagem-movendo {
+  opacity: 0.4;
+}
+
+.sh-imagem-alvo {
+  outline: 2px dashed var(--primary);
+  outline-offset: 2px;
+}
