@@ -1,5 +1,10 @@
-"""Pedido e produto reais (examples/*.json, formato WooCommerce) passam pelo hub
-sem perda: o que o ERP manda e o que ele le de volta tem que bater."""
+"""Pedido e produto no formato WooCommerce (exemplos/*.json) passam pelo hub sem
+perda: o que o ERP manda e o que ele le de volta tem que bater.
+
+Os JSON sao copias de um pedido e um produto reais com os dados pessoais trocados por
+ficticios (nome, e-mail, endereco, telefone, CPF): o pedido real tem cliente de
+verdade e nao pode ir para o repositorio.
+"""
 
 import json
 from decimal import Decimal
@@ -11,7 +16,7 @@ from apps.loja.models import Categoria, Cliente
 from apps.loja.services.variantes import criar_produto
 from apps.woo_api.tests.conftest import criar_pedido
 
-EXEMPLOS = Path(__file__).resolve().parents[3] / "examples"
+EXEMPLOS = Path(__file__).resolve().parent / "exemplos"
 
 
 def _exemplo(nome):

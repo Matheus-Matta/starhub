@@ -1,0 +1,123 @@
+[
+  {
+    "id": 22,
+    "name": "MESA DE APOIO SOFA JB 4774 LUXO- PEROLA",
+    "slug": "mesa-de-apoio-sofa-jb-4774-luxo-perola",
+    "permalink": "https://wp.starchats.com.br/product/mesa-de-apoio-sofa-jb-4774-luxo-perola/",
+    "date_created": "2026-03-12T14:54:59",
+    "date_created_gmt": "2026-03-12T14:54:59",
+    "date_modified": "2026-09-03T13:38:06",
+    "date_modified_gmt": "2026-09-03T13:38:06",
+    "type": "simple",
+    "status": "publish",
+    "featured": false,
+    "catalog_visibility": "visible",
+    "description": "",
+    "short_description": "",
+    "sku": "1112",
+    "price": "179.99",
+    "regular_price": "179.99",
+    "sale_price": "",
+    "date_on_sale_from": null,
+    "date_on_sale_from_gmt": null,
+    "date_on_sale_to": null,
+    "date_on_sale_to_gmt": null,
+    "on_sale": false,
+    "purchasable": true,
+    "total_sales": 0,
+    "virtual": false,
+    "downloadable": false,
+    "downloads": [],
+    "download_limit": -1,
+    "download_expiry": -1,
+    "external_url": "",
+    "button_text": "",
+    "tax_status": "taxable",
+    "tax_class": "",
+    "manage_stock": true,
+    "stock_quantity": 0,
+    "backorders": "no",
+    "backorders_allowed": false,
+    "backordered": false,
+    "low_stock_amount": null,
+    "sold_individually": true,
+    "weight": "20",
+    "dimensions": {
+      "length": "29.000",
+      "width": "41.500",
+      "height": "74.500"
+    },
+    "shipping_required": true,
+    "shipping_taxable": true,
+    "shipping_class": "",
+    "shipping_class_id": 0,
+    "reviews_allowed": true,
+    "average_rating": "0.00",
+    "rating_count": 0,
+    "upsell_ids": [],
+    "cross_sell_ids": [],
+    "parent_id": 0,
+    "purchase_note": "",
+    "categories": [
+      {
+        "id": 19,
+        "name": "MESA LATERAL/CANTO",
+        "slug": "mesa-lateralcanto"
+      },
+      {
+        "id": 18,
+        "name": "VARIADOS",
+        "slug": "variados"
+      }
+    ],
+    "brands": [],
+    "tags": [],
+    "images": [],
+    "attributes": [],
+    "default_attributes": [],
+    "variations": [],
+    "grouped_products": [],
+    "menu_order": 0,
+    "price_html": "<span class=\"woocommerce-Price-amount amount\"><bdi><span class=\"woocommerce-Price-currencySymbol\">&#82;&#36;</span>&nbsp;179,99</bdi></span>",
+    "related_ids": [
+      83,
+      814,
+      47,
+      807,
+      810
+    ],
+    "meta_data": [
+      {
+        "id": 23258,
+        "key": "_last_change_time",
+        "value": "1783610628"
+      }
+    ],
+    "stock_status": "outofstock",
+    "has_options": false,
+    "post_password": "",
+    "global_unique_id": "",
+    "jetpack_sharing_enabled": true,
+    "_links": {
+      "self": [
+        {
+          "href": "https://wp.starchats.com.br/wp-json/wc/v3/products/22",
+          "targetHints": {
+            "allow": [
+              "GET",
+              "POST",
+              "PUT",
+              "PATCH",
+              "DELETE"
+            ]
+          }
+        }
+      ],
+      "collection": [
+        {
+          "href": "https://wp.starchats.com.br/wp-json/wc/v3/products"
+        }
+      ]
+    }
+  }
+]
