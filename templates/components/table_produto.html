@@ -2,12 +2,14 @@
   <span class="table-identity-media table-product-thumb">
     {% if imagem_url %}
       <img src="{{ imagem_url }}" alt="" loading="lazy">
+    {% elif icone %}
+      {% icone icone %}
     {% else %}
       {% icone "package" %}
     {% endif %}
   </span>
   <span class="table-identity-copy">
     <span class="table-identity-title" title="{{ nome }}">{{ nome }}</span>
-    <span class="table-identity-meta">SKU: {{ sku }}</span>
+    <span class="table-identity-meta">{% if meta %}{{ meta }}{% else %}SKU: {{ sku }}{% endif %}</span>
   </span>
 </span>

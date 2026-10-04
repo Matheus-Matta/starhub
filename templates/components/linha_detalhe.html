@@ -1,0 +1,17 @@
+{% comment %}
+Coluna "Acoes" da listagem (admin_utils.acoes_da_linha): "+" abre, logo abaixo da
+linha, o conteudo guardado no <template> (static/starhub/js/linha-detalhe.js) e vira
+"-"; o lapis leva para a edicao. Sem conteudo, so o lapis (o espaco do "+" fica).
+{% endcomment %}
+<span class="sh-acoes-linha">
+  {% if conteudo %}
+    <button type="button" class="btn btn-outline btn-icon btn-sm sh-expandir" data-detalhe aria-expanded="false"
+            title="{{ rotulo }}" aria-label="{{ rotulo }}">{% icone "plus" "icon-sm sh-se-fechado" %}{% icone "minus" "icon-sm sh-se-aberto" %}</button>
+    <template class="sh-detalhe-conteudo">{{ conteudo }}</template>
+  {% else %}
+    <span class="sh-acao-vazia" aria-hidden="true"></span>
+  {% endif %}
+  {% if url_editar %}
+    <a class="btn btn-outline btn-icon btn-sm" href="{{ url_editar }}" title="Editar" aria-label="Editar">{% icone "pencil" "icon-sm" %}</a>
+  {% endif %}
+</span>

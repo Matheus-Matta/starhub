@@ -18,6 +18,9 @@ class ComponenteInline(TemaTabularInline):
     fields = ["component_variant", "quantity", "estoque_componente"]
     readonly_fields = ["estoque_componente"]
     autocomplete_fields = ["component_variant"]
+    relacao_so_adicionar = ["component_variant"]
+    verbose_name = "componente"
+    verbose_name_plural = "componentes do bundle"
 
     @admin.display(description="estoque do componente")
     def estoque_componente(self, obj):

@@ -1,0 +1,57 @@
+/* Pagina "Importar planilha" (templates/admin/importar_planilha.html). */
+
+.imp-grade {
+  display: grid;
+  gap: var(--gap-pagina, 20px);
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .imp-grade { grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); }
+}
+
+.imp-coluna {
+  display: grid;
+  gap: var(--gap-pagina, 20px);
+  min-width: 0;
+}
+
+.imp-form {
+  display: grid;
+  gap: 10px;
+}
+
+.imp-rotulo {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.imp-arquivo {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px dashed var(--input);
+  border-radius: var(--radius-md);
+  background: var(--muted);
+  color: var(--foreground);
+  font-size: 0.8125rem;
+}
+
+.imp-opcao {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--foreground);
+  line-height: 1.4;
+}
+
+.imp-regras {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}

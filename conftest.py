@@ -26,6 +26,12 @@ def outra_conta(db):
 
 
 @pytest.fixture(autouse=True)
+def _tarefas_sem_thread(settings):
+    # O dev liga a thread; o teste confere o resultado da tarefa logo apos a chamada.
+    settings.STARHUB_TAREFAS_EM_THREAD = False
+
+
+@pytest.fixture(autouse=True)
 def _conta_ativa(request):
     usa_banco = "db" in request.fixturenames or request.node.get_closest_marker("django_db")
     if not usa_banco or request.node.get_closest_marker("sem_conta"):

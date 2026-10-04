@@ -1,0 +1,99 @@
+/* Linha de detalhe da listagem (linha-detalhe.js): itens do pedido, variacoes do
+   produto. A subtabela fica num card recuado, abaixo da linha que a abriu. */
+/* Coluna "Acoes": "+" (abre a linha de detalhe, vira "-") e o lapis da edicao. */
+.sh-acoes-linha {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sh-acoes-linha .btn,
+.sh-acao-vazia {
+  width: 28px;
+}
+
+.sh-expandir[aria-expanded="true"] .sh-se-fechado,
+.sh-expandir[aria-expanded="false"] .sh-se-aberto {
+  display: none;
+}
+
+.sh-expandir[aria-expanded="true"] {
+  background: var(--accent);
+}
+
+#result_list tbody tr.sh-expandida > td {
+  border-bottom-color: transparent;
+}
+
+#result_list tbody tr.sh-linha-detalhe > td {
+  padding: 4px 16px 16px;
+  background: var(--background);
+}
+
+#result_list tbody tr.sh-linha-detalhe:hover {
+  background: transparent;
+}
+
+.sh-subtabela-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+}
+
+/* O #result_list de fora zera o padding de todo th dentro dele (o respiro do
+   cabecalho do admin fica num .text); a subtabela nao tem .text: volta o padding. */
+#changelist #result_list .sh-subtabela-wrap thead th {
+  padding: 10px 16px;
+  background: var(--muted);
+}
+
+#result_list .sh-subtabela-wrap .num {
+  text-align: right;
+}
+
+.sh-subtabela-vazia {
+  padding: 16px;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.sh-opcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Origem do pedido: badge neutro com o icone da plataforma (Simple Icons ou loja). */
+.sh-origem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 3px 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--foreground);
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.sh-origem-icone {
+  display: inline-flex;
+}
+
+.sh-origem-icone .icon,
+.sh-origem-icone .sh-marca {
+  width: 14px;
+  height: 14px;
+}
+
+#result_list td.field-acoes {
+  width: 1%;
+  white-space: nowrap;
+}
+
+#result_list .field-numero,
+#result_list td.field-itens_fmt {
+  white-space: nowrap;
+}

@@ -7,7 +7,7 @@ messages, pretitle, content_title, content_subtitle, content, object-tools,
 sidebar, footer...), entao qualquer template do admin continua funcionando.
 {% endcomment %}
 {% get_current_language as LANGUAGE_CODE %}{% get_current_language_bidi as LANGUAGE_BIDI %}
-<html lang="{{ LANGUAGE_CODE|default:'pt-br' }}" dir="{{ LANGUAGE_BIDI|yesno:'rtl,ltr,auto' }}" data-theme="auto">
+<html lang="{{ LANGUAGE_CODE|default:'pt-br' }}" dir="{{ LANGUAGE_BIDI|yesno:'rtl,ltr,auto' }}" data-theme="auto" data-sprite="{% url_sprite %}">
 <head>
 <meta charset="utf-8">
 <title>{% block title %}{% endblock %}</title>
@@ -49,7 +49,7 @@ sidebar, footer...), entao qualquer template do admin continua funcionando.
           <div class="container-fluid">
             <div class="header-mobile">
               {% block branding %}
-                <a class="brand" href="{% url 'admin:index' %}"><img src="{% static 'starhub/img/logo.svg' %}" alt="{{ site_header|default:'StarHub' }}"></a>
+                <a class="brand" href="{% url 'admin:index' %}">{% include "components/marca.html" %}</a>
               {% endblock %}
               <button type="button" class="btn-header" data-acao="abrir-menu" aria-label="Abrir menu">{% icone "menu" %}</button>
             </div>
@@ -125,5 +125,12 @@ sidebar, footer...), entao qualquer template do admin continua funcionando.
 <script src="{% static 'starhub/js/condicoes.js' %}"></script>
 {# Select que depende de outro na mesma linha (Tipo -> Valor da variante). #}
 <script src="{% static 'starhub/js/selects-dependentes.js' %}"></script>
+{# Confirmacao antes de acao que altera a loja real (botao com data-confirmar). #}
+{% include "components/confirmar.html" %}
+<script src="{% static 'starhub/js/confirmar.js' %}"></script>
+{# "+ Adicionar" do titulo dos inlines em formato de lista (edit_inline/lista.html). #}
+<script src="{% static 'starhub/js/inline-lista.js' %}"></script>
+{# Coluna "Acoes" da listagem: abre os itens do pedido / variacoes abaixo da linha. #}
+<script src="{% static 'starhub/js/linha-detalhe.js' %}"></script>
 </body>
 </html>

@@ -1,0 +1,22 @@
+{% comment %}
+Dialogo de confirmacao (um so por pagina, no admin/base.html). JS: static/starhub/js/confirmar.js.
+Uso: qualquer botao submit com data-confirmar="O que vai acontecer" pede confirmacao antes.
+Opcionais no botao: data-confirmar-titulo, data-confirmar-botao (texto do Confirmar),
+data-confirmar-perigo (Confirmar vermelho) e data-confirmar-lista="id" (id de um
+{{ lista|json_script:"id" }} com frases que viram uma lista no dialogo, ex.: o que falta).
+Use em acao que altera a loja/marketplace real.
+{% endcomment %}
+<dialog class="confirmar" id="sh-confirmar" aria-labelledby="sh-confirmar-titulo" aria-describedby="sh-confirmar-texto">
+  <div class="confirmar-corpo">
+    <span class="confirmar-icone">{% icone "triangle-alert" %}</span>
+    <div class="confirmar-textos">
+      <h2 class="confirmar-titulo" id="sh-confirmar-titulo" data-confirmar-titulo>Confirmar acao</h2>
+      <p class="confirmar-texto" id="sh-confirmar-texto" data-confirmar-texto></p>
+      <ul class="confirmar-lista" data-confirmar-itens hidden></ul>
+    </div>
+  </div>
+  <footer class="confirmar-rodape">
+    <button type="button" class="btn btn-outline" data-confirmar-cancelar>Cancelar</button>
+    <button type="button" class="btn btn-primary" data-confirmar-ok>Confirmar</button>
+  </footer>
+</dialog>

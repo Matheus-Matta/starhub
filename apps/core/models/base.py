@@ -1,4 +1,7 @@
+import uuid
+
 from django.conf import settings
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from simple_history.models import HistoricalRecords
 
@@ -26,6 +29,9 @@ class Origin(models.TextChoices):
 
 
 class BaseModel(models.Model):
+    # Identificador estavel para fora (integracoes, links); a chave continua o id inteiro,
+    # que a API Woo devolve. Unico no banco: o default sozinho nao impede repetido.
+    uuid = models.UUIDField("uuid", default=uuid.uuid4, unique=True, editable=False)
     account = models.ForeignKey(
         "core.Account", verbose_name="conta", on_delete=models.PROTECT,
         related_name="%(app_label)s_%(class)s_set",
@@ -34,7 +40,7 @@ class BaseModel(models.Model):
     origin = models.CharField("origem", max_length=30, choices=Origin, default=Origin.STARHUB)
     created_at = models.DateTimeField("criado em", auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField("alterado em", auto_now=True, db_index=True)
-    metadados = models.JSONField("metadados", default=list, blank=True)
+    metadados = models.JSONField("metadados", default=list, blank=True, encoder=DjangoJSONEncoder)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, verbose_name="criado por", null=True, blank=True, editable=False,
         on_delete=models.SET_NULL, related_name="%(app_label)s_%(class)s_created",
@@ -71,3 +77,7 @@ class BaseModel(models.Model):
                 self.created_by = user
             self.updated_by = user
         return super().save(*args, **kwargs)
+
+    def get_additional_data(self):
+        # Vai para o log do auditlog: a lista de logs filtra a conta por aqui (admin_logs).
+        return {"account_id": str(self.account_id)} if self.account_id else None

@@ -13,6 +13,23 @@ CELERY_RESULT_BACKEND = "cache+memory://"
 CELERY_TASK_ALWAYS_EAGER = True
 # Sem isso uma tarefa que quebra em dev some em silencio; com isso o erro sobe.
 CELERY_TASK_EAGER_PROPAGATES = True
+# Eager nao grava o SUCCESS no backend sem isto: a barra de progresso (celery_progress)
+# ficaria parada no ultimo passo em vez de ver a tarefa terminar.
+CELERY_TASK_STORE_EAGER_RESULT = True
+# Eager roda a tarefa DENTRO da requisicao: a sincronizacao da Shopify prendia o POST
+# do admin ate o Daphne matar, e o webhook respondia depois da Shopify desistir. Com
+# isto apps.core.tarefas.enfileirar roda as tarefas longas numa thread. Os testes
+# desligam (conftest.py raiz) para ler o resultado da tarefa logo depois da chamada.
+STARHUB_TAREFAS_EM_THREAD = True
+# Com a tarefa na thread, duas conexoes escrevem no SQLite ao mesmo tempo. timeout:
+# espera o lock em vez de "database is locked" na hora. IMMEDIATE: a transacao pega
+# o lock de escrita no BEGIN; a DEFERRED que le e depois escreve falha sem esperar.
+DATABASES = {
+    "default": {
+        **DATABASES["default"],  # noqa: F405
+        "OPTIONS": {"timeout": 20, "transaction_mode": "IMMEDIATE"},
+    }
+}
 
 # Dev aberto para testar integracao de qualquer lugar (tunel do VS Code, ngrok,
 # IP da rede local, front em outra porta). NUNCA copie isto para o prod.py: la

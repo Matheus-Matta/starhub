@@ -1,0 +1,26 @@
+{# Itens do pedido abertos abaixo da linha da listagem (PedidoAdmin.acoes). #}
+<div class="sh-subtabela-wrap">
+  {% if linhas %}
+    <table class="table">
+      <thead><tr>
+        <th>Produto</th><th>Variante</th><th class="num">Preco</th><th class="num">Qtd</th>
+        <th class="num">Total</th><th class="num">Estoque</th><th>Situacao</th>
+      </tr></thead>
+      <tbody>
+        {% for linha in linhas %}{% with item=linha.item %}
+          <tr>
+            <td>{% include "components/table_produto.html" with imagem_url=linha.imagem nome=item.nome|default:"Item sem nome" sku=item.sku|default:"-" %}</td>
+            <td class="text-muted">{{ item.variante.titulo|default:"-" }}</td>
+            <td class="num nowrap">{{ item.preco_unitario|moeda }}</td>
+            <td class="num">{{ item.quantidade }}</td>
+            <td class="num nowrap">{{ item.total|moeda }}</td>
+            <td class="num">{% if item.variante.manage_inventory %}{{ item.variante.inventory_quantity }}{% else %}-{% endif %}</td>
+            <td>{{ linha.situacao|default:"-" }}</td>
+          </tr>
+        {% endwith %}{% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="sh-subtabela-vazia">Pedido sem itens.</p>
+  {% endif %}
+</div>

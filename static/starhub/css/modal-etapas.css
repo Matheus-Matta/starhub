@@ -1,0 +1,123 @@
+/* Modal com etapas (templates/components/modal_etapas.html + js/modal-etapas.js).
+   Cor so por token; espacamento vertical so por gap dos containers. */
+.modal-etapas {
+  width: min(640px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: var(--shadow-md);
+}
+
+.modal-etapas[open] {
+  display: flex;
+}
+
+.modal-etapas::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.modal-etapas-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.modal-etapas-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 12px 12px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-etapas-titulo {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.modal-etapas-indicador {
+  display: flex;
+  gap: 16px;
+  margin: 0;
+  padding: 12px 20px;
+  list-style: none;
+  border-bottom: 1px solid var(--border);
+  background: var(--muted);
+}
+
+.modal-etapas-indicador li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.modal-etapas-indicador li.ativa {
+  color: var(--foreground);
+}
+
+.modal-etapas-numero {
+  display: inline-grid;
+  place-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--muted-2);
+  font-size: 0.75rem;
+}
+
+.modal-etapas-indicador li.ativa .modal-etapas-numero,
+.modal-etapas-indicador li.feita .modal-etapas-numero {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.modal-etapas-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.modal-etapas-etapa {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-etapas-etapa[hidden],
+.modal-etapas-erro[hidden],
+.modal-etapas [hidden] {
+  display: none;
+}
+
+.modal-etapas-erro {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--destructive-soft);
+  color: var(--destructive);
+  font-size: 0.875rem;
+}
+
+.modal-etapas-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+}

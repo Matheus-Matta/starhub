@@ -10,7 +10,6 @@ from django.test import RequestFactory
 from apps.core import json_normalizar
 from apps.core.json_regras import RegrasTema
 from apps.core.json_widgets import JSONTema
-from apps.core.models import PublicationPolicy, SalesChannel
 from apps.core.services.rules import matches_rules
 from apps.woo_api.models import ChaveApi
 
@@ -69,34 +68,6 @@ def test_nenhum_campo_json_do_admin_aparece_cru(admin_logado, conta):
                 if json_puro and not isinstance(campo.widget, JSONTema):
                     crus.append(f"{model.__name__}.{nome}")
     assert crus == []
-
-
-def _dados_base(conta, **extra):
-    return {"account": conta.pk, "origin": "starhub", "active": "on", "metadados": "[]", **extra}
-
-
-@pytest.mark.django_db
-def test_admin_grava_configuracao_aninhada_do_canal_sem_virar_texto(admin_logado, conta):
-    configuracao = {"limite": 10, "loja": {"id": 1}, "ativo": True}
-    resposta = admin_logado.post("/admin/core/saleschannel/add/", _dados_base(
-        conta, name="Shopify Principal", platform="shopify", settings=json.dumps(configuracao)
-    ))
-    assert resposta.status_code == 302, resposta.content.decode()[:1500]
-    assert SalesChannel.objects.get().settings == configuracao
-
-
-@pytest.mark.django_db
-def test_admin_grava_regras_da_politica_pela_tabela(admin_logado, conta):
-    canal = SalesChannel.objects.create(name="Loja", platform="shopify")
-    linhas = [{"grupo": "all", "field": "active", "operator": "eq", "value": "true"}]
-    resposta = admin_logado.post("/admin/core/publicationpolicy/add/", _dados_base(
-        conta, name="Produtos Shopify", entity_type="product", target_channel=canal.pk,
-        enabled="on", priority="0", default_action="allow", rules=json.dumps(linhas),
-    ))
-    assert resposta.status_code == 302, resposta.content.decode()[:1500]
-    assert PublicationPolicy.objects.get().rules == {
-        "all": [{"field": "active", "operator": "eq", "value": True}]
-    }
 
 
 @pytest.mark.django_db

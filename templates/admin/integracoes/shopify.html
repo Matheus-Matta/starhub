@@ -1,0 +1,74 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'starhub/css/integracao.css' %}">{% endblock %}
+{% block extrahead %}{{ block.super }}<script defer src="{% static 'starhub/js/integracao-matriz.js' %}"></script><script defer src="{% static 'starhub/js/modal-etapas.js' %}"></script>{% endblock %}
+{% block breadcrumbs %}
+  <div class="breadcrumbs"><a href="{% url 'admin:index' %}">Painel</a> &rsaquo; Integracoes &rsaquo; Shopify</div>
+{% endblock %}
+
+{% block content %}
+<form method="post" class="integracao-page" novalidate>{% csrf_token %}
+  {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
+
+  {% componente "card" titulo="Conexao com a API" icone="plug" %}
+    <div class="form-grid integracao-api-grid">
+      {% include "components/field.html" with field=form.dominio_loja %}
+      {% include "components/field.html" with field=form.token_acesso icones=True %}
+      {% include "components/field.html" with field=form.segredo_app icones=True %}
+      {% include "components/field.html" with field=form.segredo_avaliacoes icones=True %}
+      {% include "components/field.html" with field=form.url_webhook %}
+      {% include "components/field.html" with field=form.active %}
+    </div>
+  {% endcomponente %}
+
+  {% componente "card" titulo="O que a loja pode receber e enviar" icone="sliders-horizontal" flush=True %}
+    {% slot "acoes" %}{% if pode_editar %}
+      <div class="integracao-selecao" aria-label="Marcacao rapida da matriz">
+        <button type="button" class="btn btn-sm btn-outline" data-integracao-marcar="todos">Marcar tudo</button>
+        <button type="button" class="btn btn-sm btn-outline" data-integracao-marcar="receber">Marcar recebimento</button>
+        <button type="button" class="btn btn-sm btn-outline" data-integracao-marcar="enviar">Marcar envio</button>
+        <button type="button" class="btn btn-sm btn-ghost" data-integracao-marcar="nenhum">Limpar</button>
+      </div>
+    {% endif %}{% endslot %}
+    <div class="table-wrap">
+      <table class="table integracao-matriz">
+        <colgroup><col class="integracao-col-recurso"><col class="integracao-col-direcao"><col span="4"></colgroup>
+        <thead><tr><th>Recurso</th><th class="integracao-direcao">Direcao</th>{% for operacao in operacoes %}<th class="integracao-operacao-titulo">{{ operacao }}</th>{% endfor %}</tr></thead>
+        <tbody>
+          {% for linha in matriz %}{% for direcao in linha.direcoes %}
+            <tr data-direcao="{{ direcao.nome }}">
+              {% if forloop.first %}<th class="integracao-recurso" rowspan="2">{{ linha.rotulo }}</th>{% endif %}
+              <td class="integracao-direcao">{{ direcao.rotulo }}</td>
+              {% for campo in direcao.campos %}<td class="integracao-operacao"><label class="integracao-check" title="{{ campo.label }}">{{ campo }}<span class="visually-hidden">{{ campo.label }}</span></label></td>{% endfor %}
+            </tr>
+          {% endfor %}{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endcomponente %}
+
+  {% if configuracao %}{% include "admin/integracoes/_frete_checkout.html" %}{% endif %}
+
+  <div class="integracao-actions">
+    <a href="{{ url_tarefas }}" class="btn btn-outline">{% icone "history" "icon-sm" %} Ver tarefas</a>
+    {% if pode_editar %}
+      <button type="submit" name="acao" value="webhooks" class="btn btn-outline"
+              data-confirmar-titulo="Cadastrar os webhooks na loja?" data-confirmar-botao="Cadastrar webhooks"
+              data-confirmar="Os webhooks do StarHub na loja Shopify real sao apagados e criados de novo, conforme o que esta ligado em Receber.">Cadastrar webhooks</button>
+    {% endif %}
+    {# Mesma condicao do include do modal abaixo: botao ativo sem dialog na pagina nao faz nada. #}
+    {% if pode_editar and sincronizacao %}
+      <button type="button" class="btn btn-outline" data-abrir-modal-etapas="modal-sincronizar">Sincronizar loja</button>
+    {% elif not pode_editar %}
+      <button type="button" class="btn btn-outline" disabled title="Voce nao tem permissao para sincronizar. Peca a um administrador.">Sincronizar loja</button>
+    {% else %}
+      <button type="button" class="btn btn-outline" disabled title="Salve a configuracao antes de sincronizar.">Sincronizar loja</button>
+    {% endif %}
+    {% if pode_editar %}
+      <button type="submit" name="acao" value="salvar" class="btn btn-mono">Salvar configuracao</button>
+    {% endif %}
+  </div>
+</form>
+{% if pode_editar and sincronizacao %}{% include "admin/integracoes/_modal_sincronizar.html" %}{% endif %}
+{% endblock %}

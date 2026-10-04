@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken
 
+from apps.core import origem
 from apps.core.models import Origin
 from apps.core.tenant.context import bind_tenant, reset_tenant
 from apps.woo_api.autenticacao import ChaveConsumidorAuthentication
@@ -35,10 +36,12 @@ class WooView(APIView):
         return tratar_erro_woo
 
     def dispatch(self, request, *args, **kwargs):
-        self._tokens_conta = None
+        self._tokens_conta = self._token_origem = None
         try:
             return super().dispatch(request, *args, **kwargs)
         finally:
+            if self._token_origem:
+                origem.restaurar(self._token_origem)
             if self._tokens_conta:
                 reset_tenant(self._tokens_conta)
 
@@ -50,6 +53,8 @@ class WooView(APIView):
         if account_id is None:
             raise PermissionDenied("O acesso nao pertence a nenhuma conta.")
         self._tokens_conta = bind_tenant(account_id, request.user)
+        # Log do auditlog: "woo_api" e por onde (chave ck_ ou usuario do JWT, que vira o autor).
+        self._token_origem = origem.definir(origem.WOO_API, via=request.user, ator=request.user)
 
     def recurso(self):
         recurso = self.recurso_classe()

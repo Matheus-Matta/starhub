@@ -1,0 +1,43 @@
+/* Simular cotacao de frete (templates/admin/logistica/tabelafrete/simular.html). */
+
+.frete-grade {
+  display: grid;
+  gap: var(--gap-pagina, 20px);
+  max-width: 720px;
+}
+
+.frete-form {
+  display: flex;
+  gap: 10px;
+}
+
+.frete-form input { flex: 1; }
+
+.frete-resultado {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+}
+
+.frete-resultado > div {
+  display: grid;
+  gap: 4px;
+}
+
+.frete-rotulo {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.frete-valor {
+  font-size: 1.5rem;
+  color: var(--foreground);
+}
+
+.frete-detalhe {
+  margin: 14px 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}

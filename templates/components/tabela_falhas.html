@@ -1,0 +1,25 @@
+{% comment %}
+Falhas por item de uma tarefa de integracao (apps/integracoes/falhas.py).
+Uso: render_to_string("components/tabela_falhas.html", {"falhas": [...], "rotulos": {...}}).
+{% endcomment %}
+<div class="table-wrap">
+  <table class="table tabela-falhas">
+    <thead>
+      <tr><th>Dado</th><th>Item no hub</th><th>ID no marketplace</th><th>Motivo</th></tr>
+    </thead>
+    <tbody>
+      {% for falha in falhas %}
+        <tr>
+          <td>{{ falha.rotulo|default:"Geral" }}</td>
+          <td>
+            {% if falha.descricao %}<span class="celula-principal">{{ falha.descricao }}</span>{% endif %}
+            {% if falha.id %}<span class="table-identity-meta">#{{ falha.id }}</span>{% endif %}
+            {% if not falha.descricao and not falha.id %}-{% endif %}
+          </td>
+          <td>{{ falha.id_externo|default:"-" }}</td>
+          <td>{{ falha.motivo }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

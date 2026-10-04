@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from apps.core.fields import TextoHTMLField
 from apps.core.tenant.managers import TenantManager, UnscopedManager
 from apps.core.tenant.validators import conta_do_registro
 
@@ -41,8 +42,8 @@ class Produto(ComDatas):
 
     nome = models.CharField("nome", max_length=255)
     slug = models.SlugField("slug", max_length=255, allow_unicode=True)
-    descricao = models.TextField("descricao", blank=True)
-    descricao_curta = models.TextField("descricao curta", blank=True)
+    descricao = TextoHTMLField("descricao", blank=True)
+    descricao_curta = TextoHTMLField("descricao curta", blank=True)
     tipo = models.CharField("tipo", max_length=20, choices=Tipo, default=Tipo.SIMPLES)
     status = models.CharField("status", max_length=20, choices=Status, default=Status.PUBLICADO)
     fornecedor = models.CharField("fornecedor", max_length=150, blank=True)

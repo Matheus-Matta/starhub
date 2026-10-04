@@ -1,0 +1,82 @@
+# Producao do StarHub com a imagem gerada pelo GitHub (.github/workflows/docker.yml).
+# O PostgreSQL fica de fora (POSTGRES_* no .env); o Redis sobe aqui.
+#
+#   docker compose pull && docker compose up -d     # sobe / atualiza
+#   docker compose logs -f web worker               # acompanha
+#
+# Ordem: redis -> migrate (roda uma vez e sai) -> web, worker e beat.
+name: starhub
+
+x-app: &app
+  image: ${STARHUB_IMAGE:-ghcr.io/matheus-matta/starhub:latest}
+  env_file: .env
+  environment:
+    # O .env do dev diz config.settings.dev: aqui vale sempre o de producao.
+    DJANGO_SETTINGS_MODULE: config.settings.prod
+    REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+  volumes:
+    # Fotos de avaliacao e imagens importadas: o worker grava, o web serve.
+    - media:/app/media
+  restart: unless-stopped
+
+services:
+  migrate:
+    <<: *app
+    command: python manage.py migrate --noinput
+    restart: "no"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  web:
+    <<: *app
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      # So a porta: ALLOWED_HOSTS e o redirect https recusariam um GET em localhost.
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8000), 3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  worker:
+    <<: *app
+    command: sh -c "celery -A config worker -l info --concurrency ${CELERY_CONCURRENCY:-4}"
+    depends_on:
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  beat:
+    <<: *app
+    # Hoje nao ha tarefa agendada; fica pronto para quando houver (CELERY_BEAT_SCHEDULE).
+    command: celery -A config beat -l info --schedule /tmp/celerybeat-schedule
+    depends_on:
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  redis:
+    image: redis:7-alpine
+    # appendonly: fila do Celery e resultados sobrevivem a um reinicio do Redis.
+    command: redis-server --appendonly yes
+    volumes:
+      - redis:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  media:
+  redis:

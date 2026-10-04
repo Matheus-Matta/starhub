@@ -1,0 +1,138 @@
+.integracao-page {
+  display: grid;
+  gap: var(--gap-pagina);
+}
+
+.integracao-api-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.integracao-matriz {
+  min-width: 760px;
+  table-layout: fixed;
+}
+
+.integracao-col-recurso {
+  width: 20%;
+}
+
+.integracao-col-direcao {
+  width: 15%;
+}
+
+.integracao-recurso {
+  color: var(--mono);
+  font-weight: 600;
+  text-align: left;
+  vertical-align: top;
+}
+
+.integracao-direcao {
+  font-weight: 600;
+  text-align: left;
+}
+
+.integracao-operacao,
+.integracao-operacao-titulo {
+  text-align: center;
+}
+
+.integracao-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.integracao-selecao {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.integracao-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 767px) {
+  .integracao-api-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .integracao-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .integracao-selecao {
+    justify-content: flex-start;
+  }
+}
+
+/* Checklist "Frete no checkout" (templates/admin/integracoes/_frete_checkout.html). */
+.frete-ck-intro {
+  display: grid;
+  gap: 8px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted-foreground);
+  font-size: 0.8125rem;
+}
+
+.frete-ck-intro p { margin: 0; }
+
+.frete-ck-selos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.frete-ck-grupo {
+  margin: 0;
+  padding: 10px 20px 6px;
+  border-bottom: 1px solid var(--border);
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.frete-ck {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.frete-ck-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.frete-ck-item:last-child { border-bottom: 0; }
+.frete-ck-icone { padding-top: 1px; color: var(--muted-foreground); }
+.frete-ck-ok .frete-ck-icone { color: var(--success); }
+.frete-ck-falta .frete-ck-icone { color: var(--destructive); }
+.frete-ck-aviso .frete-ck-icone { color: var(--warning); }
+.frete-ck-manual .frete-ck-icone,
+.frete-ck-pendente .frete-ck-icone { color: var(--primary); }
+
+.frete-ck-texto {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 0.8125rem;
+  color: var(--foreground);
+}
+
+.frete-ck-detalhe,
+.frete-ck-como {
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}

@@ -1,0 +1,20 @@
+# Fora da imagem: segredos, banco e arquivos locais, e o template comprado (licenca).
+.git
+.github
+.claude
+.venv
+venv
+**/__pycache__
+**/*.py[cod]
+.pytest_cache
+.ruff_cache
+.env
+.env.*
+!.env.example
+db.sqlite3*
+media
+staticfiles
+example_templetes_react_to_convert_html
+examples
+docs
+*.log

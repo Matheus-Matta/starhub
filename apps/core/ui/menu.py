@@ -9,6 +9,19 @@ from django.conf import settings
 from django.urls import NoReverseMatch, reverse
 
 ICONE_PADRAO = "folder"
+# "marca:shopify" no STARHUB_MENU_ICONES: o item usa o logo da plataforma
+# (static/starhub/img/marcas/<codigo>.svg), o mesmo do badge de origem.
+PREFIXO_MARCA = "marca:"
+
+
+def _item(nome, url, icone):
+    item = {"nome": nome, "url": url, "icone": icone, "ativo": False, "marca": ""}
+    if icone.startswith(PREFIXO_MARCA):
+        from apps.core.admin_utils import svg_da_marca
+
+        item["marca"] = svg_da_marca(icone.removeprefix(PREFIXO_MARCA))
+        item["icone"] = ICONE_PADRAO  # sem o arquivo da marca, cai no icone comum
+    return item
 
 
 def _ativo(caminho, url):
@@ -36,14 +49,10 @@ def montar_menu(available_apps, caminho):
     secoes = []
     for app in available_apps or []:
         itens = [
-            {
-                "nome": modelo["name"],
-                "url": modelo["admin_url"],
-                # Model movido de outro app (STARHUB_MENU_AGRUPAR) guarda o app de origem.
-                "icone": icones.get(_chave(modelo.get("app_label", app["app_label"]), modelo),
-                                    ICONE_PADRAO),
-                "ativo": False,
-            }
+            # Model movido de outro app (STARHUB_MENU_AGRUPAR) guarda o app de origem.
+            _item(modelo["name"], modelo["admin_url"],
+                  icones.get(_chave(modelo.get("app_label", app["app_label"]), modelo),
+                             ICONE_PADRAO))
             for modelo in app["models"]
             if modelo.get("admin_url")
         ]
@@ -58,22 +67,36 @@ def montar_menu(available_apps, caminho):
             melhor["ativo"] = True
         if itens:
             secoes.append({"nome": app["name"], "rotulo": app["app_label"], "itens": itens})
-    return secoes
+    ordem = getattr(settings, "STARHUB_MENU_ORDEM", [])
+    posicoes = {rotulo: indice for indice, rotulo in enumerate(ordem)}
+    return sorted(secoes, key=lambda secao: posicoes.get(secao["rotulo"], len(ordem)))
+
+
+def _do_model(modelo, nome):
+    return str(modelo.get("object_name", "")).lower() == nome
 
 
 def agrupar_apps(app_list, regras):
-    """Move os models de um app para a secao de outro ({"woo_api": "auth"}).
+    """Move os models de um app (ou um model so) para a secao de outro.
+
+        {"woo_api": "core"}                          # o app inteiro
+        {"integracoes.execucaointegracao": "core"}  # so este model; o app fica com o resto
 
     Se o app de destino nao aparece (usuario sem permissao nele), o de origem
     fica onde esta: melhor mostrar a secao original do que sumir com o item.
     """
     por_rotulo = {app["app_label"]: app for app in app_list}
     for origem, destino in (regras or {}).items():
-        if origem not in por_rotulo or destino not in por_rotulo:
+        rotulo, _, nome = origem.partition(".")
+        if rotulo not in por_rotulo or destino not in por_rotulo:
             continue
-        movidos = [{**modelo, "app_label": origem} for modelo in por_rotulo[origem]["models"]]
+        app = por_rotulo[rotulo]
+        saem = [m for m in app["models"] if not nome or _do_model(m, nome)]
+        movidos = [{**modelo, "app_label": rotulo} for modelo in saem]
         por_rotulo[destino]["models"] = sorted(
             por_rotulo[destino]["models"] + movidos, key=lambda modelo: str(modelo["name"])
         )
-        app_list = [app for app in app_list if app["app_label"] != origem]
+        app["models"] = [m for m in app["models"] if m not in saem]
+        if not app["models"]:
+            app_list = [a for a in app_list if a["app_label"] != rotulo]
     return app_list

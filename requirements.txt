@@ -3,9 +3,21 @@ djangorestframework>=3.15,<3.16
 djangorestframework-simplejwt>=5.3,<6
 channels>=4.1,<5
 channels-redis>=4.2,<5
+# daphne: so o runserver do dev (HTTP + WebSocket num terminal). Prod roda uvicorn.
 daphne>=4.1,<5
+# Servidor ASGI de prod (Docker); [standard] traz websockets e uvloop/httptools.
+uvicorn[standard]>=0.30,<1
+# Arquivos estaticos servidos pelo proprio app em prod (uvicorn nao serve /static/).
+whitenoise>=6.7,<7
 celery>=5.4,<6
 redis>=5.0,<6
 psycopg[binary]>=3.2,<4
 django-simple-history==3.10.1
 django-auditlog==3.4.1
+cryptography>=44,<51
+# Planilha .xlsx na importacao de avaliacoes (o .csv e da biblioteca padrao).
+openpyxl>=3.1,<4
+# Barra de progresso das tarefas de integracao (admin).
+celery-progress>=0.4,<1
+# CORS em prod (CORS_ALLOWED_ORIGINS no .env); em dev libera tudo.
+django-cors-headers>=4.4,<5

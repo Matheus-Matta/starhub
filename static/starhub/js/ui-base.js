@@ -5,8 +5,11 @@
   "use strict";
 
   const abertos = [];
+  // O <html> traz a URL do sprite (com versao). Pagina no modal nao tem menu nem
+  // cabecalho: procurar um icone ja desenhado para copiar o endereco falhava ali.
   const usoDoSprite = document.querySelector("svg.icon use");
-  const sprite = usoDoSprite ? usoDoSprite.getAttribute("href").split("#")[0] : "";
+  const sprite = document.documentElement.dataset.sprite
+    || (usoDoSprite ? usoDoSprite.getAttribute("href").split("#")[0] : "");
 
   function icone(nome, classe) {
     const ns = "http://www.w3.org/2000/svg";

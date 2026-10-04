@@ -13,6 +13,7 @@ from apps.core.admin_base import TemaModelAdmin
 from apps.core.admin_lista_modal import url_popup
 from apps.core.json_widgets import CampoJSON, ImagensTema
 from apps.loja.admin import campos
+from apps.loja.admin.codigo_externo import CodigoExternoMixin
 from apps.loja.admin.opcoes import OpcoesInline
 from apps.loja.models import VarianteProduto
 from apps.loja.services.midias import imagens_da_variante, sincronizar_midias
@@ -80,12 +81,12 @@ def lista_variantes(produto):
         "url_editar": url_popup("admin:loja_varianteproduto_change", variante.pk),
         "url_excluir": url_popup("admin:loja_varianteproduto_delete", variante.pk),
     } for variante in variantes]
-    # Produto que nao e variavel tem uma variante so: sem ela, o botao cadastra;
-    # com ela, so se edita (a trava de verdade e o clean() da variante).
-    variavel = produto.tipo == produto.Tipo.VARIAVEL
+    # O "+" vai sempre: a secao inteira so aparece para produto variavel, e trocar o
+    # tipo na tela ja a mostra (condicoes.js). Com o produto alterado e nao salvo, o
+    # clique salva antes (modal-lista.js), para a variante ver o tipo novo.
     return render_to_string("admin/loja/lista_variantes.html", {
         "linhas": linhas,
-        "pode_adicionar": not salvo or variavel or not variantes,
+        "pode_adicionar": True,
         "url_adicionar": url_popup(
             "admin:loja_varianteproduto_add", produto=produto.pk, account=produto.account_id
         ) if salvo else None,
@@ -93,18 +94,24 @@ def lista_variantes(produto):
 
 
 @admin.register(VarianteProduto)
-class VarianteProdutoAdmin(ConfigVariante, TemaModelAdmin):
+class VarianteProdutoAdmin(CodigoExternoMixin, ConfigVariante, TemaModelAdmin):
     """Lista de SKUs e o formulario do modal de variante."""
 
-    list_display = ["__str__", "sku", "barcode", "price", "inventory_quantity", "stock_status"]
+    entidade_externa = "variantes"
+    list_display = [
+        "__str__", "codigo_externo", "sku", "barcode", "price", "inventory_quantity",
+        "stock_status",
+    ]
     list_filter = ["stock_status", "manage_inventory"]
     search_fields = ["sku", "barcode", "titulo", "produto__nome"]
     autocomplete_fields = ["produto"]
+    pai_da_lista = "produto"  # no modal da pagina do produto o campo some
+    larguras = {"titulo": 6, "sku": 3, "barcode": 3, "posicao": 3, "is_default": 3, "active": 3}
     # Opcoes (Cor + Tamanho) logo abaixo da identificacao; o resto vem depois ("sh-final").
     inlines = [OpcoesInline]
     fieldsets = [
         ("Variante", {"fields": [
-            "produto", ("titulo", "is_default"), ("sku", "barcode"), ("posicao", "active"),
+            "produto", ("titulo", "sku", "barcode"), ("posicao", "is_default", "active"),
         ]}),
         ("Imagens", {"classes": ["sh-final"], "fields": ["imagens"]}),
         ("Preco", {"classes": ["sh-final"], "fields": PRECO}),

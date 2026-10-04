@@ -35,7 +35,10 @@
           <div class="form-workspace-tools">
             {% block object-tools %}
               {% if change and not is_popup %}
-                <ul class="object-tools">{% block object-tools-items %}{% change_form_object_tools %}{% endblock %}</ul>
+                <ul class="object-tools">{% block object-tools-items %}{% change_form_object_tools %}{% endblock %}
+                  {# Logs do auditlog so deste registro, mais recentes primeiro (apps/core/admin_logs.py). #}
+                  {% if url_logs %}<li><a href="{{ url_logs }}" class="historylink">{% icone "history" "icon-sm" %} Logs</a></li>{% endif %}
+                </ul>
               {% endif %}
             {% endblock %}
             {% url opts|admin_urlname:'changelist' as changelist_url %}

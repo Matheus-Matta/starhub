@@ -16,6 +16,15 @@ def test_sidebar_em_secoes_com_chaves_de_api_junto_dos_usuarios(admin_logado):
     assert "#key-round" in secao_auth  # icone no item
 
 
+def test_sidebar_prioriza_loja_e_deixa_auditoria_no_final(admin_logado):
+    """O menu deve seguir o fluxo operacional, deixando auditoria por ultimo."""
+    html = admin_logado.get("/admin/").content.decode()
+    menu = html.split('class="sidebar-menu"')[1].split("</nav>")[0]
+
+    posicoes = [menu.index(nome) for nome in ("Loja", "Integracoes", "Nucleo", "Auditoria")]
+    assert posicoes == sorted(posicoes)
+
+
 def test_header_sem_botao_de_modulos(admin_logado):
     html = admin_logado.get("/admin/").content.decode()
     assert 'aria-label="Modulos"' not in html

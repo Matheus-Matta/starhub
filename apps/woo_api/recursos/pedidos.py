@@ -3,12 +3,14 @@ from django.utils import timezone
 from apps.loja.models import Cliente, Pedido
 from apps.loja.services.pedidos import gravar_endereco_do_pedido, gravar_transacao
 from apps.loja.totais import recalcular_totais
-from apps.woo_api import datas, metadados
+from apps.woo_api import datas
 from apps.woo_api.erros import WooErro
 from apps.woo_api.recursos import enderecos
 from apps.woo_api.recursos.base import Recurso, booleano, escolha, inteiro, lista_de_ids, texto
 from apps.woo_api.recursos.pedidos_linhas import gravar_itens, gravar_linhas
+from apps.woo_api.recursos.pedidos_meta import gravar_meta, gravar_servicos
 from apps.woo_api.recursos.pedidos_saida import pedido_para_woo
+from apps.woo_api.recursos.termos import cadastrar_cupons
 
 TEXTOS = {
     "payment_method": ("forma_pagamento", 100),
@@ -107,14 +109,15 @@ class PedidoRecurso(Recurso):
             if recebido is not None:
                 enderecos.gravar(gravar_endereco_do_pedido, obj, tipo, recebido, tipo=tipo)
         if "meta_data" in dados:
-            obj.metadados = metadados.mesclar(obj.metadados, dados["meta_data"])
+            gravar_meta(obj, dados["meta_data"])
         if "shipping_lines" in dados:
             obj.linhas_frete = gravar_linhas(obj.linhas_frete, dados, "shipping_lines", "method_id")
         if "fee_lines" in dados:
             obj.linhas_taxa = gravar_linhas(obj.linhas_taxa, dados, "fee_lines", "name")
         if "coupon_lines" in dados:
-            # Cupom so e registrado: o desconto precisa vir no total de cada item.
+            # O desconto nao e recalculado aqui: ele precisa vir no total de cada item.
             obj.linhas_cupom = gravar_linhas(obj.linhas_cupom, dados, "coupon_lines", "code")
+            cadastrar_cupons(dados["coupon_lines"])
         for prefixo, atributo in DATAS:
             if dados.get(prefixo) or dados.get(f"{prefixo}_gmt"):
                 setattr(obj, atributo, datas.ler_do_corpo(dados, prefixo))
@@ -122,8 +125,9 @@ class PedidoRecurso(Recurso):
             obj.placed_at = timezone.now()
         _aplicar_status(obj, dados)
         obj.save()
-        if "line_items" in dados:
-            gravar_itens(obj, dados)
+        # Servicos depois dos itens: o campo starhub guarda o item_id de cada um.
+        if "line_items" in dados and gravar_servicos(obj, gravar_itens(obj, dados)):
+            obj.save(update_fields=["metadados", "updated_at"])
         recalcular_totais(obj)
         if "transaction_id" in dados:
             gravar_transacao(obj, texto(dados["transaction_id"], "transaction_id", 255))

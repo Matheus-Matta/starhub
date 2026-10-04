@@ -7,6 +7,8 @@ dos plugins brasileiros...) fica em Address.metadata e volta igual para o ERP.
     -> city="Recife", document="12345678909", metadata={"cpf": "123.456.789-09"}
 """
 
+import uuid
+
 from django.core.exceptions import ValidationError
 
 from apps.core.models import Address
@@ -86,6 +88,7 @@ def clonar(endereco, nome):
         return None
     copia = Address.objects.get(pk=endereco.pk)
     copia.pk = copia.id = None
+    copia.uuid = uuid.uuid4()  # o uuid e unico: a copia nao pode levar o do original
     copia._state.adding = True
     copia.name, copia.is_default = nome, False
     copia.save()

@@ -1,8 +1,11 @@
 from django.contrib import admin
+from django.template.loader import render_to_string
 
 from apps.core.admin_base import TemaModelAdmin
+from apps.core.admin_utils import iniciais_de
 from apps.core.filtros import FiltroPeriodo
 from apps.loja.admin import campos
+from apps.loja.admin.codigo_externo import CodigoExternoMixin
 from apps.loja.admin.enderecos import EnderecosForm, secao_endereco
 from apps.loja.models import Cliente
 from apps.loja.services.clientes import endereco_do_cliente, gravar_endereco_do_cliente
@@ -18,11 +21,14 @@ class ClienteForm(EnderecosForm):
 
 
 @admin.register(Cliente)
-class ClienteAdmin(TemaModelAdmin):
+class ClienteAdmin(CodigoExternoMixin, TemaModelAdmin):
+    entidade_externa = "clientes"
     form = ClienteForm
     campos_json = campos.CLIENTE
-    list_display = ["email", "nome_completo", "cidade", "telefone_fmt", "cliente_pagante",
-                    "created_at"]
+    list_display = [
+        "cliente_info", "codigo_externo", "cidade", "telefone_fmt", "cliente_pagante", "created_at",
+    ]
+    list_display_links = ["cliente_info"]
     search_fields = ["email", "nome", "sobrenome", "usuario", "cpf", "cnpj"]
     list_filter = [("created_at", FiltroPeriodo), "cliente_pagante", "papel", "origin"]
     readonly_fields = ["created_at", "updated_at"]
@@ -49,9 +55,15 @@ class ClienteAdmin(TemaModelAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related("vinculos_endereco__endereco")
 
-    @admin.display(description="nome", ordering="nome")
-    def nome_completo(self, obj):
-        return obj.nome_completo or "-"
+    @admin.display(description="cliente", ordering="nome")
+    def cliente_info(self, obj):
+        nome = obj.nome_completo or obj.email or f"Cliente {obj.pk}"
+        return render_to_string("components/table_cliente.html", {
+            "avatar_url": obj.avatar_url,
+            "email": obj.email or "Sem e-mail",
+            "iniciais": iniciais_de(nome),
+            "nome": nome,
+        })
 
     @admin.display(description="cidade")
     def cidade(self, obj):

@@ -1,0 +1,98 @@
+{% extends "admin/change_form.html" %}
+{% load static admin_urls admin_modify %}
+
+{# Tela de acompanhamento (somente leitura). Com a tarefa aberta, a barra anda sozinha: #}
+{# js/tarefa-progresso.js usa o celery_progress (websockets.js) no socket url_progresso. #}
+{% block extrahead %}{{ block.super }}{% if aberta %}
+  <script defer src="{% static 'celery_progress/celery_progress.js' %}"></script>
+  <script defer src="{% static 'celery_progress/websockets.js' %}"></script>
+  <script defer src="{% static 'starhub/js/tarefa-progresso.js' %}"></script>
+{% endif %}{% endblock %}
+
+{% block content %}
+<div id="content-main" class="form-page">
+  <section class="form-workspace form-workspace-flat">
+    <header class="form-workspace-header">
+      <div class="form-workspace-heading">
+        <span class="form-workspace-kicker">Tarefa #{{ original.pk }}</span>
+        <h1>{{ original.get_tipo_display }}</h1>
+        <p>{{ original.configuracao|default:"StarHub" }} &middot; criada em {{ original.created_at|date:"d/m/Y \a\s H:i:s" }}</p>
+      </div>
+      <div class="form-workspace-tools">
+        {% block object-tools %}
+          <ul class="object-tools">{% block object-tools-items %}{% change_form_object_tools %}{% endblock %}
+            {% if url_logs %}<li><a href="{{ url_logs }}" class="historylink">{% icone "history" "icon-sm" %} Logs</a></li>{% endif %}
+          </ul>
+        {% endblock %}
+        {% url opts|admin_urlname:'changelist' as changelist_url %}
+        <a href="{% add_preserved_filters changelist_url %}" class="btn btn-outline">Voltar</a>
+        {% if pode_retomar %}
+          <form method="post" action="{{ url_retomar }}">{% csrf_token %}
+            <button type="submit" class="btn btn-primary"
+                    data-confirmar-titulo="Retomar esta tarefa?" data-confirmar-botao="Retomar"
+                    data-confirmar="A tarefa roda de novo do comeco. Se ela envia dados para a loja (sincronizar, exportar, enviar alteracao, cadastrar), a loja real e alterada outra vez.">{% icone "undo-2" "icon-sm" %} Retomar</button>
+          </form>
+        {% endif %}
+        {% if pode_liberar %}
+          <form method="post" action="{{ url_liberar }}">{% csrf_token %}
+            <button type="submit" class="btn btn-destructive" title="Use quando a tarefa travou: libera a loja para outra sincronizacao."
+                    data-confirmar-titulo="Marcar a tarefa como falhou?" data-confirmar-botao="Marcar como falhou" data-confirmar-perigo
+                    data-confirmar="Use so se ela travou. Se ainda estiver rodando de verdade, o resultado dela deixa de ser gravado.">Marcar como falhou</button>
+          </form>
+        {% endif %}
+      </div>
+    </header>
+
+    <div class="tarefa-grade">
+      <div class="tarefa-principal">
+        {% componente "card" titulo="Andamento" icone="trending-up" %}
+          <div class="tarefa-andamento"{% if aberta %} data-tarefa-progresso="{{ url_progresso }}"{% endif %}>
+            <div class="tarefa-topo">
+              <span data-tarefa-status>{% include "components/badge.html" with texto=original.get_status_display tom=tom_status %}</span>
+              <strong class="tarefa-percentual" data-tarefa-percentual>{{ original.progresso }}%</strong>
+            </div>
+            <progress class="tarefa-barra tarefa-barra-grande tarefa-barra-{{ tom_status }}"
+                      value="{{ original.progresso }}" max="100" data-tarefa-barra
+                      aria-label="Progresso da tarefa">{{ original.progresso }}%</progress>
+            <p class="tarefa-etapa" data-tarefa-etapa>
+              {% if original.total %}{{ original.processados }} de {{ original.total }} &middot; {% endif %}{{ original.etapa }}
+            </p>
+          </div>
+        {% endcomponente %}
+
+        {% if original.mensagem %}
+          {% componente "card" titulo="Resultado" icone="info" %}
+            <p class="tarefa-mensagem">{{ original.mensagem }}</p>
+          {% endcomponente %}
+        {% endif %}
+
+        {% if falhas_html %}
+          {% componente "card" titulo="Falhas por item" subtitulo=dica_falhas icone="triangle-alert" flush=True %}
+            {{ falhas_html }}
+          {% endcomponente %}
+        {% endif %}
+      </div>
+
+      <aside class="tarefa-lateral">
+        {% componente "card" titulo="Detalhes" icone="info" %}
+          <dl class="tarefa-dados">
+            <dt>Loja</dt><dd>{{ original.configuracao|default:"-" }}</dd>
+            <dt>Tipo</dt><dd>{{ original.get_tipo_display }}</dd>
+            <dt>Criada</dt><dd>{{ original.created_at|date:"d/m/Y H:i:s" }}</dd>
+            <dt>Iniciada</dt><dd>{{ original.iniciada_em|date:"d/m/Y H:i:s"|default:"Aguardando" }}</dd>
+            <dt>Concluida</dt><dd>{{ original.concluida_em|date:"d/m/Y H:i:s"|default:"-" }}</dd>
+            {% if duracao %}<dt>Duracao</dt><dd>{{ duracao }}</dd>{% endif %}
+            {% if original.celery_task_id %}<dt>Celery</dt><dd class="text-mono text-xs">{{ original.celery_task_id }}</dd>{% endif %}
+          </dl>
+        {% endcomponente %}
+
+        {% if original.parametros.direcao %}
+          {% componente "card" titulo="O que foi pedido" icone="sliders-horizontal" %}
+            <div class="tarefa-parametros">{{ parametros_html }}</div>
+          {% endcomponente %}
+        {% endif %}
+      </aside>
+    </div>
+  </section>
+</div>
+{% endblock %}

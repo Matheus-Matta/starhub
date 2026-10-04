@@ -88,7 +88,7 @@ def test_produto_externo_precisa_de_url():
 
 @pytest.mark.django_db
 def test_requisito_minimo_escolhido_pede_o_numero():
-    cupom = Cupom(code="MIN", name="Minimo", discount_type="percentage", value=10,
+    cupom = Cupom(name="Minimo", discount_type="percentage", value=10,
                   minimum_requirement="subtotal")
     with pytest.raises(ValidationError) as erro:
         cupom.full_clean(exclude=["account"])
@@ -98,7 +98,7 @@ def test_requisito_minimo_escolhido_pede_o_numero():
 @pytest.mark.django_db
 def test_elegibilidade_escolhida_pede_a_lista_no_admin(admin_logado, conta):
     resposta = admin_logado.post("/admin/loja/cupom/add/", {
-        "account": conta.pk, "origin": "starhub", "code": "SO-ALGUNS", "name": "So alguns",
+        "account": conta.pk, "origin": "starhub", "name": "So alguns",
         "status": "draft", "currency": "BRL", "discount_type": "percentage", "value": "10",
         "stacking_policy": "deny", "minimum_requirement": "none",
         "customer_eligibility": "all", "product_eligibility": "specific_products",

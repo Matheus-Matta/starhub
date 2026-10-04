@@ -1,0 +1,25 @@
+{# Variacoes do produto variavel abertas abaixo da linha da listagem (ProdutoAdmin.acoes). #}
+<div class="sh-subtabela-wrap">
+  {% if linhas %}
+    <table class="table">
+      <thead><tr>
+        <th>Variante</th><th>Opcoes</th><th class="num">Preco</th><th class="num">Promocional</th>
+        <th class="num">Estoque</th><th>Situacao</th>
+      </tr></thead>
+      <tbody>
+        {% for linha in linhas %}{% with v=linha.variante %}
+          <tr>
+            <td>{% include "components/table_produto.html" with imagem_url=linha.imagem nome=v.titulo|default:"Sem titulo" sku=v.sku|default:"-" %}</td>
+            <td><span class="sh-opcoes">{% for opcao in linha.opcoes %}{% include "components/badge.html" with texto=opcao %}{% empty %}-{% endfor %}</span></td>
+            <td class="num nowrap">{% if v.price is not None %}{{ v.price|moeda }}{% else %}-{% endif %}</td>
+            <td class="num nowrap">{% if v.sale_price is not None %}{{ v.sale_price|moeda }}{% else %}-{% endif %}</td>
+            <td class="num">{% if v.manage_inventory %}{{ v.inventory_quantity }}{% else %}-{% endif %}</td>
+            <td>{{ linha.situacao }}</td>
+          </tr>
+        {% endwith %}{% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="sh-subtabela-vazia">Nenhuma variante ainda.</p>
+  {% endif %}
+</div>

@@ -71,6 +71,10 @@ class ValorDaVarianteProduto(ComDatas):
 
     def clean(self):
         validate_same_account(self, self.variante, self.valor)
+        if self.variante.pk is None:
+            # Variante nova (salva junto): nada no banco para conflitar; duas linhas
+            # novas do mesmo tipo o OpcoesFormSet do admin ja barra.
+            return
         conflito = type(self).objects.filter(
             variante=self.variante, valor__tipo=self.valor.tipo
         ).exclude(pk=self.pk)

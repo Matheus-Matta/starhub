@@ -5,7 +5,10 @@ from django.contrib.auth.models import Permission
 from rest_framework.test import APIClient
 
 from apps.core.models import User
+from apps.loja.models import Pedido
 from apps.woo_api.models import ChaveApi
+from apps.woo_api.recursos.pedidos import PedidoRecurso
+from apps.woo_api.views.base import gravar
 
 
 @pytest.fixture
@@ -49,3 +52,13 @@ def json_com_numeros(cliente, metodo, url, corpo_texto):
     """Envia o JSON como TEXTO cru, para os numeros chegarem como numero
     (19.9 e nao "19.9") -- e assim que muitos ERPs mandam preco."""
     return getattr(cliente, metodo)(url, data=corpo_texto, content_type="application/json")
+
+
+def criar_pedido(dados=None):
+    """Cria o pedido como o marketplace faria e devolve o JSON Woo dele.
+
+    A API Woo nao cria pedido (so le e atualiza); os testes montam o pedido por aqui
+    e exercitam o resto (GET/PUT) pela API. Precisa de conta ativa, como o conftest raiz.
+    """
+    recurso = PedidoRecurso()
+    return recurso.para_woo(gravar(recurso, Pedido(), dados or {}, criando=True))

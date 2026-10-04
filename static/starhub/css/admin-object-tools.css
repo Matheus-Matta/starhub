@@ -38,6 +38,7 @@ ul.object-tools a:visited {
 }
 
 ul.object-tools a.historylink {
+  gap: 6px;
   background: var(--background);
   border: 1px solid var(--input);
   color: var(--accent-foreground);

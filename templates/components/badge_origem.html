@@ -1,0 +1,5 @@
+{# Origem do registro: badge neutro com o icone da plataforma (admin_utils.badge_origem). #}
+<span class="sh-origem" title="Origem: {{ nome }}">
+  <span class="sh-origem-icone">{% if imagem %}<img class="sh-marca" src="{{ imagem }}" alt="">{% elif svg %}{{ svg }}{% else %}{% icone icone %}{% endif %}</span>
+  {{ nome }}
+</span>

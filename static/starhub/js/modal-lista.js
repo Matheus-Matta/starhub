@@ -36,7 +36,11 @@
   }
 
   function abrir(gatilho) {
-    if (gatilho.hasAttribute("data-modal-salvar-antes")) {
+    const alterado = inicial !== null && retrato() !== inicial;
+    // Botao com chave ("+ Adicionar variante") e pai alterado sem salvar (ex.: tipo
+    // trocado para Variavel): salva antes, senao o filho seria validado contra o
+    // pai antigo. Na volta a chave abre o modal sozinha.
+    if (gatilho.hasAttribute("data-modal-salvar-antes") || (alterado && gatilho.dataset.modalChave)) {
       enviarPai({ _continue: "1", _abrir_modal: gatilho.dataset.modalChave || "" });
       return;
     }

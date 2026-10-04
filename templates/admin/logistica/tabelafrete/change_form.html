@@ -1,0 +1,5 @@
+{% extends "admin/change_form.html" %}
+{# Botao "Simular cotacao" (TabelaFreteAdmin.simular_view): so com a tabela ja salva. #}
+{% block object-tools-items %}{{ block.super }}
+  {% if change and url_simular %}<li><a href="{{ url_simular }}">{% icone "truck" "icon-sm" %} Simular cotacao</a></li>{% endif %}
+{% endblock %}

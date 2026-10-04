@@ -1,0 +1,46 @@
+{% comment %}
+Modal com etapas (<dialog> nativo). JS: static/starhub/js/modal-etapas.js; CSS: modal-etapas.css.
+Uso (ate 4 etapas; titulo_N liga o indicador, o slot etapa_N traz o corpo):
+  {% componente "modal_etapas" id="meu-modal" titulo="Assistente" titulo_1="Escolha" titulo_2="Confirme" concluir="Criar" %}
+    {% slot "campos" %}<input type="hidden" name="acao" value="algo">{% endslot %}
+    {% slot "etapa_1" %}<div data-exige-marcado="opcao" data-mensagem-erro="Escolha uma opcao.">...</div>{% endslot %}
+    {% slot "etapa_2" %}...{% endslot %}
+  {% endcomponente %}
+Abrir: qualquer botao type="button" com data-abrir-modal-etapas="meu-modal".
+O <form> (POST, csrf) e do componente; "action" opcional (padrao: a propria pagina).
+Ganchos do corpo (todos por atributo, o JS nao conhece a tela):
+  data-exige-marcado="nome"    em qualquer bloco da etapa: so avanca com um input desse nome marcado
+  data-mostra-se="nome=valor"  mostra o bloco so se o input marcado "nome" tem esse valor;
+                               os inputs de um bloco escondido ficam disabled (nao vao no POST)
+  data-travado="1"             no input: fica sempre disabled (ex.: recurso nao permitido)
+  data-marcar-todos="nome"     botao: marca os checkboxes "nome" visiveis e nao travados
+  data-resumo="nome"           texto = data-rotulo do input marcado (ou o valor)
+  data-resumo-lista="nome"     lista (ul) preenchida com os marcados visiveis
+{% endcomment %}
+<dialog class="modal-etapas" id="{{ id }}" data-modal-etapas aria-labelledby="{{ id }}-titulo">
+  <form method="post"{% if action %} action="{{ action }}"{% endif %} class="modal-etapas-form" novalidate>{% csrf_token %}
+    {{ slots.campos }}
+    <header class="modal-etapas-topo">
+      <h2 class="modal-etapas-titulo" id="{{ id }}-titulo">{{ titulo }}</h2>
+      <button type="button" class="btn btn-ghost btn-icon" data-fechar-etapas aria-label="Fechar">{% icone "x" %}</button>
+    </header>
+    <ol class="modal-etapas-indicador">
+      {% if titulo_1 %}<li data-etapa-indicador="1"><span class="modal-etapas-numero">1</span>{{ titulo_1 }}</li>{% endif %}
+      {% if titulo_2 %}<li data-etapa-indicador="2"><span class="modal-etapas-numero">2</span>{{ titulo_2 }}</li>{% endif %}
+      {% if titulo_3 %}<li data-etapa-indicador="3"><span class="modal-etapas-numero">3</span>{{ titulo_3 }}</li>{% endif %}
+      {% if titulo_4 %}<li data-etapa-indicador="4"><span class="modal-etapas-numero">4</span>{{ titulo_4 }}</li>{% endif %}
+    </ol>
+    <div class="modal-etapas-corpo">
+      <p class="modal-etapas-erro" data-etapas-erro role="alert" hidden></p>
+      {% if slots.etapa_1 %}<div class="modal-etapas-etapa" data-etapa="1">{{ slots.etapa_1 }}</div>{% endif %}
+      {% if slots.etapa_2 %}<div class="modal-etapas-etapa" data-etapa="2" hidden>{{ slots.etapa_2 }}</div>{% endif %}
+      {% if slots.etapa_3 %}<div class="modal-etapas-etapa" data-etapa="3" hidden>{{ slots.etapa_3 }}</div>{% endif %}
+      {% if slots.etapa_4 %}<div class="modal-etapas-etapa" data-etapa="4" hidden>{{ slots.etapa_4 }}</div>{% endif %}
+    </div>
+    <footer class="modal-etapas-rodape">
+      <button type="button" class="btn btn-outline" data-etapa-voltar hidden>Voltar</button>
+      <button type="button" class="btn btn-mono" data-etapa-avancar>Avancar</button>
+      <button type="submit" class="btn btn-mono" data-etapa-concluir hidden>{{ concluir|default:"Concluir" }}</button>
+    </footer>
+  </form>
+</dialog>

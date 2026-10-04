@@ -1,0 +1,8 @@
+{% load static %}{% comment %}
+Marca StarHub (static/starhub/img: gerados de logo.png e favicon.png). O CSS (marca.css)
+mostra o logo inteiro com o menu aberto e no login, e so o simbolo com o menu
+recolhido e no celular; o logo tem a versao do tema escuro ("Star" em branco).
+{% endcomment %}
+<img class="brand-simbolo" src="{% static 'starhub/img/marca-64.png' %}" alt="" width="28" height="28">
+<img class="brand-logo brand-logo-claro" src="{% static 'starhub/img/logo-600.png' %}" alt="StarHub" width="139" height="28">
+<img class="brand-logo brand-logo-escuro" src="{% static 'starhub/img/logo-600-escuro.png' %}" alt="StarHub" width="139" height="28">

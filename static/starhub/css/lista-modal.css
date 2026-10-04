@@ -52,6 +52,16 @@
   white-space: nowrap;
 }
 
+/* "Editar" e a lixeira lado a lado: mesma altura e alinhados pelo meio. */
+.sh-coluna-acoes > .btn {
+  vertical-align: middle;
+}
+
+.sh-lista-variantes .sh-remover-linha {
+  height: 28px;
+  width: 28px;
+}
+
 .sh-miniatura {
   display: block;
   width: 40px;
@@ -70,12 +80,117 @@
   background: var(--muted);
 }
 
-.btn.sh-perigo {
-  color: var(--destructive);
-}
-
 .sh-adicionar-relacionado {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
+}
+
+/* Inline em formato de lista (templates/admin/edit_inline/lista.html): componentes
+   do bundle, opcoes da variante. Mesma cara da lista de variantes e das secoes. */
+/* O fieldset do inline tem respiro em cima e embaixo (admin-form.css, para o
+   inline empilhado): aqui o titulo e a tabela encostam nas bordas do card. */
+.sh-inline-lista .inline-related > fieldset.module {
+  position: relative;
+  padding: 0;
+}
+
+.sh-inline-lista h2.inline-heading {
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
+  padding: 0 12px 0 16px;
+  background: color-mix(in srgb, var(--accent) 60%, transparent);
+  font-size: 0.8125rem;
+}
+
+/* A coluna "original" so leva os ids escondidos; o "adicionar" do Django e acionado
+   pelo botao do titulo (inline-lista.js). */
+.sh-inline-lista .original,
+.sh-inline-lista .add-row {
+  display: none;
+}
+
+.sh-inline-lista tbody:has(> tr.form-row:not(.empty-form):not(.sh-removida)) > .sh-inline-vazio {
+  display: none;
+}
+
+.sh-inline-vazio td {
+  padding: 20px 16px;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+/* O Django da 2em em cima da linha salva (espaco do texto "original", oculto aqui). */
+.sh-inline-lista .tabular tr.form-row td,
+.sh-inline-lista .tabular tr.has_original td {
+  padding: 8px 12px;
+  vertical-align: middle;
+}
+
+.sh-inline-lista .tabular tr.form-row td.original + td,
+.sh-inline-lista .tabular thead th:nth-child(2) {
+  padding-left: 16px;
+}
+
+.sh-inline-lista td .related-widget-wrapper {
+  margin: 0;
+}
+
+.sh-inline-lista td > p {
+  margin: 0;
+}
+
+.sh-inline-lista td select,
+.sh-inline-lista td .sh-select,
+.sh-inline-lista td .related-widget-wrapper,
+.sh-inline-lista td input:not([type="checkbox"]) {
+  width: 100%;
+  max-width: none;
+}
+
+/* Select com busca (autocomplete) se mede pelo texto: todas as linhas na mesma largura. */
+.sh-inline-lista td .select2-container {
+  flex: 1;
+  width: 100% !important;
+  min-width: 0;
+}
+
+/* Lixeira da linha (inline-lista.js, lista de variantes): discreta, vermelha no hover. */
+.sh-remover-linha {
+  height: 34px;
+  color: var(--muted-foreground);
+}
+
+.sh-remover-linha:hover,
+.sh-remover-linha:focus-visible {
+  color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 12%, transparent);
+}
+
+/* O "remover" do Django (linha nova) e acionado pela lixeira; a linha salva marcada
+   para remover sai da tela ate salvar. */
+.sh-inline-lista .inline-deletelink,
+.sh-inline-lista tr.sh-removida {
+  display: none;
+}
+
+.sh-inline-desfazer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 12px 6px 16px;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--destructive) 8%, transparent);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+}
+
+.sh-inline-desfazer[hidden] {
+  display: none;
+}
+
+.sh-inline-desfazer .btn {
   gap: 6px;
 }

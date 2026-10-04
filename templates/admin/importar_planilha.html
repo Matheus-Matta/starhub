@@ -1,0 +1,65 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{# Importar planilha de qualquer ModelAdmin com ImportarPlanilhaMixin (apps/integracoes/admin_importar.py). #}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'starhub/css/importar.css' %}">{% endblock %}
+{% block content_title %}{% endblock %}
+{% block breadcrumbs %}
+  <div class="breadcrumbs"><a href="{% url 'admin:index' %}">Painel</a> &rsaquo; <a href="{{ url_lista }}">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo; Importar planilha</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="form-page">
+  <section class="form-workspace form-workspace-flat">
+    <header class="form-workspace-header">
+      <div class="form-workspace-heading">
+        <span class="form-workspace-kicker">{{ opts.verbose_name_plural|capfirst }}</span>
+        <h1>Importar planilha</h1>
+        <p>{{ descricao }} Roda em segundo plano numa tarefa, com barra de progresso.</p>
+      </div>
+      <div class="form-workspace-tools">
+        <a href="{{ url_lista }}" class="btn btn-outline">Voltar</a>
+        <a href="{{ url_modelo }}" class="btn btn-outline">{% icone "book-open" "icon-sm" %} Baixar modelo</a>
+      </div>
+    </header>
+
+    <div class="imp-grade">
+      <div class="imp-coluna">
+        {% componente "card" titulo="Colunas da planilha" subtitulo="A primeira linha e o cabecalho; acento e maiuscula nao importam." icone="layout-list" flush=True %}
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>Coluna</th><th>Obrigatoria</th><th>O que vai nela</th></tr></thead>
+              <tbody>
+                {% for coluna, obrigatoria, texto in colunas %}
+                  <tr>
+                    <td class="text-mono">{{ coluna }}</td>
+                    <td>{% if obrigatoria %}{% include "components/badge.html" with texto="Sim" tom="primary" %}{% else %}{% include "components/badge.html" with texto="Nao" %}{% endif %}</td>
+                    <td>{{ texto }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endcomponente %}
+      </div>
+
+      <aside class="imp-coluna">
+        {% componente "card" titulo="Enviar planilha" icone="plus" %}
+          <form method="post" enctype="multipart/form-data" class="imp-form">{% csrf_token %}
+            <label class="imp-rotulo" for="planilha">Arquivo .xlsx ou .csv (ate 5 MB, 5.000 linhas)</label>
+            <input type="file" id="planilha" name="planilha" accept=".xlsx,.csv" required class="imp-arquivo">
+            {% for nome, rotulo in opcoes %}
+              <label class="imp-opcao"><input type="checkbox" name="{{ nome }}"> {{ rotulo }}</label>
+            {% endfor %}
+            <button type="submit" class="btn btn-primary btn-lg btn-block">{% icone "check" "icon-sm" %} Importar</button>
+          </form>
+        {% endcomponente %}
+        {% if regras %}
+          {% componente "card" titulo="Como funciona" icone="info" %}
+            <ul class="imp-regras">{% for regra in regras %}<li>{{ regra }}</li>{% endfor %}</ul>
+          {% endcomponente %}
+        {% endif %}
+      </aside>
+    </div>
+  </section>
+</div>
+{% endblock %}

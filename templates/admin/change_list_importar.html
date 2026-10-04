@@ -1,0 +1,5 @@
+{% extends "admin/change_list.html" %}
+{# Lista com o botao "Importar planilha" (apps/integracoes/admin_importar.py). #}
+{% block object-tools-items %}{{ block.super }}
+  {% if pode_importar %}<li><a href="{{ url_importar }}">{% icone "plus" "icon-sm" %} Importar planilha</a></li>{% endif %}
+{% endblock %}

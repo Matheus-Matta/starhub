@@ -36,9 +36,15 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "channels",
+    # Barra de progresso das tarefas (ProgressRecorder + celery_progress.js); a rota
+    # publica dela nao e usada: o admin serve o progresso com login (admin_tarefas.py).
+    "celery_progress",
     "apps.core",
     "apps.loja",
     "apps.woo_api",
+    "apps.integracoes",
+    "apps.logistica",
+    "apps.shopify",
 ]
 
 MIDDLEWARE = [
@@ -51,6 +57,8 @@ MIDDLEWARE = [
     "apps.core.tenant.middleware.TenantMiddleware",
     "simple_history.middleware.HistoryRequestMiddleware",
     "auditlog.middleware.AuditlogMiddleware",
+    # Origem de cada log (admin, woo_api, integracoes): apps/core/origem.py.
+    "apps.core.origem.OrigemMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -121,7 +129,8 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_AUTHENTICATION_CLASSES": [],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
-    "DEFAULT_THROTTLE_RATES": {"jwt_login": "20/min"},
+    # avaliacoes: por IP, so o POST do tema; 1 avaliacao por produto ja e regra do banco.
+    "DEFAULT_THROTTLE_RATES": {"jwt_login": "20/min", "avaliacoes": "10/hour"},
 }
 
 SIMPLE_JWT = {
@@ -145,22 +154,30 @@ STARHUB_MENU_ICONES = {
     "loja.pedido": "clipboard-list",
     "loja.tag": "star",
     "loja.cupom": "wallet",
+    "loja.avaliacao": "message-square-text",
+    "logistica.tabelafrete": "truck",
     "loja.tipovariante": "layout-grid",
     "loja.varianteproduto": "archive",
     "core.account": "house",
     "core.user": "user",
     "core.accessprofile": "shield",
     "core.address": "folder",
-    "core.externalreference": "external-link",
-    "core.saleschannel": "plug",
-    "core.publicationpolicy": "sliders-horizontal",
-    "core.publicationstate": "history",
+    "integracoes.configuracaointegracao": "marca:shopify",
+    "integracoes.execucaointegracao": "history",
     "woo_api.chaveapi": "key-round",
 }
-# Models de um app que aparecem na secao de outro: {"app_origem": "app_destino"}.
+# Models de um app que aparecem na secao de outro: {"app_origem": "app_destino"} move o
+# app inteiro; {"app.model": "app_destino"} move so aquele model.
 # As chaves da API Woo sao credencial de acesso da conta, entao ficam junto de
 # contas, usuarios e perfis de acesso (app core).
-STARHUB_MENU_AGRUPAR = {"woo_api": "core"}
+STARHUB_MENU_AGRUPAR = {
+    "woo_api": "core",
+    # Tarefas rodam integracoes e importacoes de planilha: ficam no Nucleo; a secao
+    # Integracoes fica so com a configuracao de cada plataforma.
+    "integracoes.execucaointegracao": "core",
+}
+# Fluxo operacional primeiro; auditoria fica no final para nao disputar atencao.
+STARHUB_MENU_ORDEM = ["loja", "logistica", "integracoes", "core", "auditlog"]
 # Paginas custom (sem model) no menu: {"app_label": [("Titulo", "admin:nome_url")]}.
 STARHUB_MENU_PAGINAS = {}
 

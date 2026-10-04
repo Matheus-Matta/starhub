@@ -1,68 +1,44 @@
-from django import forms
 from django.contrib import admin
 from django.db.models import Count
 from django.template.loader import render_to_string
+from django.utils.formats import date_format
+from django.utils.html import format_html
+from django.utils.timezone import localtime
 
-from apps.core.admin_base import TemaModelAdmin, TemaTabularInline
-from apps.core.admin_utils import badge_status, iniciais_de, valor_moeda
+from apps.core.admin_base import TemaModelAdmin
+from apps.core.admin_utils import (
+    badge,
+    badge_origem,
+    badge_status,
+    iniciais_de,
+    na_listagem,
+    valor_moeda,
+)
 from apps.core.filtros import FiltroPeriodo
 from apps.loja.admin import campos
+from apps.loja.admin.codigo_externo import SEM_CODIGO
+from apps.loja.admin.detalhes import itens_do_pedido
 from apps.loja.admin.enderecos import EnderecosForm, secao_endereco
-from apps.loja.models import EntregaPedido, ItemPedido, PagamentoPedido, Pedido
+from apps.loja.admin.pedidos_inlines import EntregaInline, ItemPedidoInline, PagamentoInline
+from apps.loja.models import Pedido
 from apps.loja.services.pedidos import (
     CAMPOS_ENDERECO,
     copiar_enderecos_do_cliente,
     gravar_endereco_do_pedido,
 )
-from apps.loja.totais import recalcular_totais, valores_do_item
+from apps.loja.totais import recalcular_totais
 
-
-class ItemPedidoForm(forms.ModelForm):
-    class Meta:
-        model = ItemPedido
-        fields = ["produto", "variante", "nome", "sku", "quantidade", "subtotal", "total"]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Em branco = calcular pelo preco da variante (ver clean).
-        self.fields["subtotal"].required = False
-        self.fields["total"].required = False
-
-    def clean(self):
-        dados = super().clean()
-        produto = dados.get("produto")
-        variante = dados.get("variante") or (produto.variante_padrao if produto else None)
-        dados["variante"] = variante
-        quantidade = dados.get("quantidade") or 0
-        preco = variante.current_price if variante else None
-        dados["subtotal"], dados["total"] = valores_do_item(
-            preco, quantidade, dados.get("subtotal"), dados.get("total")
-        )
-        # Snapshot: nome e SKU ficam gravados no item mesmo se o produto mudar depois.
-        if produto:
-            dados["nome"] = dados.get("nome") or produto.nome
-            dados["sku"] = dados.get("sku") or (variante.sku if variante else "")
-        return dados
-
-
-class ItemPedidoInline(TemaTabularInline):
-    model = ItemPedido
-    form = ItemPedidoForm
-    extra = 0
-    autocomplete_fields = ["produto", "variante"]
-
-
-class PagamentoInline(TemaTabularInline):
-    model = PagamentoPedido
-    extra = 0
-    fields = ["provider", "transaction_id", "status", "amount", "installments", "paid_at"]
-
-
-class EntregaInline(TemaTabularInline):
-    model = EntregaPedido
-    extra = 0
-    fields = ["status", "tracking_company", "tracking_number", "tracking_url", "shipped_at",
-              "delivered_at"]
+# So classes de badge que o tema ja tem (componentes.css); estados nao listados caem em "secondary".
+TONS_PAGAMENTO = {
+    "paid": "success",
+    "pending": "warning",
+    "authorized": "warning",
+    "partially_paid": "warning",
+    "refunded": "info",
+    "partially_refunded": "info",
+    "voided": "destructive",
+    "failed": "destructive",
+}
 
 
 class PedidoForm(EnderecosForm):
@@ -79,8 +55,8 @@ class PedidoAdmin(TemaModelAdmin):
     form = PedidoForm
     campos_json = campos.PEDIDO
     list_display = [
-        "__str__", "created_at", "cliente_info", "total_fmt", "forma_pagamento_titulo",
-        "itens_fmt", "status_badge",
+        "numero", "codigo_externo", "criado_em", "cliente_info", "total_fmt", "pagamento",
+        "itens_fmt", "status_badge", "origem_badge", "acoes",
     ]
     list_filter = [
         ("created_at", FiltroPeriodo), "status", "financial_status", "fulfillment_status",
@@ -146,8 +122,39 @@ class PedidoAdmin(TemaModelAdmin):
     def itens_fmt(self, obj):
         return f"{obj.total_itens} {'item' if obj.total_itens == 1 else 'itens'}"
 
+    @admin.display(description="pedido", ordering="number")
+    def numero(self, obj):
+        return f"#{obj.number}"
+
+    @admin.display(description="numero externo", ordering="external_number")
+    def codigo_externo(self, obj):
+        return format_html('<span class="nowrap">{}</span>', obj.external_number or SEM_CODIGO)
+
+    @admin.display(description="criado em", ordering="created_at")
+    def criado_em(self, obj):
+        # Data curta: por extenso ("29 de Setembro de 2026 as 03:50") empurrava
+        # origem e acoes para fora da tela.
+        return date_format(localtime(obj.created_at), "d/m/Y H:i")
+
+    @admin.display(description="pagamento", ordering="financial_status")
+    def pagamento(self, obj):
+        # A forma de pagamento continua no filtro lateral e no formulario.
+        tom = TONS_PAGAMENTO.get(obj.financial_status, "secondary")
+        return badge(obj.get_financial_status_display(), tom)
+
+    @admin.display(description="origem", ordering="origin")
+    def origem_badge(self, obj):
+        return badge_origem(obj.origin, obj.get_origin_display())
+
+    @admin.display(description="acoes")
+    def acoes(self, obj):
+        return itens_do_pedido(obj)
+
     def get_queryset(self, request):
-        return super().get_queryset(request).annotate(total_itens=Count("itens"))
+        pedidos = super().get_queryset(request).annotate(total_itens=Count("itens"))
+        if na_listagem(request):  # itens com imagem para a coluna "Acoes"
+            pedidos = pedidos.prefetch_related("itens__variante__midias", "itens__produto__midias")
+        return pedidos
 
     def save_model(self, request, obj, form, change):
         # Os enderecos sao FK: precisam existir antes de o pedido ser salvo.

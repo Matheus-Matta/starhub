@@ -1,0 +1,139 @@
+/* Tela de moderacao da avaliacao (templates/admin/loja/avaliacao/change_form.html). */
+
+.av-grade {
+  display: grid;
+  gap: var(--gap-pagina, 20px);
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .av-grade { grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); }
+}
+
+.av-principal,
+.av-lateral {
+  display: grid;
+  gap: var(--gap-pagina, 20px);
+  min-width: 0;
+}
+
+.av-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.av-estrelas {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* .icon.: o base.css carrega depois deste arquivo e o .icon dele zera o fill. */
+.icon.av-estrela {
+  width: 26px;
+  height: 26px;
+  color: var(--border);
+  fill: var(--muted);
+}
+
+.icon.av-estrela-cheia {
+  color: var(--warning);
+  fill: var(--warning);
+}
+
+.av-nota {
+  padding-left: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.av-selos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.av-comentario {
+  margin: 18px 0 0;
+  padding: 16px 18px;
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-md);
+  background: var(--muted);
+  color: var(--foreground);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.av-fotos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.av-foto {
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--muted);
+}
+
+.av-foto img,
+.av-foto video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.2s ease;
+}
+
+.av-foto:hover img { transform: scale(1.04); }
+
+.av-moderacao {
+  display: grid;
+  gap: 10px;
+}
+
+.av-dados {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 14px;
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.av-dados dt { color: var(--muted-foreground); }
+
+.av-dados dd {
+  margin: 0;
+  color: var(--foreground);
+  overflow-wrap: anywhere;
+}
+
+.av-moderacao .av-dados { padding-bottom: 6px; }
+
+.av-motivo-rotulo {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.av-motivo {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.av-seguir {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}

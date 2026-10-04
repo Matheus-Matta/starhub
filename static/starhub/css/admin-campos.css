@@ -12,7 +12,8 @@
 }
 
 .form-card-grid fieldset.module > .form-row:first-of-type,
-.form-card-grid fieldset.module > details > .form-row:first-of-type {
+.form-card-grid fieldset.module > details > .form-row:first-of-type,
+.form-card-grid fieldset.module > .form-row.hidden:first-of-type + .form-row {
   padding-top: 16px;
 }
 
@@ -25,7 +26,7 @@
 /* Booleano: rotulo EM CIMA (como os outros campos) e o switch centralizado
    numa faixa de 34px, a altura dos inputs. Assim o rotulo alinha com o rotulo
    vizinho e o switch fica no meio da altura do input ao lado. O Django gera
-   input antes do label; a grade inverte a ordem visual. */
+   input antes do label; a grade inverte a ordem visual (e o rotulo perde o recuo). */
 .aligned .form-row .flex-container.checkbox-row {
   display: grid;
   grid-template-rows: auto 34px;
@@ -36,6 +37,7 @@
 
 .aligned .checkbox-row label {
   grid-row: 1;
+  padding: 0;
 }
 
 .aligned .checkbox-row input[type="checkbox"] {

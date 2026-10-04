@@ -1,0 +1,45 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{# Simular cotacao de uma tabela de frete (TabelaFreteAdmin.simular_view): nao grava nada. #}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'starhub/css/frete.css' %}">{% endblock %}
+{% block content_title %}{% endblock %}
+{% block breadcrumbs %}
+  <div class="breadcrumbs"><a href="{% url 'admin:index' %}">Painel</a> &rsaquo; <a href="{% url 'admin:logistica_tabelafrete_changelist' %}">Tabelas de frete</a> &rsaquo; <a href="{{ url_tabela }}">{{ tabela }}</a> &rsaquo; Simular</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="form-page">
+  <section class="form-workspace form-workspace-flat">
+    <header class="form-workspace-header">
+      <div class="form-workspace-heading">
+        <span class="form-workspace-kicker">{{ tabela.get_tipo_display }}</span>
+        <h1>Simular cotacao</h1>
+        <p>{{ tabela }}: confira o frete de um CEP antes de ligar a tabela ao checkout.</p>
+      </div>
+      <div class="form-workspace-tools"><a href="{{ url_tabela }}" class="btn btn-outline">Voltar para a tabela</a></div>
+    </header>
+
+    <div class="frete-grade">
+      {% componente "card" titulo="CEP de destino" icone="search" %}
+        <form method="get" class="frete-form">
+          <input type="text" name="cep" value="{{ cep }}" placeholder="00000-000" data-mascara="cep" inputmode="numeric" aria-label="CEP de destino" required autofocus>
+          <button type="submit" class="btn btn-primary">Calcular</button>
+        </form>
+      {% endcomponente %}
+
+      {% if cotacao %}
+        {% componente "card" titulo="Resultado" icone="truck" %}
+          <div class="frete-resultado">
+            <div><span class="frete-rotulo">Frete</span><strong class="frete-valor">{{ valor }}</strong></div>
+            <div><span class="frete-rotulo">Prazo</span><strong>{{ cotacao.prazo_dias }} {% if cotacao.prazo_dias == 1 %}dia util{% else %}dias uteis{% endif %}</strong></div>
+            {% if cotacao.distancia_km is not None %}<div><span class="frete-rotulo">Distancia</span><strong>{{ cotacao.distancia_km }} km</strong></div>{% endif %}
+          </div>
+          <p class="frete-detalhe">{{ cotacao.detalhe }}</p>
+        {% endcomponente %}
+      {% elif erro %}
+        {% componente "alert" tom="warning" icone="triangle-alert" %}{{ erro }}{% endcomponente %}
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

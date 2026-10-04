@@ -5,7 +5,21 @@ Mesma chave sem id atualiza o primeiro com aquela chave, como o update_meta_data
 do WooCommerce.
 """
 
+from decimal import Decimal
+
 from apps.woo_api.erros import parametro_invalido
+
+
+def _serializar_value(value):
+    """meta_data e dado opaco do ERP, nao dinheiro do hub. Valores numericos sao
+    devolvidos como numeros, igual ao WooCommerce: Decimal inteiro vira int,
+    Decimal com casas vira float. Strings continuam strings.
+    """
+    if isinstance(value, Decimal):
+        if value % 1 == 0:
+            return int(value)
+        return float(value)
+    return value
 
 
 def mesclar(atuais, novos):
@@ -25,10 +39,11 @@ def mesclar(atuais, novos):
             alvo = next((i for i in lista if i.get("key") == novo["key"]), None)
         if alvo is not None:
             alvo["key"] = novo.get("key", alvo["key"])
-            alvo["value"] = novo.get("value")
+            alvo["value"] = _serializar_value(novo.get("value"))
             continue
         if "key" not in novo:
             raise parametro_invalido("meta_data", f"Metadado id {novo.get('id')} nao existe.")
-        lista.append({"id": proximo_id, "key": novo["key"], "value": novo.get("value")})
+        value = _serializar_value(novo.get("value"))
+        lista.append({"id": proximo_id, "key": novo["key"], "value": value})
         proximo_id += 1
     return lista

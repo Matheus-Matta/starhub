@@ -2,10 +2,18 @@ from django.contrib import admin
 from django.template.loader import render_to_string
 
 from apps.core.admin_base import TemaModelAdmin
-from apps.core.admin_utils import badge_status, imagem_principal, valor_moeda
+from apps.core.admin_utils import (
+    acoes_da_linha,
+    badge_status,
+    imagem_principal,
+    na_listagem,
+    valor_moeda,
+)
 from apps.core.filtros import FiltroPeriodo
 from apps.loja.admin import campos
 from apps.loja.admin.bundle import ComponenteInline, estoque_calculado
+from apps.loja.admin.codigo_externo import CodigoExternoMixin
+from apps.loja.admin.detalhes import variacoes_do_produto
 from apps.loja.admin.variante_unica import VarianteUnicaInline
 from apps.loja.admin.variantes import lista_variantes
 from apps.loja.models import Produto, VarianteProduto
@@ -18,11 +26,12 @@ UNICA = ["simple", "external", "grouped", "bundle"]
 
 
 @admin.register(Produto)
-class ProdutoAdmin(TemaModelAdmin):
+class ProdutoAdmin(CodigoExternoMixin, TemaModelAdmin):
+    entidade_externa = "produtos"
     campos_json = campos.PRODUTO
     list_display = [
-        "produto_info", "preco_regular_fmt", "preco_promocional_fmt",
-        "estoque", "situacao_estoque_badge", "status_badge", "updated_at",
+        "produto_info", "codigo_externo", "preco_regular_fmt", "preco_promocional_fmt",
+        "estoque", "situacao_estoque_badge", "status_badge", "updated_at", "acoes",
     ]
     list_display_links = ["produto_info"]
     list_filter = [
@@ -65,7 +74,20 @@ class ProdutoAdmin(TemaModelAdmin):
     ]
 
     def get_queryset(self, request):
-        return super().get_queryset(request).prefetch_related("variantes", "midias__variante")
+        produtos = super().get_queryset(request)
+        if not na_listagem(request):
+            return produtos
+        # Imagens e opcoes das variantes: miniatura e linha de detalhe (coluna "Acoes").
+        return produtos.prefetch_related(
+            "variantes__midias", "variantes__opcoes__valor__tipo", "midias__variante"
+        )
+
+    @admin.display(description="acoes")
+    def acoes(self, obj):
+        # So o variavel tem varias variantes para abrir; os outros, so o lapis.
+        if obj.tipo == Produto.Tipo.VARIAVEL:
+            return variacoes_do_produto(obj)
+        return acoes_da_linha(obj)
 
     @admin.display(description="Variantes")
     def lista_variantes(self, obj):

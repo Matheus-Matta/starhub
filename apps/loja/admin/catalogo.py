@@ -2,24 +2,44 @@
 
 from django import forms
 from django.contrib import admin
+from django.db.models import Count
+from django.template.loader import render_to_string
 
 from apps.core.admin_base import TemaModelAdmin, TemaTabularInline
 from apps.loja.admin import campos
+from apps.loja.admin.codigo_externo import CodigoExternoMixin
 from apps.loja.models import Categoria, Cupom, Tag, TipoVariante, ValorVariante
 
 
 @admin.register(Categoria)
-class CategoriaAdmin(TemaModelAdmin):
+class CategoriaAdmin(CodigoExternoMixin, TemaModelAdmin):
+    entidade_externa = "categorias"
     campos_json = campos.CATEGORIA
-    list_display = ["nome", "slug", "pai", "ordem", "qtd_produtos"]
+    list_display = ["categoria_info", "codigo_externo", "pai", "ordem", "qtd_produtos"]
+    list_display_links = ["categoria_info"]
     search_fields = ["nome", "slug"]
     list_filter = ["pai"]
     prepopulated_fields = {"slug": ["nome"]}
     fields = ["nome", "slug", "pai", "descricao", "imagem", "exibicao", "ordem"]
 
-    @admin.display(description="produtos")
+    @admin.display(description="categoria", ordering="nome")
+    def categoria_info(self, obj):
+        imagem = obj.imagem if isinstance(obj.imagem, dict) else {}
+        return render_to_string("components/table_produto.html", {
+            "icone": "layout-list",
+            "imagem_url": imagem.get("src", ""),
+            "meta": f"Slug: {obj.slug}",
+            "nome": obj.nome,
+        })
+
+    def get_queryset(self, request):
+        # Contagem na consulta da lista: um .count() por linha era N+1.
+        return super().get_queryset(request).select_related("pai").annotate(
+            total_produtos=Count("produtos", distinct=True))
+
+    @admin.display(description="produtos", ordering="total_produtos")
     def qtd_produtos(self, obj):
-        return obj.produtos.count()
+        return obj.total_produtos
 
 
 @admin.register(Tag)
@@ -32,6 +52,7 @@ class TagAdmin(TemaModelAdmin):
 class ValorVarianteInline(TemaTabularInline):
     model = ValorVariante
     extra = 0
+    verbose_name, verbose_name_plural = "valor", "valores"
     fields = ["valor", "posicao"]
 
 
@@ -87,15 +108,26 @@ class CupomForm(forms.ModelForm):
         for (campo, valor), (lista, mensagem) in self.LISTAS.items():
             if dados.get(campo) == valor and lista in self.fields and not dados.get(lista):
                 self.add_error(lista, mensagem)
+        # Incluido e excluido ao mesmo tempo: a exclusao ganharia sem ninguem perceber.
+        for incluidos, excluidos, nome in (("produtos", "produtos_excluidos", "produto"),
+                                           ("categorias", "categorias_excluidas", "categoria")):
+            repetidos = set(dados.get(incluidos) or []) & set(dados.get(excluidos) or [])
+            if repetidos:
+                nomes = ", ".join(sorted(str(item) for item in repetidos))
+                mensagem = f"Esta {nome} tambem esta na lista de incluidos: {nomes}."
+                self.add_error(excluidos, mensagem)
         return dados
 
 
 @admin.register(Cupom)
-class CupomAdmin(TemaModelAdmin):
+class CupomAdmin(CodigoExternoMixin, TemaModelAdmin):
+    entidade_externa = "cupons"
     form = CupomForm
-    list_display = ["code", "name", "discount_type", "value", "status", "usage_count", "ends_at"]
+    list_display = [
+        "name", "codigo_externo", "discount_type", "value", "status", "usage_count", "ends_at",
+    ]
     list_filter = ["status", "discount_type", "product_eligibility", "customer_eligibility"]
-    search_fields = ["code", "name"]
+    search_fields = ["name"]
     periodos = [("starts_at", "ends_at")]
     larguras = {"minimum_requirement": 4, "minimum_subtotal": 4, "minimum_quantity": 4}
     condicoes = {
@@ -115,7 +147,7 @@ class CupomAdmin(TemaModelAdmin):
         ],
     }
     fieldsets = [
-        ("Cupom", {"fields": [("code", "name"), "description", ("status", "currency")]}),
+        ("Cupom", {"fields": ["name", "description", ("status", "currency")]}),
         ("Desconto", {"fields": [
             ("discount_type", "value"), ("free_shipping", "stacking_policy"),
             ("starts_at", "ends_at"),
@@ -125,9 +157,12 @@ class CupomAdmin(TemaModelAdmin):
             ("once_per_order", "first_order_only"),
             ("minimum_requirement", "minimum_subtotal", "minimum_quantity"),
         ]}),
-        ("Elegibilidade", {"fields": [
-            ("customer_eligibility", "product_eligibility"),
-            "produtos", "variantes", "categorias", "tags", "clientes",
+        # Onde o desconto vale: a elegibilidade e, por cima dela, as excecoes
+        # (apps/loja/services/cupons.py aplica as duas).
+        ("Produtos", {"fields": [
+            "product_eligibility", "produtos", "variantes", "categorias", "tags",
+            "produtos_excluidos", "categorias_excluidas", "excluir_promocao",
         ]}),
+        ("Clientes", {"fields": ["customer_eligibility", "clientes"]}),
     ]
     readonly_fields = ["usage_count"]

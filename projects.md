@@ -38,10 +38,11 @@ ERP <--(GET /wp-json/wc/v1/orders)----- StarHub <--(pedido do marketplace)-- mar
 
 | | Dev (`config.settings.dev`) | Prod (`config.settings.prod`) |
 | --- | --- | --- |
-| Processos | **um terminal so**: `python manage.py runserver` | daphne, worker e beat **separados** |
+| Processos | **um terminal so**: `python manage.py runserver` | uvicorn, worker e beat em **containers separados** |
 | Celery | roda a tarefa na hora, dentro do processo (`CELERY_TASK_ALWAYS_EAGER`) | worker lendo o Redis |
 | Channels / cache | memoria | Redis |
-| Banco | `db.sqlite3` | PostgreSQL |
+| Banco | `db.sqlite3` | PostgreSQL (fora do compose) |
+| Estaticos | runserver | WhiteNoise (no proprio app) |
 
 Rodar em dev:
 
@@ -55,27 +56,50 @@ python manage.py createsuperuser           # pede esse id no campo "Account"
 python manage.py runserver        # abre http://127.0.0.1:8000/admin/
 ```
 
-Rodar em prod (cada linha e um processo/servico; variaveis em `.env.example`):
+Dados para testar (10+ por model, imagens `static/starhub/img/demos`): `python manage.py
+gerar_demo` (conta do `ACCOUNT_ADMIN` do .env ou `--conta <slug>`). `--limpar` recria e
+`--remover` apaga, mexendo so no que o demo criou (`apps/loja/demo/`). Recusa com
+`DEBUG=False`.
+
+Rodar em prod (Docker). A imagem sai do GitHub (`.github/workflows/docker.yml`): push
+na `main` testa (ruff, pytest, checks) e publica `ghcr.io/matheus-matta/starhub:latest`
+e `:sha-<commit>`; tag `v1.2.3` publica `:v1.2.3`. No servidor, com `docker-compose.yml`
+e o `.env` (parte PRODUCAO do `.env.example`: banco, CORS, segredo, dominios):
 
 ```bash
-export DJANGO_SETTINGS_MODULE=config.settings.prod
-python manage.py migrate && python manage.py collectstatic --noinput
-daphne -b 0.0.0.0 -p 8000 config.asgi:application
-celery -A config worker -l info
-celery -A config beat -l info
+docker login ghcr.io            # pacote privado: usuario do GitHub + token com read:packages
+docker compose pull && docker compose up -d
+docker compose logs -f web worker
+docker compose run --rm web python manage.py criar_conta_inicial   # primeira vez
 ```
 
-O Daphne **nao serve arquivos estaticos**: o nginx (ou outro proxy) serve
-`/static/` a partir de `staticfiles/` e repassa o resto ao Daphne com
-`X-Forwarded-Proto` (o prod.py confia nesse cabecalho para saber que e HTTPS).
+| Servico | O que roda |
+| --- | --- |
+| `migrate` | `migrate --noinput` uma vez a cada subida; os outros esperam ele terminar |
+| `web` | `uvicorn config.asgi:application` (HTTP + WebSocket), `WEB_WORKERS` processos, porta `WEB_PORT` |
+| `worker` | `celery -A config worker` (`CELERY_CONCURRENCY` tarefas) |
+| `beat` | `celery -A config beat` (hoje sem tarefa agendada) |
+| `redis` | fila do Celery, cache e channel layer (volume `redis`) |
+
+- **Proxy na frente** (nginx, Caddy, Traefik) faz o TLS e repassa ao `web` com
+  `X-Forwarded-Proto` e o `Upgrade` do WebSocket (`/ws/`). Sem proxy, so para teste:
+  `DJANGO_SSL_REDIRECT=0`.
+- **Estaticos**: WhiteNoise serve `/static/` (gerado no build da imagem). **Media**
+  (`/media/`, volume `media` compartilhado por web e worker) e servida pelo app com
+  `SERVIR_MEDIA=1`; com o nginx servindo a pasta, ponha `0`.
+- **CORS**: `CORS_ALLOWED_ORIGINS` (dominios da loja) e `CORS_URLS_REGEX` (rotas;
+  padrao: avaliacoes do tema). **Banco**: `POSTGRES_*`, `POSTGRES_SSLMODE`.
+- **Logs** saem no `docker compose logs` (`LOG_LEVEL`).
 
 ## 4. Estrutura
 
 ```text
 config/                 settings (base/dev/prod), urls, asgi, celery, routing (WebSocket)
 apps/core/              tema do admin + nucleo multi-tenant: Account, User, AccessProfile,
-                        BaseModel, Address, ExternalReference, SalesChannel, Publication*
+                        BaseModel, Address, ExternalReference e tabelas legadas ocultas
 apps/core/tenant/       conta ativa (ContextVar), TenantManager, middleware, validators
+apps/integracoes/       configuracao comum das lojas + historico das tarefas de integracao
+apps/shopify/           cliente, consultas, webhooks e tarefas Celery do Shopify
 apps/loja/              dados do hub: Produto + VarianteProduto, Categoria, Tag, Cliente,
                         Pedido, ItemPedido, PagamentoPedido, EntregaPedido, Cupom
 apps/woo_api/           API compativel com WooCommerce + login JWT + chaves ck_/cs_
@@ -154,6 +178,7 @@ de `apps/core/admin_base.py`. Com isso, sem configurar campo a campo:
 | `DateField` / `DateTimeField` | calendario pt-BR (`dd/mm/aaaa`) + hora (`datas.js`) |
 | par inicio/fim | seletor de periodo com dois meses: `periodos = [("promocao_inicio", "promocao_fim")]` |
 | `BooleanField` | switch |
+| `TextoHTMLField` | editor visual de texto rico, com opcao de editar o HTML |
 | checkbox de lista | checkbox do template (azul com check) |
 
 O `<select>`/`<input>` do Django continua no form, escondido e sincronizado:
@@ -196,6 +221,32 @@ Em vez de um inline longo, a pagina mostra uma lista; linha e botoes com
 contrato em `apps/core/admin_lista_modal.py`). Exemplo real: `lista_variantes` em
 `apps/loja/admin/variantes.py` + `templates/admin/loja/lista_variantes.html`.
 Salvou no modal: a pagina recarrega (ou salva o pai, se ele foi editado).
+No admin do filho, `pai_da_lista = "produto"` esconde nesse modal o campo do pai
+e a secao "Conta" (a conta vem do pai).
+
+Inline curto (poucas colunas) com a mesma cara de lista: `template =
+"admin/edit_inline/lista.html"` no inline, com `relacao_so_adicionar` nos selects
+(so o "+", sem lapis/olho). Exemplos: `OpcoesInline` e `ComponenteInline` (loja).
+
+#### Grupos fixos e perfis iniciais
+
+`apps/core/perfis_padrao.py` define os grupos fixos (Administrador, Gerente, Vendas,
+Catalogo, Estoque, Financeiro, Atendimento, Somente leitura, Integracao API) e as
+permissoes de cada um. A migration `core.0003` cria os grupos e os perfis das contas
+que ja existiam; conta nova ganha os perfis (`is_system`) pelo sinal `post_save`; e
+todo `migrate` reacerta as permissoes dos grupos (model novo entra sem migration).
+Perfil do sistema nao e excluido nem troca de codigo/grupo no admin.
+
+#### Botao "Logs" da edicao
+
+Toda pagina de edicao (TemaMixin) mostra "Logs" para quem pode ver logs: abre
+"Entradas de log" (auditlog) filtrada so por aquele registro (`?registro=<tipo>-<pk>`),
+mais recentes primeiro. Usuario comum so ve logs da conta dele (a conta vai no
+`additional_data` do log). Tudo em `apps/core/admin_logs.py`.
+Cada log tambem guarda a ORIGEM (`apps/core/origem.py`): `admin`, `woo_api` (com a
+chave ou o usuario do JWT) ou `sistema`; aparece na coluna "usuario" e no filtro
+"origem". Integracao nova (Shopify etc.) envolve o trabalho em
+`with origem("shopify", via="Loja X"):`.
 
 #### Campos que so aparecem conforme outro
 
@@ -292,6 +343,15 @@ class ProdutoAdmin(TemaModelAdmin):
   so o miolo rola. Depois de clicar num filtro a gaveta volta aberta.
 - Filtro de data: `list_filter = [("criado_em", FiltroPeriodo), ...]`
   (`apps/core/filtros.py`). Usa `__date__gte/__date__lte`: "ate 30/09" inclui o dia 30 inteiro.
+- Coluna **codigo externo** (`apps/loja/admin/codigo_externo.py`): o id do vinculo do
+  marketplace de origem (`gid://shopify/Product/123` aparece `123`; pedido usa
+  `external_number`); sem vinculo, `-`. Todo registro tem `uuid` (BaseModel), mas ele
+  so aparece no detalhe, somente leitura; a chave primaria e o `id` da API Woo seguem
+  inteiros. Onde usar qual: **uuid** no endereco dos webhooks, em que o id em sequencia
+  deixaria testar 1, 2, 3 (avaliacoes do tema ficaram com o id, a pedido), e
+  em identificador que vai para outro sistema e precisa ser estavel (handle
+  `avaliacao-<uuid>` na Shopify). **id inteiro** na API Woo (contrato do ERP), no admin
+  e nas tarefas internas.
 - Busca do header (Ctrl+K): procura em todo ModelAdmin que tem `search_fields`
   (`apps/core/busca.py`). Model novo com `search_fields` entra sozinho.
 
@@ -338,6 +398,9 @@ O token vale `JWT_ACESSO_DIAS` dias (7, como no plugin). O login tem limite de
 ### 6.2 Rotas
 
 Base: `/wp-json/wc/v1/`. Sem barra no final, como no WordPress (com barra tambem funciona).
+A integracao tambem aceita produtos e categorias em `/wp-json/wc/v3/products`: consulta,
+categorias podem ser criadas e alteradas, mas produtos existentes aceitam somente alteracao
+de `regular_price`, `sale_price` e `stock_quantity`. Filtros/corpos aparecem no terminal.
 
 | Recurso | Lista / cria | Le / altera / exclui | Lote |
 | --- | --- | --- | --- |
@@ -360,6 +423,12 @@ Base: `/wp-json/wc/v1/`. Sem barra no final, como no WordPress (com barra tambem
   (`19.9`) e lido como Decimal, nunca como float.
 - `billing`/`shipping` guardam campos extras (cpf, cnpj, number, neighborhood)
   do plugin Brazilian Market e os devolvem iguais.
+- Servicos do pedido (montagem, impermeabilizacao...) ficam em
+  `starhub.servicos` do pedido. No GET de `orders` cada servico sai no
+  `line_items[].meta_data` do seu item duas vezes: `{"key": "starhub", ...}` e
+  `epofw_field_<n>` no formato do plugin EPOFW (value em texto JSON), que e o que
+  o ERP le (`apps/woo_api/recursos/pedidos_epofw.py`). Na volta os dois formatos
+  sao aceitos; vindo os dois, vale o `starhub`, sem duplicar.
 
 ### 6.3 Erros
 
@@ -391,25 +460,288 @@ espera 400 com esses codigos. A regra do 409 continua valendo para o resto do pr
 - criar pedido pela API **nao baixa estoque** nem soma `total_sales`;
 - autenticacao OAuth 1.0a (Woo sobre HTTP): use HTTPS com Basic ou JWT.
 
-## 7. Novo marketplace
+## 7. Integracoes com marketplaces
+
+### 7.1 Configuracao da loja
+
+`apps/integracoes` guarda a parte comum a qualquer marketplace. Existe uma
+`ConfiguracaoIntegracao` por conta e plataforma; inicialmente a unica plataforma
+disponivel e Shopify. A entrada **Shopify** (secao Integracoes) da barra lateral abre uma
+pagina unica, em vez de uma lista de politicas.
+
+A pagina tem dominio permanente da loja, token de acesso, segredo do app
+e URL publica dos webhooks. Nome (`Shopify`) e versao da API sao internos e fixos;
+o URL de webhook inicia com protocolo e dominio da pagina aberta. Token e segredo
+ficam criptografados e nunca voltam preenchidos para o navegador. A matriz de
+permissoes separa **Receber** e **Enviar**, por recurso e operacao amigavel: Buscar,
+Criar, Atualizar e Excluir.
+
+Os botoes da pagina fazem o seguinte:
+
+- **Sincronizar loja:** enfileira uma tarefa Celery, consulta somente os recursos
+  com `Receber > Buscar` habilitado e cadastra localmente. Produtos vem 10 por pagina
+  ate a ultima (custo 923 de 1000); produto com mais de 10 variantes, colecoes ou fotos
+  e completado por uma busca por id (`apps/shopify/produtos_busca.py`). Nesta
+  importacao o produto que ja existe no hub e **sobrescrito** pelo da loja (nome,
+  textos, SEO, status, slug, tags, categorias, variantes); webhook, produto faltante
+  de pedido e eco de exportacao mantem o do hub. Item que da erro nao derruba a
+  sincronizacao: vai para a lista de falhas e os outros seguem (erro de credencial ou
+  rede com a loja continua derrubando);
+- **Cadastrar webhooks:** usa a Admin GraphQL API para registrar somente os eventos
+  `Receber > Criar/Atualizar/Excluir` habilitados. Antes, remove as assinaturas que
+  ja usam os mesmos endpoints para que o recadastro seja seguro;
+- **Ver tarefas:** abre `ExecucaoIntegracao`, com estado, progresso, etapa e mensagem.
+  Tarefa que terminou com 1+ item com erro ou aviso fica **Concluida com falhas**
+  (`completed_errors`); a tela mostra a tabela "Falhas por item" (recurso, item no hub,
+  id no marketplace, motivo), vinda do campo `falhas` (`apps/integracoes/falhas.py`).
+  Tudo falhou ou erro geral continua **Falhou**.
+
+Pedido de marketplace: `number` e sempre do hub (`SH-...`); o numero da loja (ex.
+`1001` do Shopify) fica em `external_number`. A migracao `loja.0014` moveu os pedidos
+importados antes dessa regra.
+
+O receptor fica em
+`/integracoes/shopify/webhook/<uuid da configuracao>/<recurso>/`. O endereco antigo,
+com o id inteiro no lugar do uuid, continua aceito para os webhooks cadastrados antes
+da troca; "Cadastrar webhooks" remove os antigos e cadastra com o uuid. Ele valida o HMAC com
+o segredo do app e devolve `202` depois de enfileirar o processamento. Assim a
+requisicao do Shopify nao espera a gravacao do catalogo. A matriz **Enviar** e
+usada pelo envio do hub para os marketplaces (secao 7.2).
+Se chegar `update` antes do `create`, o item ausente e criado e vinculado somente
+quando `Receber > Criar` estiver habilitado para aquele recurso.
+Produtos novos sao adaptados ao catalogo canonico com todas as variantes, opcoes,
+SKU, preco, promocao, estoque e codigo de barras. Imagens de `create` e `update`
+sao validadas, baixadas do CDN Shopify para `/media/produtos/` e vinculadas as
+variantes; o ID externo evita baixar novamente em webhooks repetidos.
+Cupons sao identificados pelo **nome** na conta (indice unico `cupom_nome_conta_unico`);
+o `code` do Cupom e interno, aleatorio e fica fora do admin. Codigo de pedido que o
+hub ainda nao conhece e consultado no Shopify (`codeDiscountNodeByCode`) e o cupom
+nasce completo (tipo, valor, datas, limites, minimo, clientes, produtos/colecoes,
+combinacao) em `apps/shopify/cupons.py` + `cupons_mapa.py`; o que o Cupom nao tem vai
+para `metadata["shopify"]`. O codigo usado fica numa `ExternalReference`
+`cupons_codigos`, entao o proximo pedido com ele nao consulta o Shopify de novo.
+Em desenvolvimento (`DEBUG=True`), o terminal registra os cabecalhos de contexto e
+o JSON recebido, sem registrar o HMAC ou qualquer credencial; em producao, nao.
+
+As tabelas antigas de politica/estado/canal nao aparecem mais no admin. Elas foram
+mantidas no banco nesta transicao para nao apagar dados existentes sem uma migracao
+de conversao explicita.
+
+### 7.2 Envio do hub para os marketplaces
+
+Um unico ponto leva as alteracoes do hub aos marketplaces: os signals de
+`apps/integracoes/sinais.py` (pre_save, post_save, post_delete e o M2M de
+categorias/tags do produto) chamam o `Distribuidor`
+(`apps/integracoes/envio/distribuidor.py`). O fluxo de um save:
+
+1. **Recurso:** Produto -> `produtos`, Categoria -> `categorias`, Cliente ->
+   `clientes`, Pedido -> `pedidos`, Cupom -> `cupons`, Avaliacao -> `avaliacoes`. Variante que so mudou
+   `inventory_quantity`, `stock_status` ou `low_stock_amount` -> `estoque` (pk da
+   variante); qualquer outra mudanca, variante nova ou excluida -> `produtos` update
+   do produto pai. `inventory_policy` e `manage_inventory` contam como produto: no
+   marketplace sao campos da variante, nao quantidade no local.
+2. **Mudou de verdade?** O pre_save guarda a linha do banco e o post_save compara
+   (ignora `updated_at`/`updated_by`; `"19.90"` e `Decimal("19.90")` sao iguais).
+   Sem mudanca, nada sai.
+3. **Destinos:** as `ConfiguracaoIntegracao` ativas da conta cuja plataforma tem
+   enviador registrado, **menos a da origem** (`apps.core.origem.atual()`), e so as
+   com `Enviar > recurso > operacao` ligado. O que veio do Shopify vai para os outros,
+   nunca volta ao Shopify; o que nasceu no admin, na API Woo ou num comando vai para
+   todos.
+4. **Depois do commit, um por registro:** `envio/transacao.py` agenda com
+   `transaction.on_commit` (rollback nao envia) e junta varias gravacoes do mesmo
+   registro na mesma transacao num envio so (create + update = create; + delete =
+   delete).
+5. **Tarefa:** `apps/integracoes/tasks.py::enviar_alteracao` roda na conta da
+   configuracao e com a origem = plataforma de destino (o que ela gravar no hub nao
+   volta para ela), confere de novo a matriz e chama o marketplace. O rastro fica em
+   **Tarefas** (menu Nucleo) (tipo *Enviar alteracao*): `produtos update 15:
+   atualizado`. Operacao que o marketplace nao aceita (`EnvioNaoSuportado`) conclui
+   como `ignorado: ...`; erro de rede/API repete 3 vezes com espera (30s, 60s, 120s)
+   no worker e depois fica **Falhou** com a mensagem. Em dev (Celery eager) nao
+   repete: falha na hora, sem travar a tela.
+
+**Tela da tarefa e Retomar.** A tarefa aberta mostra uma barra que anda sozinha
+por WebSocket (`/ws/tarefas/<id>/`, `apps/integracoes/consumers.py`, exige login,
+permissao e a conta da tarefa): cada gravacao de andamento da tarefa empurra o estado
+(`apps/integracoes/tempo_real.py`), sem a tela perguntar. O formato e o do
+`celery_progress` (`ProgressRecorder` no Celery + `websockets.js` na tela); o banco
+continua sendo a verdade (`apps/integracoes/progresso.py`). A sincronizacao conta os itens da loja antes
+(`ShopifyClient.contar`) e anda por item: "Produtos: 350 de 1200". Tarefa que
+falhou volta para a fila na MESMA linha pelo botao **Retomar** ou pela acao em lote
+(`apps/integracoes/retomar.py`). Envio e webhook guardam em
+`parametros["reenvio"]` o que precisam para isso; webhook de antes dessa versao nao
+guardou o corpo e nao pode ser retomado (use Sincronizar loja). No dev, a tarefa
+roda dentro do runserver: parar ou reiniciar o servidor marca as abertas como
+**Falhou** (`apps/integracoes/orfas.py`), em vez de deixar "Processando" para sempre.
+
+Imagens da importacao sao baixadas para o MEDIA. Foto acima de 5 MB vem reduzida
+pela CDN da Shopify (`width=2048`, depois 1600 e 1200); foto que nao baixa vira
+aviso na tarefa e nao derruba o produto nem as outras fotos.
+
+No marketplace, `EnviadorRecurso.enviar` (base) trava a linha canonica
+(`select_for_update`) e rele o vinculo (`ExternalReference`) depois do lock: com
+vinculo atualiza; sem vinculo cria e vincula (em `update`, so se `Enviar > criar`
+estiver ligado); `delete` exclui e desfaz o vinculo.
+
+Nao geram envio (nao disparam signal): `QuerySet.update()`, `bulk_create`,
+`bulk_update`, `tag.produtos.add(...)` pelo lado da tag e filhos fora do mapa
+(item do pedido, endereco do cliente, midia) enquanto o pai nao for salvo. Quem
+precisa que a mudanca saia usa `save()`.
+
+### 7.3 Avaliacoes de produto (tema Shopify)
+
+O cliente logado avalia o produto pelo tema da loja; o hub guarda, o operador
+modera e so a aprovada vai para a loja. O hub e a fonte da verdade.
+
+```text
+tema (Liquid assina o token) --POST multipart--> /integracoes/shopify/avaliacoes/<id da configuracao>/
+  -> Avaliacao PENDENTE (apps/loja)  -> moderacao no admin (Loja > Avaliacoes)
+  -> aprovar/rejeitar = save() -> Distribuidor -> recurso "avaliacoes" -> tarefa Celery
+  -> metaobject avaliacao_produto + media/total/lista no produto da loja
+```
+
+- **Model:** `apps/loja/models/avaliacao.py` (`Avaliacao`, `FotoAvaliacao`). Uma por
+  cliente e produto (indice unico `avaliacao_unica_por_cliente`), nota 1 a 5
+  (check), ate 3 fotos, comentario ate 1500. `compra_verificada` = existe pedido
+  do cliente com o produto em `Pedido.PAGOS`. Regras em `apps/loja/services/avaliacoes.py`.
+- **Quem e o cliente:** token `"<customer.id>:<product.id>:<timestamp>"` assinado
+  no Liquid com `hmac_sha256` e o segredo das configuracoes do tema
+  (`settings.reviews_secret`). O mesmo segredo vai em Integracoes > Shopify >
+  Segredo das avaliacoes (nao e o client secret do app). Vale 2 horas.
+  Detalhes em `apps/shopify/avaliacoes_token.py`.
+- **API** (`apps/shopify/avaliacoes_api.py`), o endereco aparece na tela da integracao:
+
+| Metodo | Corpo / query | Respostas |
+| --- | --- | --- |
+| `POST` | multipart: `payload`, `sig`, `nota`, `comentario`, `fotos` (ate 3, PNG/JPG/GIF/WEBP ate 5 MB) | 201 criada; 400 entrada errada (`campo` diz qual); 401 token; 404 produto; 409 ja avaliou, produto fechado ou cliente ainda nao sincronizado; 429 limite |
+| `GET` | `?payload=...&sig=...` | `{"avaliou": true, "status": "pendente"}` |
+
+  Erro sai como `{"erro": "<codigo>", "mensagem": "...", "campo": "..."}`. Limite:
+  10 envios por hora por IP (`DEFAULT_THROTTLE_RATES["avaliacoes"]`).
+- **Importar planilha** (botao na lista de avaliacoes, `apps/loja/admin/avaliacoes_importar.py`):
+  o lojista cria as proprias avaliacoes. .xlsx ou .csv (modelo para baixar na tela) com
+  `email`, `nome`, `sobrenome`, `sku`, `nota`, `comentario` e, opcionais, `nome_publico`,
+  `status` (vazio = aprovada) e `data`. Roda numa tarefa "Importar avaliacoes"
+  (`apps/loja/tasks.py`) com barra, falhas por linha e Retomar. Cliente novo nasce so no
+  hub (`_sem_envio`, nao vira conta na loja); mesmo cliente + produto atualiza em vez de
+  duplicar (`apps/loja/services/avaliacoes_importacao.py`).
+- **Moderacao:** acoes "Aprovar e publicar" e "Rejeitar" na lista, ou o campo
+  status na edicao (motivo aparece ao rejeitar). O texto do cliente nao e editavel.
+- **Envio** (`apps/shopify/envio/avaliacoes.py`): ligue Enviar > Avaliacoes >
+  Criar, Atualizar e Excluir. Aprovada vira metaobject `avaliacao_produto` gravado por
+  `metaobjectUpsert` com handle `avaliacao-<uuid>` (envio repetido nao duplica);
+  fotos vao para Files (`fileCreate`, a Shopify baixa da URL publica do hub, a
+  mesma dos webhooks). Rejeitada ou excluida que estava publicada sai da loja com
+  as fotos. Na primeira vez o hub cria as definicoes. Escopos do app:
+  `write_metaobject_definitions`, `write_metaobjects`, `write_files`, `write_products`.
+- **O que o tema le** (contrato com o tema):
+
+| Onde | Tipo | Conteudo |
+| --- | --- | --- |
+| `product.metafields.custom.reviews` | `list.metaobject_reference` | ate 50 aprovadas, as mais novas primeiro |
+| `product.metafields.custom.rating_value` | `number_decimal` | media com 1 casa (`"4.3"`) |
+| `product.metafields.custom.review_count` | `number_integer` | total de aprovadas |
+| metaobject `avaliacao_produto` | campos | `product`, `author` ("Ana L."), `rating`, `body`, `photos` (`list.file_reference`), `verified`, `date` |
+
+  Sem nenhuma aprovada os tres metafields sao apagados (o tema esconde o bloco).
+- **Producao:** `AVALIACOES_ORIGENS` no `.env` com os dominios da loja (CORS so
+  desta rota) e `client_max_body_size 16m` no nginx (3 fotos de 5 MB).
+
+### 7.4 Novo marketplace
 
 Cada marketplace e um app: `apps/<marketplace>/` (ex.: `apps/mercado_livre/`).
 
 ```text
 apps/mercado_livre/
-  models.py      credenciais/conta e o vinculo "produto do hub <-> anuncio"
   cliente.py     chamadas HTTP a API do marketplace (so isso)
   sincronizar.py regras de ida e volta (produto, estoque, preco, pedido)
   tasks.py       @shared_task que o Celery roda (descoberto sozinho)
-  admin.py       telas no tema (icone em STARHUB_MENU_ICONES)
+  webhooks.py    normalizacao dos eventos recebidos
+  envio/         um EnviadorRecurso por recurso + o Marketplace registrado
   tests/
 ```
 
+Para **enviar** ao marketplace basta herdar e registrar; o Distribuidor e a tarefa
+nao mudam:
+
+```python
+from apps.integracoes.envio.base import EnviadorRecurso, EnvioNaoSuportado, Marketplace
+from apps.integracoes.envio.registro import registrar
+
+
+class ProdutoML(EnviadorRecurso):
+    recurso = "produtos"
+    modelo = Produto
+
+    def criar(self, obj):            # devolve o id externo; a base grava o vinculo
+        ...
+    def atualizar(self, obj, external_id):
+        ...
+    # excluir nao implementado: a base levanta EnvioNaoSuportado (vira "ignorado")
+
+
+@registrar
+class MercadoLivreMarketplace(Marketplace):
+    plataforma = "mercado_livre"      # igual a ConfiguracaoIntegracao.Plataforma
+    recursos = (ProdutoML,)
+```
+
+O `ready()` do app importa o modulo com o `@registrar`, e a plataforma entra em
+`ConfiguracaoIntegracao.Plataforma` (migration). O codigo de origem que o app usa em
+`with origem(...)` tem que ser o mesmo `plataforma`: e ele que impede o eco.
+
+- Credenciais, matriz de permissoes e execucoes ficam em `apps/integracoes`; o
+  app do marketplace implementa somente as diferencas da API externa.
 - Os dados canonicos ficam em `apps/loja`. O app do marketplace le e grava la;
   ele nao cria um catalogo paralelo.
 - Chamada externa sempre em tarefa do Celery, nunca dentro da requisicao do admin.
   Em dev ela roda na hora; em prod vai para o worker.
 - Tempo real (se precisar): rotas em `config/routing.py`.
+
+**Importar planilha em qualquer tela.** `ImportarPlanilhaMixin`
+(`apps/integracoes/admin_importar.py`) poe o botao na lista, a pagina com as colunas, o
+modelo .csv para baixar e cria a tarefa; `apps/integracoes/importar_planilha.executar`
+roda a importacao (barra, falhas por linha, Retomar). Quem usa so declara as colunas e a
+regra de uma linha (`importar_linha(dados) -> (obj, criado)` ou `LinhaInvalida`). Hoje:
+avaliacoes e faixas de frete. A leitura (.xlsx/.csv) fica em `apps/core/planilha.py`.
+
+### 7.5 Logistica: cotacao de frete (`apps/logistica`)
+
+So o cadastro e o calculo: ainda nao ligado a pedido nem a checkout. Menu
+**Logistica > Tabelas de frete**; a tela muda pela forma de cobranca (`condicoes`).
+
+- **Por distancia (km):** CEP de origem, preco por km, taxa fixa, valor minimo e
+  distancia maxima opcional. Valor = taxa + km x preco/km (cada parte arredondada ao
+  centavo), nunca abaixo do minimo. Ex.: 12,3 km x R$ 2,35 + R$ 10 = R$ 38,91.
+- **Por faixa de CEP:** lista de faixas (CEP inicial, final, valor, prazo). Faixas que se
+  cruzam sao recusadas no cadastro; se mesmo assim mais de uma contiver o CEP, vale a
+  mais estreita (excecao de bairro vence a faixa da cidade).
+- **APIs gratuitas** (`apps/logistica/geo.py`): CEP -> coordenada pela AwesomeAPI
+  (reserva: BrasilAPI v2; depois a cidade, pelo Nominatim), guardada em `CoordenadaCep` (cada CEP e consultado uma vez);
+  distancia de carro pelo OSRM publico. Sem OSRM, linha reta x 1,3 e a cotacao avisa que e
+  estimativa. O OSRM publico e de demonstracao: com volume, use servidor proprio (`ROTA`).
+- **Importar planilha** (botao na lista de tabelas): faixas em massa com `tabela`,
+  `cep_inicial`, `cep_final`, `valor` e `prazo_dias`. Tabela que nao existe nasce "Por
+  faixa de CEP"; mesma faixa atualiza; faixa que cruza outra e recusada na linha. A opcao
+  "substituir" apaga antes as faixas das tabelas da planilha (`apps/logistica/importacao.py`).
+- **Frete no checkout da Shopify (CarrierService):** marque "oferecer no checkout" nas
+  tabelas e clique **Cadastrar frete no checkout** em Integracoes > Shopify (tarefa;
+  escopo `write_shipping`; loja com calculadora de terceiros liberada). A Shopify chama
+  `POST /integracoes/shopify/frete/<uuid>/` (HMAC do segredo do app) a cada CEP do
+  checkout e espera 3 s: cada tabela que atende vira uma opcao (`service_code` `HUB_<id>`,
+  valor em centavos, prazo em dias uteis). No checkout cada API externa tem 0,8 s e o
+  total 2,2 s; coordenadas e rotas ficam em `CoordenadaCep`/`DistanciaCep` (2a cotacao do
+  mesmo CEP ~0,02 s). CEP que as bases nao conhecem e localizado pela cidade que o
+  checkout manda (Nominatim). O frete escolhido volta no `orders/create` em
+  `linhas_frete[].method_id` (`HUB_<id>`). Codigo: `apps/shopify/frete*.py`.
+  Card **Frete no checkout** em Integracoes > Shopify: checklist com o que falta
+  (escopos, plano, cadastro, zona de envio, CEP dos locais, origem das tabelas, peso,
+  tabelas marcadas, embalagem). **Verificar configuracao** roda numa tarefa so de leitura
+  na loja (`frete_diagnostico.py`); a tela le o ultimo resultado (`frete_checklist.py`).
+- **Usar no codigo:** `apps.logistica.cotacao.cotar(tabela, "20040-020")` devolve
+  `Cotacao(valor, prazo_dias, distancia_km, detalhe)` ou levanta `FreteIndisponivel` com
+  o motivo. Botao **Simular cotacao** na tabela para conferir um CEP.
 
 ## 8. Regras que valem aqui
 

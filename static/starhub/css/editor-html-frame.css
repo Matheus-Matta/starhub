@@ -1,0 +1,52 @@
+@import url("tokens.css");
+
+html {
+  min-height: 100%;
+  color-scheme: light;
+  background: var(--background);
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+body {
+  box-sizing: border-box;
+  min-height: 258px;
+  margin: 0;
+  padding: 16px;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+body:focus {
+  outline: 0;
+}
+
+body > :first-child {
+  margin-top: 0;
+}
+
+body > :last-child {
+  margin-bottom: 0;
+}
+
+a {
+  color: var(--primary);
+}
+
+blockquote {
+  margin-left: 0;
+  padding-left: 16px;
+  border-left: 3px solid var(--input);
+  color: var(--secondary-foreground);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}

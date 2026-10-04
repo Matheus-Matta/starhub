@@ -1,0 +1,86 @@
+/* Conteudo das etapas do modal (templates/admin/integracoes/_modal_sincronizar.html):
+   cartoes selecionaveis, linhas de switch e resumo. A moldura esta em modal-etapas.css. */
+/* Cartao selecionavel (radio): o input fica dentro do label. */
+.modal-etapas-opcoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.modal-etapas-opcao {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+}
+
+.modal-etapas-opcao:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.modal-etapas-opcao:has(input:focus-visible) {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.modal-etapas-opcao strong {
+  display: block;
+  font-size: 0.9375rem;
+}
+
+.modal-etapas-opcao small {
+  color: var(--muted-foreground);
+}
+
+/* Linha de switch (recurso) com o motivo quando travado. */
+.modal-etapas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modal-etapas-lista-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-etapas-linha {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-etapas-linha label {
+  flex: 1;
+  cursor: pointer;
+}
+
+.modal-etapas-linha small {
+  display: block;
+  color: var(--muted-foreground);
+}
+
+.modal-etapas-linha.travada label {
+  cursor: not-allowed;
+  color: var(--muted-foreground);
+}
+
+.modal-etapas-resumo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.modal-etapas-resumo ul {
+  margin: 0;
+  padding-left: 20px;
+}

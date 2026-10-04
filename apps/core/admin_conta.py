@@ -7,12 +7,14 @@ oculto pode ser adulterado). O registro recebe a conta dele e a origem padrao
 Superusuario: ve todas as contas (TenantMiddleware), com coluna e filtro "Conta"
 na listagem; escolhe conta e origem ao criar, na secao "Conta", e so as ve (sem
 editar) depois: mover um registro de conta deixaria os filhos para tras, e a
-origem conta de onde o registro veio. Inline nunca mostra: o filho herda do pai.
+origem conta de onde o registro veio. Inline nunca mostra: o filho herda do pai;
+nem o modal aberto pela lista do pai (admin_lista_modal.aberto_pelo_pai).
 """
 
 from django.contrib.admin.options import InlineModelAdmin
 from django.core.exceptions import FieldDoesNotExist
 
+from apps.core import admin_lista_modal
 from apps.core.tenant.validators import conta_do_registro
 
 CAMPO = "account"
@@ -63,12 +65,14 @@ class ContaFormMixin:
     registros de todas; so os da conta do registro podem ser escolhidos.
     """
 
-    campo_pai = None  # FK do inline para o registro principal (a conta vem dele)
+    campo_pai = None  # FK para o registro "pai" (a conta vem dele)
 
     def _conta(self):
         if CAMPO in self.fields and self.cleaned_data.get(CAMPO):
             return self.cleaned_data[CAMPO].pk
-        pai = getattr(self.instance, self.campo_pai, None) if self.campo_pai else None
+        # Na criacao o pai escolhido ainda nao foi para a instancia (so no _post_clean).
+        pai = (self.cleaned_data.get(self.campo_pai) or getattr(self.instance, self.campo_pai, None)
+               if self.campo_pai else None)
         return getattr(pai, "account_id", None) or conta_do_registro(self.instance)
 
     def clean(self):
@@ -95,7 +99,8 @@ class ContaAdminMixin:
             for nome, opcoes in fieldsets
         ]
         fieldsets = [(nome, opcoes) for nome, opcoes in fieldsets if opcoes["fields"]]
-        if request.user.is_superuser and not self._eh_inline():
+        if (request.user.is_superuser and not self._eh_inline()
+                and not admin_lista_modal.aberto_pelo_pai(self, request, obj)):
             fieldsets = [_secao_conta(self.model), *fieldsets]
         return fieldsets
 
@@ -108,7 +113,9 @@ class ContaAdminMixin:
     def get_list_display(self, request):
         colunas = list(super().get_list_display(request))
         if request.user.is_superuser and _tem_conta(self.model) and CAMPO not in colunas:
-            colunas.append(CAMPO)
+            # "acoes" (botoes da linha) continua sendo a ultima coluna.
+            posicao = colunas.index("acoes") if "acoes" in colunas else len(colunas)
+            colunas.insert(posicao, CAMPO)
         return colunas
 
     def get_list_filter(self, request):
@@ -124,7 +131,8 @@ class ContaAdminMixin:
         return inicial
 
     def get_form(self, request, obj=None, **kwargs):
-        return _com_conta(super().get_form(request, obj, **kwargs))
+        pai = getattr(self, "pai_da_lista", None)
+        return _com_conta(super().get_form(request, obj, **kwargs), campo_pai=pai)
 
     def get_formset(self, request, obj=None, **kwargs):
         formset = super().get_formset(request, obj, **kwargs)

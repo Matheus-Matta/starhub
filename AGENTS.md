@@ -22,7 +22,8 @@ ainda nao existe.
 | Cada marketplace | um app proprio em `apps/<marketplace>/` |
 
 - Dev roda tudo num terminal (`python manage.py runserver`: Daphne + Celery na
-  memoria). Prod roda Daphne, worker e beat separados, com Redis e PostgreSQL.
+  memoria). Prod roda em Docker (`docker-compose.yml`, imagem do GitHub): uvicorn,
+  worker e beat em containers separados, Redis no compose e PostgreSQL de fora.
 - `example_templetes_react_to_convert_html/` e o template comprado, so para
   consulta visual. Nao versione, nao copie arquivos dele para o projeto.
 

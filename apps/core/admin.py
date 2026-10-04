@@ -11,15 +11,11 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
 
 from apps.core.admin_base import TemaMixin
-from apps.core.json_regras import RegrasTema
+from apps.core.admin_logs import LogEntry, LogsAdmin
 from apps.core.models import (
     AccessProfile,
     Account,
     Address,
-    ExternalReference,
-    PublicationPolicy,
-    PublicationState,
-    SalesChannel,
     User,
 )
 from apps.core.tenant.context import get_current_account_id
@@ -28,6 +24,11 @@ if admin.site.is_registered(User):
     admin.site.unregister(User)
 if admin.site.is_registered(Group):
     admin.site.unregister(Group)
+
+
+# Logs do auditlog com o filtro por registro e separados por conta (admin_logs).
+admin.site.unregister(LogEntry)
+admin.site.register(LogEntry, LogsAdmin)
 
 
 @admin.register(User)
@@ -91,16 +92,19 @@ class AccessProfileAdmin(TemaMixin, admin.ModelAdmin):
     list_filter = ["active", "is_system"]
 
     def get_readonly_fields(self, request, obj=None):
-        # Group e estrutura interna: so o superusuario liga perfil a grupo.
+        # Group e estrutura interna: so o superusuario liga perfil a grupo. Perfil do
+        # sistema (apps/core/perfis_padrao.py) nao muda de codigo nem de grupo.
         campos = list(super().get_readonly_fields(request, obj))
-        return campos if request.user.is_superuser else [*campos, "group", "is_system"]
+        travados = [] if request.user.is_superuser else ["group", "is_system"]
+        if obj is not None and obj.is_system:
+            travados = ["code", "group", "is_system"]
+        return campos + [campo for campo in travados if campo not in campos]
 
-
-@admin.register(PublicationPolicy)
-class PublicationPolicyAdmin(TemaMixin, admin.ModelAdmin):
-    campos_json = {"rules": RegrasTema()}
-    list_display = ["name", "entity_type", "target_channel", "enabled", "priority"]
-    list_filter = ["entity_type", "enabled", "target_channel"]
+    def has_delete_permission(self, request, obj=None):
+        # Perfil do sistema: a conta sempre tem os iniciais (desative, se nao usar).
+        if obj is not None and obj.is_system:
+            return False
+        return super().has_delete_permission(request, obj)
 
 
 @admin.register(Address)
@@ -124,7 +128,3 @@ class AddressAdmin(TemaMixin, admin.ModelAdmin):
         ("Localizacao", {"fields": [("latitude", "longitude"), "is_default"]}),
         ("Avancado", {"classes": ["collapse"], "fields": ["metadata", "metadados", "active"]}),
     ]
-
-
-for model in (ExternalReference, SalesChannel, PublicationState):
-    admin.site.register(model, type(f"{model.__name__}Admin", (TemaMixin, admin.ModelAdmin), {}))

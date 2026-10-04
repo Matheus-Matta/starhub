@@ -72,3 +72,28 @@ def test_agrupar_nao_some_com_o_item_se_o_destino_nao_aparece():
     """Usuario sem acesso a Autenticacao ainda precisa ver as chaves em algum lugar."""
     apps = [{"app_label": "woo_api", "name": "API WooCommerce", "models": [{"name": "Chaves"}]}]
     assert agrupar_apps(apps, {"woo_api": "auth"}) == apps
+
+
+def test_agrupar_move_so_um_model_e_o_app_continua_com_o_resto():
+    """Tarefas vao para o Nucleo; a Shopify continua na secao Integracoes."""
+    apps = [
+        {"app_label": "core", "name": "Nucleo", "models": [{"name": "Usuarios",
+                                                          "object_name": "User"}]},
+        {"app_label": "integracoes", "name": "Integracoes", "models": [
+            {"name": "Shopify", "object_name": "ConfiguracaoIntegracao"},
+            {"name": "Tarefas", "object_name": "ExecucaoIntegracao"}]},
+    ]
+    resultado = agrupar_apps(apps, {"integracoes.execucaointegracao": "core"})
+    secoes = {app["app_label"]: [m["name"] for m in app["models"]] for app in resultado}
+    assert secoes == {"core": ["Tarefas", "Usuarios"], "integracoes": ["Shopify"]}
+    tarefas = resultado[0]["models"][0]
+    assert tarefas["app_label"] == "integracoes"  # icone e URL continuam os da tarefa
+
+
+def test_item_com_icone_de_marca_usa_o_logo_da_plataforma(settings):
+    """O item da Shopify mostra o logo dela, nao um icone generico de tomada."""
+    settings.STARHUB_MENU_ICONES = {"integracoes.configuracaointegracao": "marca:shopify"}
+    apps = [{"name": "Integracoes", "app_label": "integracoes", "models": [
+        {"name": "Shopify", "object_name": "ConfiguracaoIntegracao", "admin_url": "/x/"}]}]
+    item = montar_menu(apps, "/")[0]["itens"][0]
+    assert item["marca"].startswith('<svg class="sh-marca"') and "#7AB55C" in item["marca"]

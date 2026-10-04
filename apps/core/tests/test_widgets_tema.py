@@ -1,9 +1,11 @@
 import re
 
 from django import forms
+from django.conf import settings
 from django.template import Context, Template
 
 from apps.core.widgets import DataHoraTema, DataTema, SwitchTema
+from apps.loja.models import Produto
 
 
 def test_form_do_produto_usa_os_widgets_do_tema(admin_logado):
@@ -17,6 +19,29 @@ def test_form_do_produto_usa_os_widgets_do_tema(admin_logado):
     # duas caixas do filter_horizontal e sem o aviso de segurar Ctrl.
     assert 'class="selectfilter' not in html
     assert not re.search(r"\bControl\b", html)  # "Controlar estoque" e rotulo nosso
+
+
+def test_descricoes_html_do_produto_usam_editor_visual(admin_logado):
+    """HTML vindo do marketplace nao pode aparecer como codigo num textarea comum."""
+    for nome in ("descricao", "descricao_curta"):
+        campo = Produto._meta.get_field(nome)
+        assert campo.__class__.__name__ == "TextoHTMLField"
+
+    html = admin_logado.get("/admin/loja/produto/add/").content.decode()
+    for nome in ("descricao", "descricao_curta"):
+        textarea = html.split(f'name="{nome}"', 1)[1].split("</textarea>", 1)[0]
+        assert "data-editor-html" in textarea
+    assert "starhub/css/editor-html.css" in html
+    assert "starhub/js/editor-html.js" in html
+
+
+def test_editor_html_abre_modal_de_80_por_80():
+    """A ampliacao precisa ser modal e nao pode ocupar a tela inteira."""
+    js = (settings.BASE_DIR / "static/starhub/js/editor-html.js").read_text(encoding="utf-8")
+    css = (settings.BASE_DIR / "static/starhub/css/editor-html.css").read_text(encoding="utf-8")
+    assert 'setAttribute("aria-modal", "true")' in js
+    assert "Abrir editor em tela cheia" in js and 'evento.key === "Escape"' in js
+    assert "width: 80vw" in css and "height: 80vh" in css
 
 
 def test_data_tema_mostra_e_aceita_dd_mm_aaaa():

@@ -9,6 +9,7 @@ import pytest
 
 from apps.loja.models import Categoria, Cliente
 from apps.loja.services.variantes import criar_produto
+from apps.woo_api.tests.conftest import criar_pedido
 
 EXEMPLOS = Path(__file__).resolve().parents[3] / "examples"
 
@@ -36,9 +37,8 @@ def pedido_exemplo():
 
 def test_pedido_do_exemplo_volta_igual(api, pedido_exemplo):
     enviado = pedido_exemplo
-    resposta = api.post("/wp-json/wc/v1/orders", enviado, format="json")
-    assert resposta.status_code == 201, resposta.json()
-    lido = api.get(f"/wp-json/wc/v1/orders/{resposta.json()['id']}").json()
+    criado = criar_pedido(enviado)
+    lido = api.get(f"/wp-json/wc/v1/orders/{criado['id']}").json()
     for campo in ("status", "currency", "total", "discount_total", "shipping_total", "total_tax",
                   "payment_method", "payment_method_title", "transaction_id", "created_via",
                   "customer_note", "date_created_gmt", "date_paid_gmt", "billing", "shipping"):
@@ -49,9 +49,23 @@ def test_pedido_do_exemplo_volta_igual(api, pedido_exemplo):
     assert [(s["method_id"], s["total"]) for s in lido["shipping_lines"]] == [
         (s["method_id"], s["total"]) for s in enviado["shipping_lines"]
     ]
-    assert {m["key"]: m["value"] for m in lido["meta_data"]} == {
-        m["key"]: m["value"] for m in enviado["meta_data"]
+    # As chaves soltas do ERP viram um so campo "starhub" (recursos/pedidos_meta.py).
+    antigo = {m["key"]: m["value"] for m in enviado["meta_data"]}
+    [starhub] = [m["value"] for m in lido["meta_data"] if m["key"] == "starhub"]
+    assert [m["key"] for m in lido["meta_data"]] == ["starhub"]
+    assert starhub["origem"] == {
+        "canal": "shopify",
+        "id": antigo["_shopify_order_id"],
+        "numero": antigo["_shopify_order_number"],
+        "nome": antigo["_shopify_name"],
+        "url": antigo["_shopify_order_url"],
+        "status_financeiro": antigo["_shopify_financial_status"],
+        "atualizado_em": antigo["_shopify_updated_at"],
     }
+    assert starhub["cliente"] == {"cpf": antigo["_billing_cpf"],
+                                  "tipo_pessoa": antigo["_billing_persontype"]}
+    assert starhub["entrega"] == {"agendamento": antigo["delivery_date"],
+                                  "tipo": antigo["delivery_type"]}
 
 
 def test_produto_do_exemplo_volta_igual(api):

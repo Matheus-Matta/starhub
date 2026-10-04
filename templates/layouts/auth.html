@@ -1,9 +1,9 @@
 {% load static %}<!DOCTYPE html>
 {% comment %}
 Layout das paginas sem login (entrar, saiu, recuperar senha). Blocks:
-  title, auth_titulo, auth_subtitulo, content (o formulario), auth_arte (lado direito).
+  title, auth_titulo, auth_subtitulo, content (o formulario), auth_arte (showcase).
 {% endcomment %}
-<html lang="pt-br" data-theme="auto">
+<html lang="pt-br" data-theme="auto" data-sprite="{% url_sprite %}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,29 +16,58 @@ Layout das paginas sem login (entrar, saiu, recuperar senha). Blocks:
 </head>
 <body class="{% block bodyclass %}{% endblock %}">
   <div class="auth-theme">{% include "components/theme_toggle.html" %}</div>
-  <div class="auth">
-    <div class="auth-form-side">
+  <main class="auth">
+    <section class="auth-form-side" aria-label="Acesso ao StarHub">
       <div class="auth-card">
         <a class="brand" href="{% url 'admin:index' %}">
-          <img src="{% static 'starhub/img/logo.svg' %}" alt=""><span>StarHub</span>
+          {% include "components/marca.html" %}
         </a>
-        <h1>{% block auth_titulo %}{% endblock %}</h1>
-        <p class="auth-subtitle">{% block auth_subtitulo %}{% endblock %}</p>
-        {% include "components/messages.html" %}
-        {% block content %}{% endblock %}
+        <div class="auth-heading">
+          <span class="auth-eyebrow">Painel de operacoes</span>
+          <h1>{% block auth_titulo %}{% endblock %}</h1>
+          <p class="auth-subtitle">{% block auth_subtitulo %}{% endblock %}</p>
+        </div>
+        <div class="auth-content">
+          {% include "components/messages.html" %}
+          {% block content %}{% endblock %}
+        </div>
+        <div class="auth-security">
+          <span class="auth-security-icon">{% icone "shield" %}</span>
+          <span><strong>Ambiente seguro</strong> Seus dados de acesso sao protegidos.</span>
+        </div>
       </div>
-    </div>
-    <aside class="auth-art">
+    </section>
+    <aside class="auth-showcase">
       {% block auth_arte %}
-        <h2>Seus marketplaces, produtos e pedidos num lugar so.</h2>
-        <p>O StarHub recebe o catalogo do ERP e distribui para cada canal de venda.</p>
-        <ul>
-          <li>{% icone "package" %} Produtos e estoque sincronizados</li>
-          <li>{% icone "clipboard-list" %} Pedidos de todos os canais</li>
-          <li>{% icone "plug" %} API compativel com WooCommerce para o ERP</li>
-        </ul>
+        <div class="auth-showcase-copy">
+          <span class="auth-showcase-label">Operacao conectada</span>
+          <h2>Todos os seus canais.<br>Uma unica gestao.</h2>
+          <p>Centralize produtos, estoque e pedidos enquanto o StarHub mantem cada canal sincronizado.</p>
+        </div>
+        <div class="auth-network" aria-label="Canais integrados pelo StarHub">
+          <div class="auth-network-hub">
+            <img src="{% static 'starhub/img/marca-64.png' %}" alt="StarHub" width="44" height="44">
+          </div>
+          <div class="auth-network-line auth-network-line-top"></div>
+          <div class="auth-network-line auth-network-line-left"></div>
+          <div class="auth-network-line auth-network-line-right"></div>
+          <div class="auth-channel auth-channel-woo">
+            <img src="{% static 'starhub/img/marcas/woocommerce.svg' %}" alt="WooCommerce">
+          </div>
+          <div class="auth-channel auth-channel-shopify">
+            <img src="{% static 'starhub/img/marcas/shopify.svg' %}" alt="Shopify">
+          </div>
+          <div class="auth-channel auth-channel-shopee">
+            <img src="{% static 'starhub/img/marcas/shopee.svg' %}" alt="Shopee">
+          </div>
+        </div>
+        <div class="auth-benefits">
+          <span>{% icone "check" %} Estoque atualizado</span>
+          <span>{% icone "check" %} Pedidos centralizados</span>
+          <span>{% icone "check" %} Integracao com o ERP</span>
+        </div>
       {% endblock %}
     </aside>
-  </div>
+  </main>
 </body>
 </html>

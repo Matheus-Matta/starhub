@@ -102,8 +102,10 @@ def test_arquivo_que_nao_e_imagem_e_recusado_mesmo_com_extensao_png(admin_logado
     assert not any(tmp_path.rglob("*.png"))
 
 
-def test_json_do_admin_e_valido_para_o_widget(admin_logado):
-    produto = Produto.objects.create(nome="A", metadados=[{"id": 1, "key": "ncm", "value": "x"}])
+def test_json_do_admin_e_valido_para_o_widget(admin_logado, conta):
+    produto = Produto.objects.create(
+        account=conta, nome="A", metadados=[{"id": 1, "key": "ncm", "value": "x"}]
+    )
     html = admin_logado.get(f"/admin/loja/produto/{produto.pk}/change/").content.decode()
     trecho = html.split('name="metadados"')[1].split(">", 1)[1].split("</textarea>")[0]
     assert json.loads(html_lib.unescape(trecho).strip()) == [{"id": 1, "key": "ncm", "value": "x"}]

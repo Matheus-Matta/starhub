@@ -1,0 +1,51 @@
+{# Card "Frete no checkout" da tela da Shopify: checklist (apps/shopify/frete_checklist.py). #}
+{% componente "card" titulo="Frete no checkout" icone="truck" flush=True %}
+  {% slot "acoes" %}{% if pode_editar %}
+    <div class="integracao-selecao">
+      {% if configuracao.frete_ativo %}
+        <button type="submit" name="acao" value="frete_desativar" class="btn btn-sm btn-outline" title="O checkout deixa de mostrar o frete do hub."
+          data-confirmar-titulo="Desligar o frete do hub?" data-confirmar-botao="Desligar frete" data-confirmar-perigo
+          data-confirmar="O checkout da loja deixa de mostrar as opcoes de frete do StarHub na hora. Se o frete ja esta cadastrado na Shopify, o cadastro la fica inativo.">{% icone "x" "icon-sm" %} Desligar frete</button>
+      {% else %}
+        {{ frete.para_ligar|json_script:"frete-para-ligar" }}
+        <button type="submit" name="acao" value="frete_ativar" class="btn btn-sm btn-outline" title="O checkout volta a mostrar o frete do hub."
+          {% if frete.para_ligar %}
+            data-confirmar-titulo="Ainda falta configurar" data-confirmar-botao="Ligar mesmo assim" data-confirmar-lista="frete-para-ligar"
+            data-confirmar="O StarHub Frete e cadastrado (ou reativado) na loja Shopify real, mas o checkout so mostra as opcoes depois de resolver:"
+          {% else %}
+            data-confirmar-titulo="Ligar o frete do hub?" data-confirmar-botao="Ligar frete"
+            data-confirmar="Tudo pronto: o StarHub Frete e cadastrado (ou reativado) na loja Shopify real e o checkout passa a mostrar as tabelas marcadas."
+          {% endif %}>{% icone "check" "icon-sm" %} Ligar frete</button>
+      {% endif %}
+      <button type="submit" name="acao" value="verificar_frete" class="btn btn-sm btn-outline">{% icone "search" "icon-sm" %} Verificar configuracao</button>
+      <button type="submit" name="acao" value="frete" class="btn btn-sm btn-primary" title="Faz a Shopify cotar o frete no StarHub a cada CEP digitado no checkout."
+          data-confirmar-titulo="Cadastrar o frete na loja?" data-confirmar-botao="Cadastrar na loja"
+          data-confirmar="O StarHub Frete e cadastrado na loja Shopify real como calculadora de frete. Ele so aparece no checkout depois de ligado a uma zona de envio.">{% icone "truck" "icon-sm" %} Cadastrar frete no checkout</button>
+    </div>
+  {% endif %}{% endslot %}
+  <div class="frete-ck-intro">
+    <div class="frete-ck-selos">
+      {% if frete.pronto %}{% include "components/badge.html" with texto=frete.selo tom="success" %}{% else %}{% include "components/badge.html" with texto=frete.selo tom="warning" %}{% endif %}
+      {% if configuracao.frete_ativo %}{% include "components/badge.html" with texto="Frete ligado" tom="success" %}{% else %}{% include "components/badge.html" with texto="Frete desligado" tom="destructive" %}{% endif %}
+    </div>
+    <p>
+      A Shopify cota o frete no StarHub a cada CEP do checkout. Os itens obrigatorios precisam ficar verdes; os opcionais so avisam.
+      {% if frete.verificado_em %}Ultima verificacao na loja: {{ frete.verificado_em|date:"d/m/Y H:i" }}.{% else %}Ainda nao verificado na loja.{% endif %}
+    </p>
+  </div>
+  {% for grupo, itens in frete.grupos %}
+    <h4 class="frete-ck-grupo">{{ grupo }}</h4>
+    <ul class="frete-ck">
+      {% for item in itens %}
+        <li class="frete-ck-item frete-ck-{{ item.estado }}">
+          <span class="frete-ck-icone">{% if item.estado == "ok" %}{% icone "circle-check" %}{% elif item.estado == "falta" %}{% icone "circle-x" %}{% elif item.estado == "aviso" %}{% icone "triangle-alert" %}{% else %}{% icone "info" %}{% endif %}</span>
+          <div class="frete-ck-texto">
+            <strong>{{ item.titulo }}</strong>
+            {% if item.detalhe %}<span class="frete-ck-detalhe">{{ item.detalhe }}</span>{% endif %}
+            {% if item.como and item.estado != "ok" %}<span class="frete-ck-como">{{ item.como }}</span>{% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endfor %}
+{% endcomponente %}

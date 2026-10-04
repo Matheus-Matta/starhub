@@ -35,6 +35,13 @@ PLACEHOLDERS = {
     "entity_type": "product", "object_id": "123", "external_id": "gid://shopify/Product/123",
     "external_parent_id": "id do pai na plataforma", "external_store_id": "id da loja",
     "last_error": "Mensagem do ultimo erro", "payload_hash": "sha256 do conteudo enviado",
+    "ConfiguracaoIntegracao.nome": "Shopify principal",
+    "dominio_loja": "sua-loja.myshopify.com", "versao_api": "2026-07",
+    "url_webhook": "https://hub.exemplo.com/integracoes/shopify/webhook",
+    "motivo_rejeicao": "Ex.: fala de outro produto",
+    # logistica
+    "TabelaFrete.nome": "Entrega propria Grande SP", "cep_origem": "00000-000",
+    "cep_inicial": "00000-000", "cep_final": "00000-000",
     "ChaveApi.descricao": "ERP da loja",
     # catalogo
     "Produto.nome": "Camiseta basica azul", "Categoria.nome": "Camisetas", "Tag.nome": "Promocao",
@@ -48,7 +55,7 @@ PLACEHOLDERS = {
     "url": "https://", "low_stock_amount": "5", "posicao": "0", "ordem": "0",
     "ordem_menu": "0", "inventory_quantity": "0",
     # cupom
-    "Cupom.code": "BLACKFRIDAY10", "Cupom.name": "Black Friday", "Cupom.value": "10.00",
+    "Cupom.name": "Black Friday", "Cupom.value": "10.00",
     "Cupom.description": "Uso interno", "usage_limit": "sem limite",
     "usage_limit_per_customer": "sem limite", "minimum_subtotal": "0.00",
     "minimum_quantity": "1",
@@ -72,13 +79,15 @@ MASCARAS = {
     "cpf": "cpf", "cnpj": "cnpj", "document": "cpf-cnpj", "postal_code": "cep",
     "phone": "telefone", "telefone": "telefone", "state_code": "uf", "country_code": "pais",
     "barcode": "digitos", "currency": "moeda", "moeda": "moeda",
+    "cep_origem": "cep", "cep_inicial": "cep", "cep_final": "cep",
 }
 LARGURAS = {
     "postal_code": 3, "number": 2, "state_code": 2, "country_code": 2, "currency": 3,
     "moeda": 3, "weight_unit": 3, "installments": 3, "posicao": 3,
 }
-# Gravados so com digitos: com a mascara o texto nao cabe no max_length (CPF = 11).
-SO_DIGITOS = {"cpf", "cnpj"}
+# Gravados so com digitos: com a mascara o texto nao cabe no max_length (CPF = 11,
+# CEP = 8).
+SO_DIGITOS = {"cpf", "cnpj", "cep_origem", "cep_inicial", "cep_final"}
 
 
 class CampoSoDigitos(forms.CharField):

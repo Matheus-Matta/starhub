@@ -1,0 +1,189 @@
+{
+  "id": 1,
+  "parent_id": 0,
+  "status": "processing",
+  "currency": "BRL",
+  "version": "9.0.0",
+  "prices_include_tax": false,
+  "date_created": "2026-09-30T10:00:00",
+  "date_created_gmt": "2026-09-30T13:00:00",
+  "date_modified": "2026-09-30T12:30:07",
+  "date_modified_gmt": "2026-09-30T15:30:07",
+  "discount_total": "159.99",
+  "discount_tax": "0.00",
+  "shipping_total": "39.90",
+  "shipping_tax": "0.00",
+  "cart_tax": "0.00",
+  "total": "1479.81",
+  "total_tax": "0.00",
+  "customer_id": 1,
+  "order_key": "wc_order_2213dc778fea7",
+  "billing": {
+    "first_name": "Maria",
+    "last_name": "Silva",
+    "company": "",
+    "address_1": "Rua das Flores",
+    "address_2": "Apto 10, Centro",
+    "city": "São Paulo",
+    "state": "SP",
+    "postcode": "01000-000",
+    "country": "BR",
+    "email": "maria@example.com",
+    "phone": "+5511999999999",
+    "number": "100",
+    "neighborhood": "Centro",
+    "cpf": "12345678900",
+    "persontype": "1"
+  },
+  "shipping": {
+    "first_name": "Maria",
+    "last_name": "Silva",
+    "company": "",
+    "address_1": "Rua das Flores",
+    "address_2": "Apto 10, Centro",
+    "city": "São Paulo",
+    "state": "SP",
+    "postcode": "01000-000",
+    "country": "BR",
+    "phone": "",
+    "number": "100",
+    "neighborhood": "Centro"
+  },
+  "payment_method": "pix",
+  "payment_method_title": "appmax_pix",
+  "transaction_id": "123456789",
+  "customer_ip_address": "",
+  "customer_user_agent": "",
+  "created_via": "shopify",
+  "customer_note": "Observação do pedido",
+  "date_completed": null,
+  "date_completed_gmt": null,
+  "date_paid": "2026-09-30T10:00:00",
+  "date_paid_gmt": "2026-09-30T13:00:00",
+  "cart_hash": "",
+  "number": "1",
+  "meta_data": [
+    {
+      "id": 1,
+      "key": "starhub",
+      "value": {
+        "origem": {
+          "canal": "shopify",
+          "id": "123456789",
+          "numero": "1001",
+          "nome": "#1001",
+          "status_financeiro": "paid",
+          "atualizado_em": "2026-09-30T15:00:00-03:00"
+        },
+        "cliente": {
+          "cpf": "12345678900",
+          "tipo_pessoa": "1"
+        },
+        "entrega": {
+          "agendamento": "2026-10-15",
+          "tipo": "delivery"
+        },
+        "cupons": [
+          "PROMO10"
+        ]
+      }
+    }
+  ],
+  "line_items": [
+    {
+      "id": 1,
+      "name": "Poltrona Exemplo",
+      "product_id": 1,
+      "variation_id": 0,
+      "quantity": 1,
+      "tax_class": "",
+      "subtotal": "1499.90",
+      "subtotal_tax": "0.00",
+      "total": "1349.91",
+      "total_tax": "0.00",
+      "taxes": [],
+      "meta_data": [
+        {
+          "id": 1,
+          "key": "_shopify_line_item_id",
+          "value": "555"
+        },
+        {
+          "id": 2,
+          "key": "starhub",
+          "value": {
+            "servicos": [
+              {
+                "servico": "Impermeabilização da poltrona",
+                "opcao": "Sim",
+                "preco": "499.99"
+              }
+            ]
+          }
+        }
+      ],
+      "sku": "POLTRONA-001",
+      "price": 1349.91,
+      "image": {
+        "id": "",
+        "src": ""
+      },
+      "parent_name": null
+    },
+    {
+      "id": 2,
+      "name": "Almofada Avulsa",
+      "product_id": 2,
+      "variation_id": 0,
+      "quantity": 2,
+      "tax_class": "",
+      "subtotal": "100.00",
+      "subtotal_tax": "0.00",
+      "total": "90.00",
+      "total_tax": "0.00",
+      "taxes": [],
+      "meta_data": [
+        {
+          "id": 1,
+          "key": "_shopify_line_item_id",
+          "value": "556"
+        }
+      ],
+      "sku": "ALMOFADA-SEM-CADASTRO",
+      "price": 45.0,
+      "image": {
+        "id": "",
+        "src": ""
+      },
+      "parent_name": null
+    }
+  ],
+  "tax_lines": [],
+  "shipping_lines": [
+    {
+      "id": 1,
+      "method_id": "standard",
+      "method_title": "Entrega padrão",
+      "total": "39.90",
+      "total_tax": "0.00",
+      "taxes": [],
+      "meta_data": []
+    }
+  ],
+  "fee_lines": [],
+  "coupon_lines": [
+    {
+      "id": 1,
+      "code": "PROMO10",
+      "discount": "159.99",
+      "discount_tax": "0.00",
+      "meta_data": []
+    }
+  ],
+  "refunds": [],
+  "payment_url": "",
+  "is_editable": false,
+  "needs_payment": false,
+  "needs_processing": true,
+  "currency_symbol": "R$"
+}

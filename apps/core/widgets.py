@@ -45,6 +45,18 @@ class SwitchTema(forms.CheckboxInput):
         super().__init__(attrs={**base, **(attrs or {})})
 
 
+class EditorHTML(forms.Textarea):
+    """Textarea progressivo que o JavaScript transforma em editor visual de HTML."""
+
+    def __init__(self, attrs=None):
+        base = {"data-editor-html": "", "rows": 10}
+        super().__init__(attrs={**base, **(attrs or {})})
+
+    class Media:
+        css = {"all": ("starhub/css/editor-html.css",)}
+        js = ("starhub/js/editor-html.js",)
+
+
 def ligar_periodo(widget, campo_fim):
     """Faz o calendario do campo inicial abrir em modo periodo e preencher
     tambem `campo_fim` (ex.: promocao_inicio -> promocao_fim)."""

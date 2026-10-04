@@ -2,8 +2,7 @@
 <aside class="sidebar" aria-label="Menu principal">
   <div class="sidebar-header">
     <a class="brand" href="{% url 'admin:index' %}">
-      <img src="{% static 'starhub/img/logo.svg' %}" alt="">
-      <span class="brand-name">{{ site_header|default:"StarHub" }}</span>
+      {% include "components/marca.html" %}
     </a>
     <button type="button" class="sidebar-toggle btn btn-outline btn-icon btn-sm" data-acao="recolher-menu"
             title="Recolher menu" aria-label="Recolher menu">
@@ -25,7 +24,7 @@
         {% for item in secao.itens %}
           <a class="menu-link{% if item.ativo %} active{% endif %}" href="{{ item.url }}" title="{{ item.nome }}"
              {% if item.ativo %}aria-current="page"{% endif %}>
-            {% icone item.icone %}<span class="menu-label">{{ item.nome }}</span>
+            {% if item.marca %}<span class="menu-marca">{{ item.marca }}</span>{% else %}{% icone item.icone %}{% endif %}<span class="menu-label">{{ item.nome }}</span>
           </a>
         {% endfor %}
       </div>

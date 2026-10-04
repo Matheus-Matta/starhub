@@ -1,0 +1,61 @@
+/* Marca (templates/components/marca.html): logo inteiro com o menu aberto e no
+   login; so o simbolo com o menu recolhido e no cabecalho do celular. O logo tem a
+   versao do tema escuro, trocada pelo mesmo seletor dos tokens (tokens.css). */
+.brand .brand-simbolo {
+  width: 28px;
+  height: 28px;
+}
+
+.brand .brand-logo {
+  width: auto;
+  height: 28px;
+}
+
+.brand .brand-logo-escuro,
+:root .sidebar .brand .brand-simbolo,
+:root .header-mobile .brand .brand-logo {
+  display: none;
+}
+
+:root[data-theme="dark"] .brand .brand-logo-claro {
+  display: none;
+}
+
+:root[data-theme="dark"] .brand .brand-logo-escuro {
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .brand .brand-logo-claro {
+    display: none;
+  }
+
+  :root[data-theme="auto"] .brand .brand-logo-escuro {
+    display: block;
+  }
+}
+
+:root .header-mobile .brand .brand-simbolo {
+  display: block;
+  width: 26px;
+  height: 26px;
+}
+
+.auth-card .brand .brand-logo {
+  height: 36px;
+}
+
+:root .auth-card .brand .brand-simbolo {
+  display: none;
+}
+
+/* Menu recolhido (so existe no desktop, sidebar.css): nao cabe o logo inteiro. */
+@media (min-width: 1024px) {
+  :root body.sidebar-collapse .sidebar .brand .brand-logo {
+    display: none;
+  }
+
+  :root body.sidebar-collapse .sidebar .brand .brand-simbolo {
+    display: block;
+  }
+}

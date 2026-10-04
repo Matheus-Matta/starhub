@@ -1,0 +1,44 @@
+{# "Sincronizar loja": direcao, dados e confirmacao. POST em shopify_view (acao=sincronizar). #}
+{% componente "modal_etapas" id="modal-sincronizar" titulo="Sincronizar loja" titulo_1="Direcao" titulo_2="Dados" titulo_3="Confirmar" concluir="Criar tarefa" %}
+  {% slot "campos" %}<input type="hidden" name="acao" value="sincronizar">{% endslot %}
+
+  {% slot "etapa_1" %}
+    <div class="modal-etapas-opcoes" data-exige-marcado="direcao" data-mensagem-erro="Escolha Importar ou Exportar para continuar.">
+      <label class="modal-etapas-opcao">
+        <input type="radio" name="direcao" value="importar" data-rotulo="Importar (Shopify para o StarHub)">
+        <span><strong>Importar</strong><small>Traz os dados da Shopify para o StarHub.</small></span>
+      </label>
+      <label class="modal-etapas-opcao">
+        <input type="radio" name="direcao" value="exportar" data-rotulo="Exportar (StarHub para a Shopify)">
+        <span><strong>Exportar</strong><small>Envia os dados do StarHub para a Shopify.</small></span>
+      </label>
+    </div>
+  {% endslot %}
+
+  {% slot "etapa_2" %}
+    <div data-exige-marcado="recursos" data-mensagem-erro="Ligue ao menos um dado para sincronizar.">
+      {% for direcao, itens in sincronizacao.items %}
+        <div class="modal-etapas-lista" data-mostra-se="direcao={{ direcao }}" data-lista-direcao="{{ direcao }}" hidden>
+          <div class="modal-etapas-lista-topo">
+            <span class="text-muted">Dados que entram nesta sincronizacao</span>
+            <button type="button" class="btn btn-sm btn-outline" data-marcar-todos="recursos">Marcar todos os permitidos</button>
+          </div>
+          {% for item in itens %}
+            <div class="modal-etapas-linha{% if not item.permitido %} travada{% endif %}">
+              <input type="checkbox" class="switch" name="recursos" value="{{ item.recurso }}" id="sinc-{{ direcao }}-{{ item.recurso }}" data-rotulo="{{ item.rotulo }}"{% if not item.permitido %} disabled data-travado="1"{% endif %}>
+              <label for="sinc-{{ direcao }}-{{ item.recurso }}">{{ item.rotulo }}{% if not item.permitido %}<small>{% icone "lock" "icon-sm" %} {{ item.motivo }}</small>{% endif %}</label>
+            </div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div>
+  {% endslot %}
+
+  {% slot "etapa_3" %}
+    <dl class="modal-etapas-resumo">
+      <div><dt class="text-muted">Direcao</dt><dd data-resumo="direcao"></dd></div>
+      <div><dt class="text-muted">Dados</dt><dd><ul data-resumo-lista="recursos"></ul></dd></div>
+    </dl>
+    <p class="text-muted">Vira uma tarefa na fila. Voce acompanha o andamento na pagina dela.</p>
+  {% endslot %}
+{% endcomponente %}

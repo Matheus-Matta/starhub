@@ -32,11 +32,6 @@ body.is-scrolled .app-header {
   gap: 8px;
 }
 
-.header-mobile .brand img {
-  width: 26px;
-  height: 26px;
-}
-
 .header-trilha {
   display: none;
   min-width: 0;

@@ -10,7 +10,7 @@ from rest_framework.test import APIClient
 from apps.core.tenant.context import get_current_account_id, tenant_context
 from apps.loja.models import Cliente, Produto
 from apps.loja.services.variantes import criar_produto
-from apps.woo_api.tests.conftest import cliente_com_chave, criar_chave
+from apps.woo_api.tests.conftest import cliente_com_chave, criar_chave, criar_pedido
 
 pytestmark = pytest.mark.sem_conta
 URL = "/wp-json/wc/v1/products"
@@ -54,14 +54,16 @@ def test_account_id_enviado_no_corpo_e_ignorado(duas_lojas, conta, outra_conta):
         assert Produto.objects.filter(nome="Novo").exists()
 
 
-def test_pedido_nao_referencia_cliente_nem_produto_de_outra_conta(duas_lojas, outra_conta):
+def test_pedido_nao_referencia_cliente_nem_produto_de_outra_conta(duas_lojas, conta, outra_conta):
     _, produto_b, api = duas_lojas
     with tenant_context(outra_conta):
         cliente_b = Cliente.objects.create(email="b@outra.test")
-    pedidos = "/wp-json/wc/v1/orders"
-    resposta = api.post(pedidos, {"customer_id": cliente_b.pk}, format="json")
+    with tenant_context(conta):
+        pedido = criar_pedido({})
+    url = f"/wp-json/wc/v1/orders/{pedido['id']}"
+    resposta = api.put(url, {"customer_id": cliente_b.pk}, format="json")
     assert resposta.json()["code"] == "woocommerce_rest_invalid_customer_id"
-    resposta = api.post(pedidos, {"line_items": [{"product_id": produto_b.pk}]}, format="json")
+    resposta = api.put(url, {"line_items": [{"product_id": produto_b.pk}]}, format="json")
     assert resposta.json()["code"] == "woocommerce_rest_invalid_product_id"
 
 

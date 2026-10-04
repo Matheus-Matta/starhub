@@ -175,6 +175,7 @@
 }
 
 #result_list .field-produto_info,
+#result_list .field-categoria_info,
 #result_list .field-cliente_info {
   min-width: 240px;
 }

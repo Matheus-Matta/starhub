@@ -4,11 +4,12 @@ from apps.loja.dinheiro import texto as dinheiro_texto
 from apps.loja.services.pedidos import transacao
 from apps.woo_api import datas
 from apps.woo_api.recursos import enderecos
+from apps.woo_api.recursos.pedidos_servicos import meta_do_item, meta_do_pedido, servicos_por_item
 
 SIMBOLOS = {"BRL": "R$", "USD": "$", "EUR": "€"}
 
 
-def item_para_woo(item):
+def item_para_woo(item, servicos=None):
     produto = item.produto
     imagens = produto.imagens if produto else []
     return {
@@ -23,7 +24,7 @@ def item_para_woo(item):
         "total": dinheiro_texto(item.total),
         "total_tax": dinheiro_texto(item.imposto_total),
         "taxes": item.impostos or [],
-        "meta_data": item.metadados or [],
+        "meta_data": meta_do_item(item, servicos),
         "sku": item.sku,
         # No Woo "price" e numero (nao texto): total da linha / quantidade.
         "price": float(item.preco),
@@ -35,6 +36,7 @@ def item_para_woo(item):
 
 def pedido_para_woo(pedido):
     pago = pedido.status in ("processing", "completed")
+    servicos = servicos_por_item(pedido)
     return {
         "id": pedido.pk,
         "parent_id": pedido.id_pai,
@@ -66,8 +68,8 @@ def pedido_para_woo(pedido):
         **datas.par("date_paid", pedido.paid_at),
         "cart_hash": pedido.hash_carrinho,
         "number": str(pedido.pk),
-        "meta_data": pedido.metadados or [],
-        "line_items": [item_para_woo(item) for item in pedido.itens.all()],
+        "meta_data": meta_do_pedido(pedido.metadados),
+        "line_items": [item_para_woo(item, servicos.get(item.pk)) for item in pedido.itens.all()],
         "tax_lines": pedido.linhas_imposto or [],
         "shipping_lines": pedido.linhas_frete or [],
         "fee_lines": pedido.linhas_taxa or [],

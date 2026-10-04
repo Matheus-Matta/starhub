@@ -1,0 +1,107 @@
+{% extends "admin/change_form.html" %}
+{% load static admin_urls admin_modify %}
+
+{# Tela de moderacao, nao formulario: o texto do cliente nao se edita. Os botoes #}
+{# de acao postam em <id>/moderar/ (AvaliacaoAdmin.moderar_view). #}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'starhub/css/avaliacao.css' %}">{% endblock %}
+
+{% block content %}
+<div id="content-main" class="form-page">
+  <section class="form-workspace form-workspace-flat">
+    <header class="form-workspace-header">
+      <div class="form-workspace-heading">
+        <span class="form-workspace-kicker">Avaliacao #{{ original.pk }}</span>
+        <h1>{{ original.nome_publico }}</h1>
+        <p>Enviada em {{ original.created_at|date:"d/m/Y \a\s H:i" }} sobre {{ original.produto.nome }}</p>
+      </div>
+      <div class="form-workspace-tools">
+        {% block object-tools %}
+          <ul class="object-tools">{% block object-tools-items %}{% change_form_object_tools %}{% endblock %}
+            {% if url_logs %}<li><a href="{{ url_logs }}" class="historylink">{% icone "history" "icon-sm" %} Logs</a></li>{% endif %}
+          </ul>
+        {% endblock %}
+        {% url opts|admin_urlname:'changelist' as changelist_url %}
+        <a href="{% add_preserved_filters changelist_url %}" class="btn btn-outline">Voltar</a>
+        {% if url_proxima %}<a href="{{ url_proxima }}" class="btn btn-mono">Proxima pendente {% icone "arrow-right" "icon-sm" %}</a>{% endif %}
+      </div>
+    </header>
+
+    <div class="av-grade">
+      <div class="av-principal">
+        {% componente "card" %}
+          <div class="av-topo">
+            <div class="av-estrelas" title="{{ original.nota }} de 5" aria-label="Nota {{ original.nota }} de 5">
+              {% for n in estrelas %}{% if n <= original.nota %}{% icone "star" "av-estrela av-estrela-cheia" %}{% else %}{% icone "star" "av-estrela" %}{% endif %}{% endfor %}
+              <span class="av-nota">{{ original.nota }}/5</span>
+            </div>
+            <div class="av-selos">
+              {% include "components/badge.html" with texto=original.get_status_display tom=tom_status %}
+              {% if original.compra_verificada %}{% include "components/badge.html" with texto="Compra verificada" tom="success" %}
+              {% else %}{% include "components/badge.html" with texto="Compra nao verificada" %}{% endif %}
+            </div>
+          </div>
+          <blockquote class="av-comentario">{{ original.comentario|linebreaksbr }}</blockquote>
+          {% with fotos=original.fotos.all %}{% if fotos %}
+            <div class="av-fotos">
+              {% for foto in fotos %}
+                {% if foto.e_video %}
+                  <div class="av-foto">
+                    <video src="{{ foto.imagem.url }}" controls preload="metadata" playsinline></video>
+                  </div>
+                {% else %}
+                  <a href="{{ foto.imagem.url }}" target="_blank" rel="noopener" class="av-foto">
+                    <img src="{{ foto.imagem.url }}" alt="Foto {{ forloop.counter }} da avaliacao" loading="lazy">
+                  </a>
+                {% endif %}
+              {% endfor %}
+            </div>
+          {% endif %}{% endwith %}
+        {% endcomponente %}
+      </div>
+
+      <aside class="av-lateral">
+        {% componente "card" titulo="Moderacao" icone="shield" %}
+          <form method="post" action="{{ url_moderar }}" class="av-moderacao">{% csrf_token %}
+            <dl class="av-dados">
+              <dt>Status</dt><dd>{% include "components/badge.html" with texto=original.get_status_display tom=tom_status %}</dd>
+              {% if original.moderado_em %}<dt>Moderada</dt><dd>{{ original.moderado_em|date:"d/m/Y H:i" }}{% if original.moderado_por %} por {{ original.moderado_por }}{% endif %}</dd>{% endif %}
+              <dt>Na loja</dt><dd>{% if original.publicada_em %}Publicada em {{ original.publicada_em|date:"d/m/Y H:i" }}{% else %}Nao publicada{% endif %}</dd>
+              {% if original.motivo_rejeicao %}<dt>Motivo</dt><dd>{{ original.motivo_rejeicao }}</dd>{% endif %}
+            </dl>
+            {% if has_change_permission %}
+              {% if url_proxima %}<label class="av-seguir"><input type="checkbox" name="proxima" value="1" checked> Ir para a proxima pendente depois</label>{% endif %}
+              {% if original.status != "aprovada" %}
+                <button type="submit" name="acao" value="aprovar" class="btn btn-primary btn-lg btn-block">{% icone "check" "icon-sm" %} Aprovar e publicar</button>
+              {% endif %}
+              {% if original.status != "rejeitada" %}
+                <label class="av-motivo-rotulo" for="av-motivo">Motivo da rejeicao (opcional)</label>
+                <textarea id="av-motivo" name="motivo" rows="2" maxlength="255" class="av-motivo" placeholder="Ex.: fala de outro produto"></textarea>
+                <button type="submit" name="acao" value="rejeitar" class="btn btn-destructive btn-lg btn-block">{% icone "x" "icon-sm" %} Rejeitar{% if original.publicada_em %} e tirar da loja{% endif %}</button>
+              {% endif %}
+              {% if original.status != "pendente" %}
+                <button type="submit" name="acao" value="pendente" class="btn btn-ghost btn-block">{% icone "undo-2" "icon-sm" %} Voltar para pendente</button>
+              {% endif %}
+            {% endif %}
+          </form>
+        {% endcomponente %}
+
+        {% componente "card" titulo="Cliente" icone="user" %}
+          <dl class="av-dados">
+            <dt>Nome</dt><dd><a href="{% url 'admin:loja_cliente_change' original.cliente_id %}">{{ original.cliente.nome|default:original.cliente.email }} {{ original.cliente.sobrenome }}</a></dd>
+            <dt>E-mail</dt><dd>{{ original.cliente.email }}</dd>
+            {% if original.pedido_id %}<dt>Pedido</dt><dd><a href="{% url 'admin:loja_pedido_change' original.pedido_id %}">{{ original.pedido.number }}</a></dd>{% endif %}
+          </dl>
+        {% endcomponente %}
+
+        {% componente "card" titulo="Produto" icone="package" %}
+          <dl class="av-dados">
+            <dt>Nome</dt><dd><a href="{% url 'admin:loja_produto_change' original.produto_id %}">{{ original.produto.nome }}</a></dd>
+            {% if original.produto.sku %}<dt>SKU</dt><dd class="text-mono">{{ original.produto.sku }}</dd>{% endif %}
+            {% if not original.produto.avaliacoes_permitidas %}<dt>Aviso</dt><dd>O produto nao aceita novas avaliacoes.</dd>{% endif %}
+          </dl>
+        {% endcomponente %}
+      </aside>
+    </div>
+  </section>
+</div>
+{% endblock %}

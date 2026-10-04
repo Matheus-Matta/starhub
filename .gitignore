@@ -25,6 +25,9 @@ db.sqlite3.bak*
 .env.*
 !.env.example
 
+# Artefatos locais do agente (prints de revisao, sessoes): nao sao do projeto.
+.claude/
+
 # Editores e sistema
 .vscode/
 .idea/

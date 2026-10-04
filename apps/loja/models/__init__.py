@@ -1,3 +1,4 @@
+from .avaliacao import Avaliacao, FotoAvaliacao
 from .bundle import ItemBundle
 from .catalogo import MidiaProduto, Tag
 from .categoria import Categoria
@@ -10,7 +11,8 @@ from .produto import Produto
 from .variantes import VarianteProduto
 
 __all__ = [
-    "Categoria", "Cliente", "ClienteEndereco", "Cupom", "EntregaPedido", "ItemBundle",
-    "ItemPedido", "MidiaProduto", "PagamentoPedido", "Pedido", "Produto", "Tag",
+    "Avaliacao", "Categoria", "Cliente", "ClienteEndereco", "Cupom", "EntregaPedido",
+    "FotoAvaliacao", "ItemBundle", "ItemPedido", "MidiaProduto", "PagamentoPedido", "Pedido",
+    "Produto", "Tag",
     "TipoVariante", "ValorDaVarianteProduto", "ValorVariante", "VarianteProduto",
 ]

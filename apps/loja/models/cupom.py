@@ -1,7 +1,18 @@
+import secrets
+import string
+
 from django.core.exceptions import ValidationError
 from django.db import models
 
 from .base import NAO_NEGATIVO, ComDatas, JSONDecimalField
+
+_ALFABETO_CODIGO = string.ascii_uppercase + string.digits
+
+
+def gerar_codigo():
+    """Codigo interno do cupom: 36^12 combinacoes deixam colisao no indice
+    (conta, codigo) fora do horizonte pratico; o operador identifica pelo nome."""
+    return "".join(secrets.choice(_ALFABETO_CODIGO) for _ in range(12))
 
 
 class Cupom(ComDatas):
@@ -37,7 +48,9 @@ class Cupom(ComDatas):
         CATEGORIAS = "categories", "Categorias"
         TAGS = "product_tags", "Tags de produtos"
 
-    code = models.CharField("codigo", max_length=100)
+    # O codigo digitado pelo cliente vive na plataforma (Shopify, ERP); aqui o
+    # cupom e identificado pelo nome e o codigo e so a chave interna.
+    code = models.CharField("codigo", max_length=100, default=gerar_codigo, editable=False)
     name = models.CharField("nome", max_length=150)
     description = models.TextField("descricao", blank=True)
     discount_type = models.CharField("tipo de desconto", max_length=20, choices=TipoDesconto)
@@ -80,13 +93,28 @@ class Cupom(ComDatas):
     categorias = models.ManyToManyField("loja.Categoria", blank=True, related_name="cupons")
     tags = models.ManyToManyField("loja.Tag", blank=True, related_name="cupons")
     clientes = models.ManyToManyField("loja.Cliente", blank=True, related_name="cupons")
+    # Excecoes: valem por cima da elegibilidade (ex.: "Moda", menos o tenis X e o que
+    # ja esta em promocao). Regra aplicada em apps/loja/services/cupons.py.
+    produtos_excluidos = models.ManyToManyField(
+        "loja.Produto", verbose_name="produtos excluidos", blank=True,
+        related_name="cupons_que_excluem",
+    )
+    categorias_excluidas = models.ManyToManyField(
+        "loja.Categoria", verbose_name="categorias excluidas", blank=True,
+        related_name="cupons_que_excluem",
+    )
+    excluir_promocao = models.BooleanField(
+        "nao vale para itens em promocao", default=False,
+        help_text="Item com preco promocional ativo fica fora do desconto.",
+    )
 
     class Meta:
         verbose_name = "cupom"
         verbose_name_plural = "cupons"
-        constraints = [models.UniqueConstraint(
-            fields=["account", "code"], name="cupom_codigo_conta_unico"
-        )]
+        constraints = [
+            models.UniqueConstraint(fields=["account", "code"], name="cupom_codigo_conta_unico"),
+            models.UniqueConstraint(fields=["account", "name"], name="cupom_nome_conta_unico"),
+        ]
 
     def clean(self):
         super().clean()
@@ -107,4 +135,4 @@ class Cupom(ComDatas):
             raise ValidationError(erros)
 
     def __str__(self):
-        return self.code
+        return self.name

@@ -75,5 +75,6 @@ class OpcoesInline(TemaTabularInline):
     formset = OpcoesFormSet
     extra = 0
     fields = ["tipo", "valor"]
+    relacao_so_adicionar = ["valor"]
     verbose_name = "opcao"
-    verbose_name_plural = "Opcoes (Cor, Tamanho...)"
+    verbose_name_plural = "opcoes"

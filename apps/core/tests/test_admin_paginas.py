@@ -26,8 +26,11 @@ def test_login_usa_o_layout_do_tema(client):
     resposta = client.get("/admin/login/")
     html = resposta.content.decode()
     assert resposta.status_code == 200
-    assert 'class="auth"' in html
+    assert 'class="auth"' in html and 'class="auth-showcase"' in html
     assert 'name="username"' in html and 'name="next"' in html
+    for logo in ("woocommerce.svg", "shopify.svg", "shopee.svg"):
+        assert f"starhub/img/marcas/{logo}" in html
+    assert "auth-security" in html and "auth-network" in html
 
 
 @pytest.mark.django_db
@@ -47,7 +50,8 @@ def test_painel_mostra_indicadores_pedidos_e_estoque_baixo(admin_logado, dados_l
     "/admin/loja/tipovariante/add/", "/admin/loja/varianteproduto/",
     "/admin/woo_api/chaveapi/", "/admin/woo_api/chaveapi/add/", "/admin/perfil/",
     "/admin/core/user/", "/admin/core/user/add/", "/admin/core/account/",
-    "/admin/core/accessprofile/", "/admin/core/address/", "/admin/core/saleschannel/",
+    "/admin/core/accessprofile/", "/admin/core/address/",
+    "/admin/integracoes/configuracaointegracao/shopify/",
     "/admin/password_change/", "/admin/loja/",
 ])
 def test_telas_do_admin_abrem_com_o_tema(admin_logado, dados_loja, url):

@@ -1,0 +1,70 @@
+{% load i18n admin_urls static admin_modify starhub %}{% comment %}
+Inline no formato "lista" (igual a lista de variantes do produto): a secao E a
+lista, com o titulo e o "+ Adicionar" a direita, e a tabela encostada nas bordas.
+Uso no inline: template = "admin/edit_inline/lista.html". A mecanica e a do
+tabular do Django (inlines.js): o botao do titulo so aciona o "adicionar" dele,
+que fica escondido no fim da tabela. A lixeira tira a linha na hora (inline-lista.js):
+linha nova some de vez; linha salva so e marcada (DELETE) e sai ao salvar, com
+"Desfazer" enquanto isso.
+{% endcomment %}{% with formset=inline_admin_formset.formset opts=inline_admin_formset.opts %}
+<div class="js-inline-admin-formset inline-group sh-inline-lista" id="{{ formset.prefix }}-group"
+     data-inline-type="tabular" data-inline-formset="{{ inline_admin_formset.inline_formset_data }}">
+  <div class="tabular inline-related">
+    {{ formset.management_form }}
+    <fieldset class="module" aria-labelledby="{{ formset.prefix }}-heading">
+      <h2 id="{{ formset.prefix }}-heading" class="inline-heading">
+        <span>{{ opts.verbose_name_plural|capfirst }}</span>
+        {% if inline_admin_formset.has_add_permission %}
+          <button type="button" class="btn btn-sm btn-outline sh-adicionar-relacionado" data-inline-adicionar="{{ formset.prefix }}">
+            <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="" width="14" height="14"> Adicionar {{ opts.verbose_name }}
+          </button>
+        {% endif %}
+      </h2>
+      {{ formset.non_form_errors }}
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr>
+            <th class="original"></th>
+            {% for field in inline_admin_formset.fields %}
+              <th class="column-{{ field.name }}{% if field.required %} required{% endif %}{% if field.widget.is_hidden %} hidden{% endif %}">{{ field.label|capfirst }}</th>
+            {% endfor %}
+            {% if formset.can_delete and inline_admin_formset.has_delete_permission %}<th class="sh-coluna-acoes"><span class="visually-hidden">Remover</span></th>{% endif %}
+          </tr></thead>
+          <tbody>
+            {# Linha de "nada ainda": o CSS esconde quando existe alguma linha de verdade. #}
+            <tr class="sh-inline-vazio"><td colspan="{{ inline_admin_formset.fields|length|add:2 }}">Nenhum(a) {{ opts.verbose_name }} ainda. Use "Adicionar {{ opts.verbose_name }}".</td></tr>
+            {% for inline_admin_form in inline_admin_formset %}
+              {% if inline_admin_form.form.non_field_errors %}
+                <tr class="row-form-errors"><td colspan="{{ inline_admin_form|cell_count }}">{{ inline_admin_form.form.non_field_errors }}</td></tr>
+              {% endif %}
+              <tr class="form-row{% if inline_admin_form.original %} has_original{% endif %}{% if forloop.last and inline_admin_formset.has_add_permission %} empty-form{% endif %}"
+                  id="{{ formset.prefix }}-{% if forloop.last and inline_admin_formset.has_add_permission %}empty{% else %}{{ forloop.counter0 }}{% endif %}">
+                <td class="original">
+                  {% if inline_admin_form.needs_explicit_pk_field %}{{ inline_admin_form.pk_field.field }}{% endif %}
+                  {% if inline_admin_form.fk_field %}{{ inline_admin_form.fk_field.field }}{% endif %}
+                </td>
+                {% for fieldset in inline_admin_form %}{% for line in fieldset %}{% for field in line %}
+                  <td class="{% if field.field.name %}field-{{ field.field.name }}{% endif %}{% if field.field.is_hidden %} hidden{% endif %}">
+                    {% if field.is_readonly %}<p>{{ field.contents }}</p>{% else %}{{ field.field.errors.as_ul }}{{ field.field }}{% endif %}
+                  </td>
+                {% endfor %}{% endfor %}{% endfor %}
+                {% if formset.can_delete and inline_admin_formset.has_delete_permission %}
+                  <td class="delete sh-coluna-acoes">
+                    {% if inline_admin_form.original %}<span hidden>{{ inline_admin_form.deletion_field.field }}</span>{% endif %}
+                    <button type="button" class="btn btn-ghost btn-icon sh-remover-linha" data-inline-remover
+                            title="Remover {{ opts.verbose_name }}" aria-label="Remover {{ opts.verbose_name }}">{% icone "trash-2" %}</button>
+                  </td>
+                {% endif %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="sh-inline-desfazer" data-singular="{{ opts.verbose_name }}" data-plural="{{ opts.verbose_name_plural }}" hidden>
+        <span data-inline-contagem></span>
+        <button type="button" class="btn btn-sm btn-ghost" data-inline-desfazer>{% icone "undo-2" "icon-sm" %} Desfazer</button>
+      </div>
+    </fieldset>
+  </div>
+</div>
+{% endwith %}

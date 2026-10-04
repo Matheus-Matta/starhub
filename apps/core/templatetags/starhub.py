@@ -1,6 +1,9 @@
 """Tags do tema StarHub. Carregada como builtin (settings.TEMPLATES), sem {% load %}."""
 
+from pathlib import Path
+
 from django import template
+from django.contrib.staticfiles import finders
 from django.templatetags.static import static
 from django.utils.html import format_html
 
@@ -17,9 +20,18 @@ register.filter("campo_largo", formulario.campo_largo)
 
 
 @register.simple_tag
+def url_sprite():
+    """URL do sprite com a versao (data do arquivo): icone novo no sprite chega ao
+    navegador na hora, em vez de ele seguir com a copia antiga (sem o icone) em cache."""
+    arquivo = finders.find("starhub/img/icones.svg")
+    versao = int(Path(arquivo).stat().st_mtime) if arquivo else 0
+    return f"{static('starhub/img/icones.svg')}?v={versao}"
+
+
+@register.simple_tag
 def icone(nome, classe=""):
     """Icone do sprite (lucide). Ex.: {% icone "package" "icon-lg" %}."""
-    sprite = static("starhub/img/icones.svg")
+    sprite = url_sprite()
     return format_html(
         '<svg class="icon {}" aria-hidden="true" focusable="false">'
         '<use href="{}#{}"></use></svg>',

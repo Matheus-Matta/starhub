@@ -20,6 +20,8 @@ class CategoriaRecurso(Recurso):
         return Categoria.objects.annotate(qtd=Count("produtos"))
 
     def filtrar(self, qs, params):
+        if params.get("slug"):
+            qs = qs.filter(slug=params["slug"])
         if params.get("parent") not in (None, ""):
             pai = inteiro(params["parent"], "parent")
             qs = qs.filter(pai_id=pai or None)

@@ -11,6 +11,8 @@ from apps.loja.totais import valores_do_item
 from apps.woo_api import metadados
 from apps.woo_api.erros import WooErro, parametro_invalido
 from apps.woo_api.recursos.base import inteiro, texto
+from apps.woo_api.recursos.pedidos_meta import separar_servicos
+from apps.woo_api.recursos.pedidos_servicos import separar_starhub
 
 
 def _valor(linha, campo, grupo):
@@ -73,13 +75,23 @@ def _gravar_item(pedido, linha, item):
     for campo, atributo in (("subtotal_tax", "imposto_subtotal"), ("total_tax", "imposto_total")):
         if linha.get(campo) not in (None, ""):
             setattr(item, atributo, _valor(linha, campo, "line_items"))
+    servicos = None
     if "meta_data" in linha:
-        item.metadados = metadados.mesclar(item.metadados, linha["meta_data"])
+        # O starhub e o formato que o GET devolve; se vier junto com EPOFW, ele manda.
+        do_starhub, resto = separar_starhub(linha["meta_data"])
+        do_epofw, resto = separar_servicos(resto)
+        servicos = do_epofw if do_starhub is None else do_starhub
+        item.metadados = metadados.mesclar(item.metadados, resto)
     item.pedido = pedido
     item.save()
+    # item_id so existe depois do save; o formato e o mesmo que o Shopify grava.
+    return None if servicos is None else [
+        {"item_id": item.pk, "sku": item.sku, **servico} for servico in servicos]
 
 
 def gravar_itens(pedido, dados):
+    """Grava os itens e devolve {item_id: servicos} das linhas que trouxeram servicos."""
+    por_item = {}
     existentes = {item.pk: item for item in pedido.itens.all()}
     for linha in _lista(dados, "line_items"):
         if linha.get("id"):
@@ -92,7 +104,10 @@ def gravar_itens(pedido, dados):
                 continue
         else:
             item = ItemPedido()
-        _gravar_item(pedido, linha, item)
+        servicos = _gravar_item(pedido, linha, item)
+        if servicos is not None:
+            por_item[item.pk] = servicos
+    return por_item
 
 
 def gravar_linhas(atuais, dados, campo, campo_chave):

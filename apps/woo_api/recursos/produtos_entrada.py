@@ -3,13 +3,14 @@ from decimal import Decimal, InvalidOperation
 from django.utils.text import slugify
 
 from apps.loja.dinheiro import ValorInvalido, dinheiro
-from apps.loja.models import Categoria, Produto, Tag, VarianteProduto
+from apps.loja.models import Produto, VarianteProduto
 from apps.loja.services.midias import sincronizar_midias
 from apps.loja.services.slugs import slug_livre
 from apps.loja.services.variantes import obter_variante_padrao
 from apps.woo_api import datas, metadados
 from apps.woo_api.erros import WooErro, parametro_invalido
 from apps.woo_api.recursos.base import booleano, escolha, inteiro, texto
+from apps.woo_api.recursos.termos import categorias_do_produto, tags_do_produto
 
 PRODUCT_TEXT = {
     "name": ("nome", 255), "description": ("descricao", None),
@@ -119,24 +120,9 @@ def _variant_fields(variant, data):
 
 def _relations(product, data, variant):
     if "categories" in data:
-        if not isinstance(data["categories"], list):
-            raise parametro_invalido("categories", "categories nao e do tipo array.")
-        ids = [inteiro(item.get("id"), "categories") for item in data["categories"]
-               if isinstance(item, dict)]
-        product.categorias.set(Categoria.objects.filter(pk__in=ids))
+        product.categorias.set(categorias_do_produto(data))
     if "tags" in data:
-        if not isinstance(data["tags"], list):
-            raise parametro_invalido("tags", "tags nao e do tipo array.")
-        tags = []
-        for item in data["tags"]:
-            name = texto(item.get("name") if isinstance(item, dict) else item, "tags", 100).strip()
-            if name:
-                tag, _ = Tag.objects.get_or_create(
-                    nome_normalizado=name.casefold(),
-                    defaults={"nome": name, "slug": slugify(name)},
-                )
-                tags.append(tag)
-        product.tags.set(tags)
+        product.tags.set(tags_do_produto(data))
     if "images" in data:
         if not isinstance(data["images"], list):
             raise parametro_invalido("images", "images nao e do tipo array.")

@@ -46,8 +46,9 @@ Linha e botoes com data-modal-url abrem o form da variante num modal (modal-list
                 <button type="button" class="btn btn-sm btn-outline" data-modal-url="{{ linha.url_editar }}"
                         data-modal-titulo="Editar variante: {{ v.titulo }}"{% if forloop.first %} data-modal-chave="variante-editar"{% endif %}>Editar</button>
                 {% if not v.is_default %}
-                  <button type="button" class="btn btn-sm btn-ghost sh-perigo" data-modal-url="{{ linha.url_excluir }}"
-                          data-modal-titulo="Excluir variante: {{ v.titulo }}">Excluir</button>
+                  <button type="button" class="btn btn-ghost btn-icon sh-remover-linha" data-modal-url="{{ linha.url_excluir }}"
+                          data-modal-titulo="Excluir variante: {{ v.titulo }}"
+                          title="Excluir variante" aria-label="Excluir variante {{ v.titulo }}">{% icone "trash-2" %}</button>
                 {% endif %}
               </td>
             </tr>
