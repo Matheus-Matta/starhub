@@ -32,8 +32,10 @@ class TabelaFrete(BaseModel):
         "prazo (dias uteis)", default=0,
         help_text="Por distancia: prazo de toda entrega. Por faixa: vale para a faixa sem prazo.")
     no_checkout = models.BooleanField(
-        "oferecer no checkout da Shopify", default=False,
-        help_text="Aparece como opcao de frete na loja, com o nome desta tabela.")
+        "oferecer no checkout das lojas", default=False,
+        help_text="Vira opcao de frete com o nome desta tabela: Shopify (cotacao na hora), "
+                  "WooCommerce (zonas de entrega, so faixa de CEP) e Suri (orcamento), "
+                  "nas lojas com o frete ligado.")
     # Por distancia.
     cep_origem = models.CharField("CEP de origem", max_length=8, blank=True, validators=[CEP],
                                   help_text="De onde a entrega sai (deposito ou loja).")

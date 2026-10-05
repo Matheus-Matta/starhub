@@ -106,3 +106,24 @@
 .tarefa-parametros ul { margin: 6px 0 0; padding-left: 18px; }
 
 .form-workspace-tools form { margin: 0; }
+
+/* Requisicao recebida e resposta (webhook, API encaminhada): JSON formatado com rolagem. */
+.tarefa-cabecalhos { margin-bottom: 12px; }
+
+.tarefa-json {
+  margin: 0;
+  max-height: 480px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--muted);
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.tarefa-vazio { margin: 0; color: var(--muted-foreground); font-size: 0.8125rem; }

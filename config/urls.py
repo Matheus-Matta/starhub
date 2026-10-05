@@ -9,6 +9,8 @@ urlpatterns = [
     path("", RedirectView.as_view(pattern_name="admin:index", permanent=False)),
     path("admin/", admin.site.urls),
     path("integracoes/shopify/", include("apps.shopify.urls")),
+    path("integracoes/woocommerce/", include("apps.woocommerce.urls")),
+    path("integracoes/suri/", include("apps.suri.urls")),
     # Mesmo prefixo do WordPress: o ERP aponta para este dominio como se fosse a loja.
     path("wp-json/", include("apps.woo_api.urls")),
     path("wp-json", RaizView.as_view()),

@@ -1,0 +1,11 @@
+{# Cabecalhos e corpo de uma requisicao ou resposta guardada (apps/integracoes/trafego.py). #}
+{% if parte.cabecalhos %}
+  <dl class="tarefa-dados tarefa-cabecalhos">
+    {% for nome, valor in parte.cabecalhos %}<dt>{{ nome }}</dt><dd>{{ valor }}</dd>{% endfor %}
+  </dl>
+{% endif %}
+{% if parte.corpo %}
+  <pre class="tarefa-json">{{ parte.corpo }}</pre>
+{% else %}
+  <p class="tarefa-vazio">Sem corpo.</p>
+{% endif %}

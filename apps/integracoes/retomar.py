@@ -37,6 +37,20 @@ TAREFAS = {
     Tipo.FRETE_CHECKOUT: "apps.shopify.tasks.cadastrar_frete_shopify",
     Tipo.VERIFICAR_FRETE: "apps.shopify.tasks.verificar_frete_shopify",
 }
+# Tarefa de marketplace que nao e a do Shopify (a de TAREFAS): troca pela da plataforma.
+POR_PLATAFORMA = {
+    "woocommerce": {
+        Tipo.SINCRONIZAR: "apps.woocommerce.tasks.sincronizar_woocommerce",
+        Tipo.WEBHOOKS: "apps.woocommerce.tasks.cadastrar_webhooks_woocommerce",
+        Tipo.RECEBER: "apps.woocommerce.tasks.processar_webhook_woocommerce",
+        Tipo.FRETE_CHECKOUT: "apps.woocommerce.tasks.frete_woocommerce",
+    },
+    "suri": {
+        Tipo.SINCRONIZAR: "apps.suri.tasks.sincronizar_suri",
+        Tipo.WEBHOOKS: "apps.suri.tasks.cadastrar_webhooks_suri",
+        Tipo.RECEBER: "apps.suri.tasks.processar_webhook_suri",
+    },
+}
 logger = logging.getLogger(__name__)
 # "produtos update 15: motivo" e o comeco da mensagem de um envio que falhou.
 ENVIO_NA_MENSAGEM = re.compile(r"^(\w+) (create|update|delete) (\S+):")
@@ -60,7 +74,9 @@ def argumentos(execucao):
     """(caminho da tarefa, args) para colocar de novo na fila; NaoRetomavel se nao der."""
     if execucao.tipo not in TAREFAS:
         raise NaoRetomavel(f"#{execucao.pk}: este tipo de tarefa nao pode ser retomado.")
-    caminho, identificador = TAREFAS[execucao.tipo], str(execucao.pk)
+    plataforma = execucao.configuracao.plataforma if execucao.configuracao_id else ""
+    caminho = POR_PLATAFORMA.get(plataforma, {}).get(execucao.tipo) or TAREFAS[execucao.tipo]
+    identificador = str(execucao.pk)
     if execucao.tipo in (Tipo.SINCRONIZAR, Tipo.EXPORTAR, Tipo.WEBHOOKS, Tipo.IMPORTAR_AVALIACOES,
                          Tipo.IMPORTAR_FRETE, Tipo.FRETE_CHECKOUT, Tipo.VERIFICAR_FRETE):
         return caminho, (identificador,), {}

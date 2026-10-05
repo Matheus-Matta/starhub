@@ -66,6 +66,18 @@
           {% endcomponente %}
         {% endif %}
 
+        {% if requisicao %}
+          {% componente "card" titulo="Requisicao recebida" subtitulo=requisicao.linha icone="arrow-right" %}
+            {% include "admin/integracoes/execucaointegracao/_trafego.html" with parte=requisicao %}
+          {% endcomponente %}
+        {% endif %}
+
+        {% if resposta %}
+          {% componente "card" titulo="Resposta" subtitulo=resposta.linha icone="undo-2" %}
+            {% include "admin/integracoes/execucaointegracao/_trafego.html" with parte=resposta %}
+          {% endcomponente %}
+        {% endif %}
+
         {% if falhas_html %}
           {% componente "card" titulo="Falhas por item" subtitulo=dica_falhas icone="triangle-alert" flush=True %}
             {{ falhas_html }}

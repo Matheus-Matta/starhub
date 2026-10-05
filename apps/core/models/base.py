@@ -20,6 +20,7 @@ class Origin(models.TextChoices):
     STARHUB = "starhub", "StarHub"
     SHOPIFY = "shopify", "Shopify"
     WOOCOMMERCE = "woocommerce", "WooCommerce"
+    SURI = "suri", "Suri Shop"
     MERCADO_LIVRE = "mercado_livre", "Mercado Livre"
     SHOPEE = "shopee", "Shopee"
     AMAZON = "amazon", "Amazon"

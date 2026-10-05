@@ -57,8 +57,9 @@ def acoes_da_linha(obj, conteudo="", rotulo="Ver detalhes"):
 # Livre, Magalu, Amazon) usa o icone de loja; as internas, um icone do sprite.
 MARCAS = {"shopify": "#7AB55C", "woocommerce": "#96588A", "shopee": "#EE4D2D"}
 ICONES = {"api": "plug", "import": "archive"}
-# O proprio StarHub usa o simbolo da marca (o mesmo do favicon).
-IMAGENS = {"starhub": "starhub/img/marca-64.png"}
+# Marca que so existe em imagem: o proprio StarHub (o simbolo do favicon) e o Suri
+# (o icone do site deles, sem SVG publico).
+IMAGENS = {"starhub": "starhub/img/marca-64.png", "suri": "starhub/img/marcas/suri.png"}
 
 
 @lru_cache(maxsize=None)
@@ -72,6 +73,13 @@ def svg_da_marca(codigo):
     return mark_safe(svg.replace('role="img" ', "").replace(
         "<svg ", f'<svg class="sh-marca" aria-hidden="true" fill="{MARCAS[codigo]}" ', 1
     ))
+
+
+def marca_html(codigo):
+    """Logo pronto para embutir no menu: o SVG da marca ou, sem ele, a imagem."""
+    if codigo in IMAGENS:
+        return format_html('<img class="sh-marca" src="{}" alt="">', static(IMAGENS[codigo]))
+    return svg_da_marca(codigo)
 
 
 def badge_origem(codigo, nome):

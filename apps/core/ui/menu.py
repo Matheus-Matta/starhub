@@ -10,16 +10,16 @@ from django.urls import NoReverseMatch, reverse
 
 ICONE_PADRAO = "folder"
 # "marca:shopify" no STARHUB_MENU_ICONES: o item usa o logo da plataforma
-# (static/starhub/img/marcas/<codigo>.svg), o mesmo do badge de origem.
+# (static/starhub/img/marcas/<codigo>.svg ou a imagem de IMAGENS), o mesmo do badge.
 PREFIXO_MARCA = "marca:"
 
 
 def _item(nome, url, icone):
     item = {"nome": nome, "url": url, "icone": icone, "ativo": False, "marca": ""}
     if icone.startswith(PREFIXO_MARCA):
-        from apps.core.admin_utils import svg_da_marca
+        from apps.core.admin_utils import marca_html
 
-        item["marca"] = svg_da_marca(icone.removeprefix(PREFIXO_MARCA))
+        item["marca"] = marca_html(icone.removeprefix(PREFIXO_MARCA))
         item["icone"] = ICONE_PADRAO  # sem o arquivo da marca, cai no icone comum
     return item
 
@@ -35,10 +35,12 @@ def _chave(app_label, modelo):
 
 
 def _paginas_extras(app_label):
+    """(titulo, nome da url) ou (titulo, nome da url, icone); o icone aceita "marca:"."""
     paginas = []
-    for titulo, nome_url in getattr(settings, "STARHUB_MENU_PAGINAS", {}).get(app_label, []):
+    for titulo, nome_url, *icone in getattr(settings, "STARHUB_MENU_PAGINAS", {}).get(
+            app_label, []):
         try:
-            paginas.append({"nome": titulo, "url": reverse(nome_url), "icone": ICONE_PADRAO})
+            paginas.append(_item(titulo, reverse(nome_url), icone[0] if icone else ICONE_PADRAO))
         except NoReverseMatch:
             continue
     return paginas

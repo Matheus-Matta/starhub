@@ -6,9 +6,12 @@ apps/integracoes/importar_planilha.py. Aqui so a regra da linha e o "substituir"
 
 from celery import shared_task
 
+from apps.core.tenant.context import tenant_context
 from apps.integracoes import importar_planilha
+from apps.integracoes.models import ExecucaoIntegracao
 from apps.logistica.importacao import importar_faixa
 from apps.logistica.models import FaixaCep, TabelaFrete
+from apps.logistica.sinais import tabelas_alteradas
 
 
 def _quem(dados):
@@ -29,5 +32,10 @@ def _substituir(execucao, linhas):
 
 @shared_task
 def importar_faixas(execucao_id):
-    return importar_planilha.executar(execucao_id, importar_faixa, objeto="faixas",
-                                      recurso="frete", quem=_quem, preparar=_substituir)
+    resultado = importar_planilha.executar(execucao_id, importar_faixa, objeto="faixas",
+                                           recurso="frete", quem=_quem, preparar=_substituir)
+    conta = ExecucaoIntegracao.all_objects.filter(pk=execucao_id).values_list(
+        "account_id", flat=True).first()
+    with tenant_context(conta):
+        tabelas_alteradas.send(sender=TabelaFrete)
+    return resultado

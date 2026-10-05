@@ -26,7 +26,9 @@ DIRECOES = (IMPORTAR, EXPORTAR)
 
 # Quem busca os dados de cada plataforma (import tardio: o app do marketplace
 # depende de integracoes, nao o contrario).
-IMPORTADORES = {"shopify": "apps.shopify.tasks.sincronizar_shopify"}
+IMPORTADORES = {"shopify": "apps.shopify.tasks.sincronizar_shopify",
+                "woocommerce": "apps.woocommerce.tasks.sincronizar_woocommerce",
+                "suri": "apps.suri.tasks.sincronizar_suri"}
 EXPORTADOR = "apps.integracoes.tasks.exportar_dados"
 
 EM_ANDAMENTO = (ExecucaoIntegracao.Status.PENDENTE, ExecucaoIntegracao.Status.PROCESSANDO)

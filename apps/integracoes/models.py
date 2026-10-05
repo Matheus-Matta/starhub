@@ -12,6 +12,8 @@ class ConfiguracaoIntegracao(BaseModel):
 
     class Plataforma(models.TextChoices):
         SHOPIFY = "shopify", "Shopify"
+        WOOCOMMERCE = "woocommerce", "WooCommerce"
+        SURI = "suri", "Suri Shop"
 
     nome = models.CharField("nome", max_length=150, default=NOME_FIXO)
     plataforma = models.CharField(
@@ -29,6 +31,14 @@ class ConfiguracaoIntegracao(BaseModel):
     # Liga/desliga do frete do hub no checkout: desligado, a rota de cotacao responde sem
     # opcoes na hora, e o cadastro na Shopify fica inativo (ela para de chamar).
     frete_ativo = models.BooleanField("frete do hub no checkout", default=True)
+    # So WooCommerce, so o superusuario muda: ligado, a rota de pedidos da API Woo do hub
+    # repassa a requisicao do ERP para a loja e devolve a resposta dela (woo_api).
+    encaminhar_pedidos = models.BooleanField(
+        "encaminhar pedidos do ERP a loja", default=False,
+        help_text="Desligado, a API Woo do hub responde os pedidos com os dados do hub. "
+                  "Ligado, cada chamada de pedido do ERP vai para a loja WooCommerce e a "
+                  "resposta dela volta ao ERP; cada uma fica em Tarefas, com a requisicao "
+                  "e a resposta.")
 
     class Meta:
         verbose_name = "configuracao de integracao"
@@ -80,6 +90,7 @@ class ExecucaoIntegracao(BaseModel):
         IMPORTAR_FRETE = "import_freight", "Importar faixas de frete"
         FRETE_CHECKOUT = "carrier", "Cadastrar frete no checkout"
         VERIFICAR_FRETE = "carrier_check", "Verificar frete no checkout"
+        ENCAMINHAR = "forward", "Encaminhar pedido a loja"
 
     class Status(models.TextChoices):
         PENDENTE = "pending", "Pendente"

@@ -4,21 +4,24 @@
 {% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'starhub/css/integracao.css' %}">{% endblock %}
 {% block extrahead %}{{ block.super }}<script defer src="{% static 'starhub/js/integracao-matriz.js' %}"></script><script defer src="{% static 'starhub/js/modal-etapas.js' %}"></script>{% endblock %}
 {% block breadcrumbs %}
-  <div class="breadcrumbs"><a href="{% url 'admin:index' %}">Painel</a> &rsaquo; Integracoes &rsaquo; Shopify</div>
+  <div class="breadcrumbs"><a href="{% url 'admin:index' %}">Painel</a> &rsaquo; Integracoes &rsaquo; {{ plataforma_nome }}</div>
 {% endblock %}
 
 {% block content %}
 <form method="post" class="integracao-page" novalidate>{% csrf_token %}
   {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
 
+  {% if campo_encaminhar %}
+    {% componente "card" titulo="Modo dos pedidos (superusuario)" icone="shield" %}
+      <div class="form-grid">
+        {% include "components/field.html" with field=campo_encaminhar %}
+      </div>
+    {% endcomponente %}
+  {% endif %}
+
   {% componente "card" titulo="Conexao com a API" icone="plug" %}
     <div class="form-grid integracao-api-grid">
-      {% include "components/field.html" with field=form.dominio_loja %}
-      {% include "components/field.html" with field=form.token_acesso icones=True %}
-      {% include "components/field.html" with field=form.segredo_app icones=True %}
-      {% include "components/field.html" with field=form.segredo_avaliacoes icones=True %}
-      {% include "components/field.html" with field=form.url_webhook %}
-      {% include "components/field.html" with field=form.active %}
+      {% for campo in campos_api %}{% include "components/field.html" with field=campo icones=True %}{% endfor %}
     </div>
   {% endcomponente %}
 
@@ -48,14 +51,15 @@
     </div>
   {% endcomponente %}
 
-  {% if configuracao %}{% include "admin/integracoes/_frete_checkout.html" %}{% endif %}
+  {% if configuracao and frete %}{% include "admin/integracoes/_frete_checkout.html" %}{% endif %}
+  {% if frete_loja %}{% include "admin/integracoes/_frete_loja.html" %}{% endif %}
 
   <div class="integracao-actions">
     <a href="{{ url_tarefas }}" class="btn btn-outline">{% icone "history" "icon-sm" %} Ver tarefas</a>
     {% if pode_editar %}
       <button type="submit" name="acao" value="webhooks" class="btn btn-outline"
               data-confirmar-titulo="Cadastrar os webhooks na loja?" data-confirmar-botao="Cadastrar webhooks"
-              data-confirmar="Os webhooks do StarHub na loja Shopify real sao apagados e criados de novo, conforme o que esta ligado em Receber.">Cadastrar webhooks</button>
+              data-confirmar="Os webhooks do StarHub na loja {{ plataforma_nome }} real sao apagados e criados de novo, conforme o que esta ligado em Receber.">Cadastrar webhooks</button>
     {% endif %}
     {# Mesma condicao do include do modal abaixo: botao ativo sem dialog na pagina nao faz nada. #}
     {% if pode_editar and sincronizacao %}

@@ -100,6 +100,8 @@ apps/core/              tema do admin + nucleo multi-tenant: Account, User, Acce
 apps/core/tenant/       conta ativa (ContextVar), TenantManager, middleware, validators
 apps/integracoes/       configuracao comum das lojas + historico das tarefas de integracao
 apps/shopify/           cliente, consultas, webhooks e tarefas Celery do Shopify
+apps/woocommerce/       cliente REST v3, importacao, webhooks, envio e tarefas do WooCommerce
+apps/suri/              Suri Shop (by Totvs, venda pelo WhatsApp): catalogo, pedidos e envio
 apps/loja/              dados do hub: Produto + VarianteProduto, Categoria, Tag, Cliente,
                         Pedido, ItemPedido, PagamentoPedido, EntregaPedido, Cupom
 apps/woo_api/           API compativel com WooCommerce + login JWT + chaves ck_/cs_
@@ -451,7 +453,22 @@ Codigos usados: `rest_invalid_param`, `rest_missing_callback_param`,
 repetidos voltam **400**, como no WooCommerce. O ERP foi feito para o Woo e
 espera 400 com esses codigos. A regra do 409 continua valendo para o resto do projeto.
 
-### 6.4 O que ainda nao existe
+### 6.4 Modo "encaminhar pedidos a loja WooCommerce"
+
+Opcao em Integracoes > WooCommerce, no topo da tela, que so o superusuario ve e muda
+(`ConfiguracaoIntegracao.encaminhar_pedidos`, padrao desligado). Desligada, nada muda.
+Ligada, as rotas de pedido (`wc/v1/orders...` e `wc/v3/orders...`, lista, detalhe e
+lote) autenticam o ERP como sempre e depois repassam a requisicao inteira para a loja
+Woo: mesma rota depois de `/wp-json/`, mesma query (sem a credencial do ERP), mesmo
+corpo, autenticada com a chave `ck_/cs_` da configuracao. A resposta da loja volta ao
+ERP como veio: status, JSON, `X-WP-Total`, `X-WP-TotalPages` e `Link` (reescrito para o
+endereco do hub). Erro da loja volta igual; loja sem resposta = 502
+`starhub_loja_indisponivel`. Cada encaminhamento vira uma tarefa "Encaminhar pedido a
+loja" com a requisicao e a resposta. Codigo: `apps/woo_api/views/encaminhar.py` (gancho
+no `initial` das views de pedido) e `apps/woocommerce/encaminhar.py` (o repasse HTTP).
+Produtos, clientes e categorias nao sao encaminhados.
+
+### 6.5 O que ainda nao existe
 
 - variacoes de produto (`products/<id>/variations`): `variations` sai sempre `[]`;
 - reembolsos, notas de pedido, webhooks, tags e atributos como rotas proprias,
@@ -465,9 +482,10 @@ espera 400 com esses codigos. A regra do 409 continua valendo para o resto do pr
 ### 7.1 Configuracao da loja
 
 `apps/integracoes` guarda a parte comum a qualquer marketplace. Existe uma
-`ConfiguracaoIntegracao` por conta e plataforma; inicialmente a unica plataforma
-disponivel e Shopify. A entrada **Shopify** (secao Integracoes) da barra lateral abre uma
-pagina unica, em vez de uma lista de politicas.
+`ConfiguracaoIntegracao` por conta e plataforma (Shopify, WooCommerce, Suri Shop). Cada uma tem
+uma entrada na secao Integracoes da barra lateral, com o logo da plataforma, que abre
+uma pagina unica (a mesma tela, `templates/admin/integracoes/configuracao.html`; o que
+muda por plataforma fica em `TELAS`, `apps/integracoes/admin.py`).
 
 A pagina tem dominio permanente da loja, token de acesso, segredo do app
 e URL publica dos webhooks. Nome (`Shopify`) e versao da API sao internos e fixos;
@@ -561,6 +579,13 @@ categorias/tags do produto) chamam o `Distribuidor`
    no worker e depois fica **Falhou** com a mensagem. Em dev (Celery eager) nao
    repete: falha na hora, sem travar a tela.
 
+**Requisicao e resposta.** Tarefa de webhook recebido (Shopify, WooCommerce, Suri) e de
+pedido encaminhado a loja (secao 6.4) mostra os cards "Requisicao recebida" (metodo,
+caminho, query, cabecalhos e corpo em JSON) e "Resposta" (status, cabecalhos e corpo).
+Ficam em `parametros["requisicao"]`/`["resposta"]` (`apps/integracoes/trafego.py`);
+cabecalho ou query com credencial (Authorization, cookie, consumer_key) nao e guardado
+e corpo acima de 200 mil caracteres e cortado.
+
 **Tela da tarefa e Retomar.** A tarefa aberta mostra uma barra que anda sozinha
 por WebSocket (`/ws/tarefas/<id>/`, `apps/integracoes/consumers.py`, exige login,
 permissao e a conta da tarefa): cada gravacao de andamento da tarefa empurra o estado
@@ -648,7 +673,85 @@ tema (Liquid assina o token) --POST multipart--> /integracoes/shopify/avaliacoes
 - **Producao:** `AVALIACOES_ORIGENS` no `.env` com os dominios da loja (CORS so
   desta rota) e `client_max_body_size 16m` no nginx (3 fotos de 5 MB).
 
-### 7.4 Novo marketplace
+### 7.4 WooCommerce (`apps/woocommerce`)
+
+Mesmo formato do Shopify: tela em Integracoes > WooCommerce, matriz Receber/Enviar,
+Sincronizar loja, Cadastrar webhooks, Tarefas e Retomar. Nao tem relacao com
+`apps/woo_api` (a API que o hub expoe ao ERP): aqui o hub e cliente de uma loja Woo.
+
+- **Conexao:** endereco da loja (`https://sualoja.com.br`), chave `ck_` e segredo `cs_`
+  de WooCommerce > Configuracoes > Avancado > API REST (leitura e escrita). O cliente
+  (`cliente.py`) usa a REST v3 com Basic Auth; no primeiro 401 passa a chave na query
+  string (hospedagem que descarta o cabecalho Authorization). Paginacao por
+  `X-WP-TotalPages`, contagem da barra por `X-WP-Total`.
+- **Sincronizar loja** (`sincronizar.py`): categorias (todas a mao, a pai entra antes
+  da filha), produtos (variavel busca `products/<id>/variations`), clientes
+  (`role=all`), cupons, pedidos e "estoque" (so a quantidade das variantes ja
+  vinculadas). A loja manda no texto do produto e do cliente; webhook so atualiza
+  preco, estoque e logistica. Item com erro vira falha e os outros seguem.
+- **Vinculos** (`vinculos.py`): `produtos`, `variantes` (pai no
+  `external_parent_id`), `categorias`, `clientes`, `cupons`, `pedidos`,
+  `itens_pedido`, `midias`. Sem vinculo, slug (categoria), SKU (produto/variante),
+  e-mail (cliente) e nome (cupom) reaproveitam o registro do hub.
+- **Pedido** (`importar_pedidos.py`): status do Woo = status do hub; valores de cada
+  linha (subtotal/total/impostos) como vieram, frete/taxas/cupons em
+  `linhas_frete/linhas_taxa/linhas_cupom`, totais por `recalcular_totais`. Item cujo
+  produto o hub nao tem: o produto e buscado na loja e importado inteiro. Item que
+  sumiu do pedido na loja sai do pedido do hub.
+- **Webhooks:** "Cadastrar webhooks" cria um por topico ligado (`product.*`,
+  `customer.*`, `order.*`, `coupon.*`; Woo nao tem webhook de categoria nem de
+  estoque) em `/integracoes/woocommerce/webhook/<uuid>/<recurso>/`, com o segredo `cs_`
+  assinando. O receptor confere `X-WC-Webhook-Signature` (HMAC-SHA256 base64),
+  responde 200 ao ping do cadastro (`webhook_id=...`) e 202 depois de enfileirar.
+  `delete` desativa o registro no hub.
+- **Frete:** zonas de entrega a partir das tabelas por faixa de CEP (secao 7.7).
+- **Envio** (`envio/`): produtos (variacoes em lote por `variations/batch`; imagens
+  ja na loja vao pelo id, novas pela URL publica do hub), estoque (produto simples no
+  produto, variacao na rota dela), categorias, clientes, cupons e pedidos (so status
+  e endereco de entrega; pedido nasce na loja). Tags nao vao: a API do Woo so aceita
+  tag por id.
+- **Execucao comum:** `apps/integracoes/execucao.py` roda as tarefas do Shopify e do
+  Woo (progresso, falhas, Concluida com falhas); cada app passa o proprio contexto.
+
+### 7.5 Suri Shop (`apps/suri`)
+
+Loja do Suri (by Totvs), que vende pelo WhatsApp. Referencia: colecao Postman
+"Suri" (pasta Shop), em https://sejasuri.gitbook.io/manual-de-integracao/api.
+Mesma tela, matriz, Sincronizar, Tarefas e Retomar das outras lojas.
+
+- **Conexao:** endpoint do chatbot (`https://cbxxxx.azurewebsites.net`; o `/api` e
+  do hub) e token, ambos do Portal do Suri > Configuracoes. Bearer token. Resposta em
+  envelope `{"success", "data", "error"}`. Numero do JSON e lido como `Decimal` e
+  escrito de volta com o texto exato (`cliente._json`): preco nao passa por float.
+- **Receber** (`sincronizar.py`): categorias (a arvore `children`), produtos (lista
+  paginada por `token`), estoque (so das variantes ja vinculadas) e pedidos (os dos
+  ultimos 30 dias, padrao da API). Produto com `attributes` e variavel; cada
+  `dimensions[]` (um SKU) vira variante. Estoque do hub = soma das lojas do Suri.
+- **Pedido** (`importar_pedidos.py`): status 0 (carrinho) nao entra; 1 pendente,
+  2 processando, 3 cancelado, 4 falhou; logistica 4 (entregue) com pago = concluido.
+  Frete em `linhas_frete`, `feeAmount` e o desconto do pedido inteiro
+  (`orderDiscountAmount`, taxa negativa) em `linhas_taxa`. Total diferente do
+  `totalAmount` do Suri vira aviso na tarefa. Comprador sem e-mail (WhatsApp) fica sem
+  Cliente, com nome/telefone/endereco no pedido. Quantidade fracionada (quilo) vira
+  aviso: o item do hub e inteiro.
+- **Webhook:** "Cadastrar webhooks" define o endereco unico da loja (`POST shop/hook`)
+  como `/integracoes/suri/webhook/<uuid>/`. O Suri nao assina e a doc nao traz o
+  corpo: o receptor so tira o id do pedido (`id`, `orderId`, `order.id`...) e rele o
+  pedido pela API com o token. Um POST forjado so faria reler um pedido verdadeiro.
+- **Enviar** (`envio/`): categorias (a arvore da raiz, POST ou PUT), produtos (objeto
+  inteiro, PUT do Suri e substituicao total; id `sh-<pk>` para o que nasceu no hub;
+  categoria vai antes se faltar, porque o Suri exige), estoque (`PUT
+  shop/products/<id>/stocks`, todo o estoque na primeira loja de `shop/stores`) e
+  pedidos (pago, cancelado e logistica "entregue"; o estado do Suri fica no metadata
+  do vinculo para nao repetir a chamada). Clientes nao vao: a API do Suri exige o
+  canal de WhatsApp do contato.
+- **Frete:** resposta de orcamento do pedido em montagem (secao 7.7).
+- **Nao verificado contra o Suri real** (sem credencial no desenvolvimento): o corpo
+  do webhook de pedidos, a lista de metodos de pagamento alem de cartao (0) e Pix (3)
+  e se `PUT shop/products` sem `images` mantem as fotos. A doc so diz que
+  `images: null` apaga; por isso a chave nem vai quando o hub nao tem foto publica.
+
+### 7.6 Novo marketplace
 
 Cada marketplace e um app: `apps/<marketplace>/` (ex.: `apps/mercado_livre/`).
 
@@ -699,6 +802,18 @@ O `ready()` do app importa o modulo com o `@registrar`, e a plataforma entra em
   Em dev ela roda na hora; em prod vai para o worker.
 - Tempo real (se precisar): rotas em `config/routing.py`.
 
+Onde ligar o app novo (o WooCommerce e o exemplo completo):
+
+| O que | Onde |
+| --- | --- |
+| plataforma e origem | `ConfiguracaoIntegracao.Plataforma` + `Origin` (migrations) |
+| app e URLs | `INSTALLED_APPS`, `config/urls.py` (`integracoes/<app>/`) |
+| tela | `TELAS` em `apps/integracoes/admin.py` + rota `<app>_view` + form |
+| menu com logo | `STARHUB_MENU_PAGINAS` (`"marca:<app>"`) + `static/starhub/img/marcas/<app>.svg` (ou `.png` em `IMAGENS`, `apps/core/admin_utils.py`, como o Suri) |
+| Sincronizar loja | `IMPORTADORES` em `apps/integracoes/sincronizacao.py` |
+| Retomar | `POR_PLATAFORMA` em `apps/integracoes/retomar.py` |
+| tarefas | `tasks.py` com `apps.integracoes.execucao.executar(..., canal="<app>")` |
+
 **Importar planilha em qualquer tela.** `ImportarPlanilhaMixin`
 (`apps/integracoes/admin_importar.py`) poe o botao na lista, a pagina com as colunas, o
 modelo .csv para baixar e cria a tarefa; `apps/integracoes/importar_planilha.executar`
@@ -706,9 +821,10 @@ roda a importacao (barra, falhas por linha, Retomar). Quem usa so declara as col
 regra de uma linha (`importar_linha(dados) -> (obj, criado)` ou `LinhaInvalida`). Hoje:
 avaliacoes e faixas de frete. A leitura (.xlsx/.csv) fica em `apps/core/planilha.py`.
 
-### 7.5 Logistica: cotacao de frete (`apps/logistica`)
+### 7.7 Logistica: cotacao de frete (`apps/logistica`)
 
-So o cadastro e o calculo: ainda nao ligado a pedido nem a checkout. Menu
+Cadastro e calculo do frete, levado ao checkout das lojas pela marca "oferecer no
+checkout das lojas" de cada tabela (Shopify, WooCommerce e Suri, abaixo). Menu
 **Logistica > Tabelas de frete**; a tela muda pela forma de cobranca (`condicoes`).
 
 - **Por distancia (km):** CEP de origem, preco por km, taxa fixa, valor minimo e
@@ -739,6 +855,22 @@ So o cadastro e o calculo: ainda nao ligado a pedido nem a checkout. Menu
   (escopos, plano, cadastro, zona de envio, CEP dos locais, origem das tabelas, peso,
   tabelas marcadas, embalagem). **Verificar configuracao** roda numa tarefa so de leitura
   na loja (`frete_diagnostico.py`); a tela le o ultimo resultado (`frete_checklist.py`).
+- **Frete no WooCommerce (zonas de entrega):** card **Frete do hub** em Integracoes >
+  WooCommerce, botoes Ligar/Desligar (tarefa "Cadastrar frete no checkout"). O Woo nao
+  cota fora; o hub cria zonas `StarHub <cep>-<cep>` com um metodo "taxa fixa" por
+  tabela (`apps/woocommerce/frete*.py`). O Woo usa uma zona por CEP, entao o CEP e
+  cortado nos limites de todas as faixas e cada pedaco e cotado pelo `cotar` (faixas
+  sobrepostas de tabelas diferentes aparecem juntas; dentro da tabela vale a mais
+  estreita, como no hub). So faixa de CEP: tabela por distancia fica de fora, com aviso.
+  Com o frete ligado, salvar ou apagar tabela/faixa reenvia as zonas (uma tarefa por
+  commit); a importacao de planilha reenvia uma vez no fim (`apps/logistica/sinais.py`).
+  Zonas criadas a mao na loja nao sao tocadas.
+- **Frete no Suri (orcamento):** card **Frete do hub** em Integracoes > Suri Shop. O Suri
+  nao chama o hub no checkout; com o frete ligado, o pedido em montagem (status 0) que
+  chega pelo webhook com CEP e sem entrega escolhida recebe a cotacao mais barata das
+  tabelas (CEP ou distancia) por `POST shop/orders/budget` (`apps/suri/frete.py`).
+  Mesmo CEP e mesmos itens nao reenviam. Nao verificado no Suri real: como ele avisa
+  que o pedido espera orcamento e o `id` do corpo.
 - **Usar no codigo:** `apps.logistica.cotacao.cotar(tabela, "20040-020")` devolve
   `Cotacao(valor, prazo_dias, distancia_km, detalhe)` ou levanta `FreteIndisponivel` com
   o motivo. Botao **Simular cotacao** na tabela para conferir um CEP.

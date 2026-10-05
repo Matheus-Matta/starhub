@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     "apps.integracoes",
     "apps.logistica",
     "apps.shopify",
+    "apps.woocommerce",
+    "apps.suri",
 ]
 
 MIDDLEWARE = [
@@ -179,5 +181,11 @@ STARHUB_MENU_AGRUPAR = {
 # Fluxo operacional primeiro; auditoria fica no final para nao disputar atencao.
 STARHUB_MENU_ORDEM = ["loja", "logistica", "integracoes", "core", "auditlog"]
 # Paginas custom (sem model) no menu: {"app_label": [("Titulo", "admin:nome_url")]}.
-STARHUB_MENU_PAGINAS = {}
+# Pagina do admin sem model proprio: {app: [(titulo, nome da url, icone opcional)]}.
+STARHUB_MENU_PAGINAS = {
+    "integracoes": [("WooCommerce", "admin:integracoes_configuracaointegracao_woocommerce",
+                     "marca:woocommerce"),
+                    ("Suri Shop", "admin:integracoes_configuracaointegracao_suri",
+                     "marca:suri")],
+}
 

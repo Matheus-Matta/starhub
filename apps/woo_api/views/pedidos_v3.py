@@ -1,7 +1,8 @@
 """Pedidos da API Woo (v3 e v1): so leitura e atualizacao.
 
 Pedido so nasce vindo de marketplace (ex.: Shopify). O ERP le e atualiza, nunca cria
-nem apaga; as mesmas views atendem wc/v1/orders e wc/v3/orders.
+nem apaga; as mesmas views atendem wc/v1/orders e wc/v3/orders. Com o modo "encaminhar
+pedidos" ligado na loja WooCommerce, a requisicao vai para a loja (views/encaminhar.py).
 """
 
 import logging
@@ -9,6 +10,7 @@ import logging
 from apps.woo_api.erros import WooErro
 from apps.woo_api.recursos.pedidos import PedidoRecurso
 from apps.woo_api.views.base import DetalheView, ListaView
+from apps.woo_api.views.encaminhar import EncaminharPedidoMixin
 from apps.woo_api.views.lote import LoteView
 from apps.woo_api.views.produtos_v3 import _parametros_visiveis
 
@@ -34,7 +36,7 @@ class PedidoV3Recurso(PedidoRecurso):
         raise _pedido_somente_update()
 
 
-class PedidoListaV3View(ListaView):
+class PedidoListaV3View(EncaminharPedidoMixin, ListaView):
     recurso_classe = PedidoV3Recurso
 
     def get(self, request):
@@ -46,7 +48,7 @@ class PedidoListaV3View(ListaView):
         raise _pedido_somente_update()
 
 
-class PedidoDetalheV3View(DetalheView):
+class PedidoDetalheV3View(EncaminharPedidoMixin, DetalheView):
     recurso_classe = PedidoV3Recurso
 
     def get(self, request, pk):
@@ -65,7 +67,7 @@ class PedidoDetalheV3View(DetalheView):
         raise _pedido_somente_update()
 
 
-class PedidoLoteV3View(LoteView):
+class PedidoLoteV3View(EncaminharPedidoMixin, LoteView):
     recurso_classe = PedidoV3Recurso
 
     def post(self, request):

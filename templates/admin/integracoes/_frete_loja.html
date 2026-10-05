@@ -1,0 +1,42 @@
+{# Card "Frete do hub" do WooCommerce e do Suri Shop (apps/integracoes/admin_frete.py). #}
+{% componente "card" titulo="Frete do hub" icone="truck" flush=True %}
+  {% slot "acoes" %}{% if pode_editar and frete_loja.salvo %}
+    <div class="integracao-selecao">
+      {% if frete_loja.ligado %}
+        <button type="submit" name="acao" value="frete_desligar" class="btn btn-sm btn-outline"
+          data-confirmar-titulo="Desligar o frete do hub?" data-confirmar-botao="Desligar frete" data-confirmar-perigo
+          data-confirmar="O frete do StarHub sai da loja {{ plataforma_nome }} real: o checkout deixa de mostrar as opcoes das tabelas do hub.">{% icone "x" "icon-sm" %} Desligar frete</button>
+      {% else %}
+        <button type="submit" name="acao" value="frete_ligar" class="btn btn-sm btn-primary"
+          data-confirmar-titulo="Ligar o frete do hub?" data-confirmar-botao="Ligar frete"
+          data-confirmar="As tabelas marcadas para o checkout passam a valer na loja {{ plataforma_nome }} real.">{% icone "truck" "icon-sm" %} Ligar frete</button>
+      {% endif %}
+    </div>
+  {% endif %}{% endslot %}
+  <div class="frete-ck-intro">
+    <div class="frete-ck-selos">
+      {% if frete_loja.ligado %}{% include "components/badge.html" with texto="Frete ligado" tom="success" %}{% else %}{% include "components/badge.html" with texto="Frete desligado" tom="destructive" %}{% endif %}
+    </div>
+    <p>{{ frete_loja.texto }}{% if not frete_loja.salvo %} Salve a configuracao antes de ligar.{% endif %}</p>
+  </div>
+  <h4 class="frete-ck-grupo">Tabelas marcadas para o checkout</h4>
+  <ul class="frete-ck">
+    {% for tabela in frete_loja.tabelas %}
+      <li class="frete-ck-item frete-ck-{% if tabela.fora %}aviso{% else %}ok{% endif %}">
+        <span class="frete-ck-icone">{% if tabela.fora %}{% icone "triangle-alert" %}{% else %}{% icone "circle-check" %}{% endif %}</span>
+        <div class="frete-ck-texto">
+          <strong>{{ tabela.nome }}</strong>
+          <span class="frete-ck-detalhe">{{ tabela.tipo }}{% if tabela.fora %}: fica fora desta loja{% endif %}</span>
+        </div>
+      </li>
+    {% empty %}
+      <li class="frete-ck-item frete-ck-falta">
+        <span class="frete-ck-icone">{% icone "circle-x" %}</span>
+        <div class="frete-ck-texto">
+          <strong>Nenhuma tabela marcada</strong>
+          <span class="frete-ck-como">Marque "oferecer no checkout" em Logistica &gt; Tabelas de frete.</span>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+{% endcomponente %}

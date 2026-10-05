@@ -11,6 +11,7 @@ from django.views.decorators.http import require_POST
 
 from apps.core.tarefas import enfileirar
 from apps.core.tenant.context import tenant_context
+from apps.integracoes import trafego
 from apps.integracoes.models import ConfiguracaoIntegracao, ExecucaoIntegracao
 from apps.shopify.tasks import processar_webhook_shopify
 
@@ -114,7 +115,10 @@ def webhook(request, recurso, configuracao_uuid=None, configuracao_id=None):
             tipo=ExecucaoIntegracao.Tipo.RECEBER,
             etapa=f"Webhook {topico}",
             # O corpo fica guardado: sem ele o botao Retomar nao teria o que reprocessar.
-            parametros={"reenvio": {"recurso": recurso, "operacao": operacao, "dados": dados}},
+            parametros={"reenvio": {"recurso": recurso, "operacao": operacao, "dados": dados},
+                        # O corpo ja esta no reenvio; aqui so o resto, para a tela de Tarefas.
+                        "requisicao": trafego.requisicao(request),
+                        "resposta": trafego.resposta(202)},
         )
         resultado = enfileirar(
             processar_webhook_shopify, str(execucao.pk), recurso, operacao, dados

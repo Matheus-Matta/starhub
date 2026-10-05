@@ -15,7 +15,7 @@ from django.views.decorators.http import require_POST
 
 from apps.core.admin_base import TemaModelAdmin
 from apps.core.admin_utils import badge
-from apps.integracoes import progresso, retomar, sincronizacao
+from apps.integracoes import progresso, retomar, sincronizacao, trafego
 from apps.integracoes.admin_sincronizacao import falhas_legiveis, parametros_legiveis
 from apps.integracoes.models import ExecucaoIntegracao
 
@@ -116,6 +116,7 @@ class ExecucaoIntegracaoAdmin(TemaModelAdmin):
                 and self.has_marcar_como_falhou_permission(request),
                 "duracao": duracao(execucao),
                 "parametros_html": parametros_legiveis(execucao),
+                **trafego.para_tela(execucao.parametros),
                 "falhas_html": falhas_legiveis(execucao) if execucao.falhas else "",
                 "dica_falhas": (
                     "Corrija as linhas na planilha e importe de novo."

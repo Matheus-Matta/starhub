@@ -1,6 +1,6 @@
 """Progresso da tarefa empurrado pelo WebSocket (Channels), sem a tela perguntar.
 
-Quem grava o andamento da tarefa (shopify/tasks._gravar_aberta, integracoes/tasks._gravar)
+Quem grava o andamento da tarefa (integracoes/execucao.gravar_aberta, integracoes/tasks._gravar)
 chama `publicar(id)`: o estado (progresso.estado, formato do celery_progress) vai
 para o grupo "tarefa-<id>", e o TarefaConsumer manda para quem esta com a tela aberta.
 
