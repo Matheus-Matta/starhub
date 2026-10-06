@@ -17,8 +17,10 @@ class Account(models.Model):
     document = models.CharField("documento", max_length=30, blank=True)
     email = models.EmailField("e-mail", blank=True)
     phone = models.CharField("telefone", max_length=30, blank=True)
+    # Models historicos ainda podem criar contas sem conhecer este campo.
     dominio_avaliacoes = models.CharField(
         "dominio da loja para avaliacoes", max_length=253, blank=True,
+        default="", db_default="",
         validators=[DomainNameValidator(accept_idna=False)],
         help_text="Ex.: maxxxmoveis.com.br. Informe o dominio exato, sem https:// ou caminho.",
     )
