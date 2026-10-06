@@ -87,6 +87,7 @@ class UsuarioAdmin(TemaMixin, UserAdmin):
 
 @admin.register(Account)
 class AccountAdmin(TemaMixin, admin.ModelAdmin):
+    campos_editaveis_pela_conta = {"email", "phone", "dominio_avaliacoes"}
     list_display = ["name", "slug", "email", "currency", "active", "updated_at"]
     search_fields = ["name", "slug", "legal_name", "document", "email"]
     list_filter = ["active", "currency"]
@@ -104,15 +105,19 @@ class AccountAdmin(TemaMixin, admin.ModelAdmin):
         qs = super().get_queryset(request)
         return qs if request.user.is_superuser else qs.filter(pk=get_current_account_id())
 
-    # Contas so o superusuario ve: fora do menu e 403 na URL, mesmo com a permissao.
-    def has_module_permission(self, request):
-        return request.user.is_superuser
+    def get_readonly_fields(self, request, obj=None):
+        if request.user.is_superuser:
+            return super().get_readonly_fields(request, obj)
+        # Identidade, situacao e regiao da conta afetam todo o tenant. O administrador
+        # da loja pode manter apenas os dados operacionais de contato e dominio.
+        return [
+            campo.name for campo in self.model._meta.fields
+            if campo.editable and campo.name not in self.campos_editaveis_pela_conta
+        ]
 
-    def has_view_permission(self, request, obj=None):
-        return request.user.is_superuser
-
-    def has_change_permission(self, request, obj=None):
-        return request.user.is_superuser
+    def get_prepopulated_fields(self, request, obj=None):
+        # O slug nao faz parte do formulario restrito e nao pode ser dependencia JS.
+        return super().get_prepopulated_fields(request, obj) if request.user.is_superuser else {}
 
     def has_add_permission(self, request):
         return request.user.is_superuser

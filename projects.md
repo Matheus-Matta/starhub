@@ -681,8 +681,10 @@ tema (Liquid assina o token) --POST multipart--> /integracoes/shopify/avaliacoes
 | metaobject `avaliacao_produto` | campos | `product`, `author` ("Ana L."), `rating`, `body`, `photos` (`list.file_reference`), `verified`, `date` |
 
   Sem nenhuma aprovada os tres metafields sao apagados (o tema esconde o bloco).
-- **Producao:** em Nucleo > Contas, o superusuario cadastra o dominio exato da
-  vitrine em `dominio_avaliacoes` (ex.: `maxxxmoveis.com.br`, sem `https://`).
+- **Producao:** em Nucleo > Contas, o Administrador da conta cadastra o dominio
+  exato da vitrine em `dominio_avaliacoes` (ex.: `maxxxmoveis.com.br`, sem
+  `https://`). Ele tambem pode ajustar e-mail e telefone; identidade, status,
+  fuso e moeda da conta continuam restritos ao superusuario.
   A rota libera CORS somente para `https://` desse dominio, sem depender do CORS
   geral do `.env`; o endereco do hub continua em `DJANGO_ALLOWED_HOSTS`.
   No nginx, `client_max_body_size 16m` permite 3 fotos de 5 MB.
