@@ -41,7 +41,7 @@ ERP <--(GET /wp-json/wc/v1/orders)----- StarHub <--(pedido do marketplace)-- mar
 | Processos | **um terminal so**: `python manage.py runserver` | uvicorn, worker e beat em **containers separados** |
 | Celery | roda a tarefa na hora, dentro do processo (`CELERY_TASK_ALWAYS_EAGER`) | worker lendo o Redis |
 | Channels / cache | memoria | Redis |
-| Banco | `db.sqlite3` | PostgreSQL (fora do compose) |
+| Banco | `db.sqlite3` | PostgreSQL (servico `postgres` do compose, ou de fora por `POSTGRES_HOST`) |
 | Estaticos | runserver | WhiteNoise (no proprio app) |
 
 Rodar em dev:
@@ -75,10 +75,11 @@ docker compose run --rm web python manage.py criar_conta_inicial   # primeira ve
 
 | Servico | O que roda |
 | --- | --- |
-| `web-blue`, `web-green` | os dois backends, iguais: ao subir, `migrar` (migrate com trava no PostgreSQL, um por vez); se passar, `uvicorn config.asgi:application` (HTTP + WebSocket), `WEB_WORKERS` processos, portas `WEB_PORT_BLUE` (8001) e `WEB_PORT_GREEN` (8002) |
-| `worker` | `celery -A config worker` (`CELERY_CONCURRENCY` tarefas); espera o `web-blue` saudavel |
-| `beat` | `celery -A config beat` (hoje sem tarefa agendada); espera o `web-blue` saudavel |
+| `web-blue`, `web-green` | os dois backends, iguais: ao subir, `criar_banco` (cria o `POSTGRES_DB` do `.env` se faltar) e `migrar` (migrate com trava no PostgreSQL, um por vez); se passar, `uvicorn config.asgi:application` (HTTP + WebSocket), `WEB_WORKERS` processos, portas `WEB_PORT_BLUE` (8001) e `WEB_PORT_GREEN` (8002) |
+| `worker` | `celery -A config worker` (`CELERY_CONCURRENCY` tarefas); espera Redis saudavel e o container `web-blue` iniciar |
+| `beat` | `celery -A config beat` (hoje sem tarefa agendada); espera Redis saudavel e o container `web-blue` iniciar |
 | `redis` | fila do Celery, cache e channel layer (volume `redis`) |
+| `postgres` | PostgreSQL 16 (volume `postgres`); cria o usuario e o `POSTGRES_DB` na primeira subida |
 
 - **Proxy na frente** (nginx, Caddy, Traefik) faz o TLS e repassa ao `web` com
   `X-Forwarded-Proto` e o `Upgrade` do WebSocket (`/ws/`). Sem proxy, so para teste:
@@ -95,8 +96,8 @@ docker compose run --rm web python manage.py criar_conta_inicial   # primeira ve
   portas dos dois backends, com checagem de saude (porta aberta) ou "tentar o outro em
   caso de erro": sem isso, a requisicao que cai num backend parado espera o timeout.
   Atualizar sem tirar do ar: `docker compose pull`, depois
-  `docker compose up -d --no-deps web-blue`, esperar ficar healthy
-  (`docker compose ps`), `... web-green`, e por fim `... worker beat`. Sessao e
+  `docker compose up -d --no-deps web-blue`; confira nos logs que o Uvicorn iniciou,
+  repita para `web-green` e por fim `worker beat`. Sessao e
   WebSocket nao precisam de "sticky": a sessao fica no banco e o channel layer no Redis.
 
 ## 4. Estrutura

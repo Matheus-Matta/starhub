@@ -9,7 +9,7 @@
 
 {% block content %}
 <form method="post" class="integracao-page" novalidate>{% csrf_token %}
-  {% if form.non_field_errors %}{{ form.non_field_errors }}{% endif %}
+  {% include "components/form_errors.html" with form=form %}
 
   {% if campo_encaminhar %}
     {% componente "card" titulo="Modo dos pedidos (superusuario)" icone="shield" %}

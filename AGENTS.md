@@ -23,7 +23,7 @@ ainda nao existe.
 
 - Dev roda tudo num terminal (`python manage.py runserver`: Daphne + Celery na
   memoria). Prod roda em Docker (`docker-compose.yml`, imagem do GitHub): uvicorn,
-  worker e beat em containers separados, Redis no compose e PostgreSQL de fora.
+  worker e beat em containers separados, Redis e PostgreSQL no compose.
 - `example_templetes_react_to_convert_html/` e o template comprado, so para
   consulta visual. Nao versione, nao copie arquivos dele para o projeto.
 

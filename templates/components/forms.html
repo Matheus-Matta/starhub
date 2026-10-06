@@ -10,11 +10,7 @@ Uso (a tag <form> e o botao ficam com quem chama, porque cada tela tem os seus):
 
 Opcional: icones=True mostra o icone de usuario/senha/e-mail dentro do input.
 {% endcomment %}
-{% if form.non_field_errors %}
-  {% componente "alert" classe="mb-4" tom="destructive" icone="triangle-alert" %}
-    {% for erro in form.non_field_errors %}<div>{{ erro }}</div>{% endfor %}
-  {% endcomponente %}
-{% endif %}
+{% include "components/form_errors.html" with form=form %}
 
 {% for campo in form.hidden_fields %}{{ campo }}{% endfor %}
 

@@ -44,7 +44,7 @@ linha nova some de vez; linha salva so e marcada (DELETE) e sai ao salvar, com
                   {% if inline_admin_form.fk_field %}{{ inline_admin_form.fk_field.field }}{% endif %}
                 </td>
                 {% for fieldset in inline_admin_form %}{% for line in fieldset %}{% for field in line %}
-                  <td class="{% if field.field.name %}field-{{ field.field.name }}{% endif %}{% if field.field.is_hidden %} hidden{% endif %}">
+                  <td class="{% if field.field.name %}field-{{ field.field.name }}{% endif %}{% if field.field.is_hidden %} hidden{% endif %}{% if field.errors %} errors{% endif %}">
                     {% if field.is_readonly %}<p>{{ field.contents }}</p>{% else %}{{ field.field.errors.as_ul }}{{ field.field }}{% endif %}
                   </td>
                 {% endfor %}{% endfor %}{% endfor %}

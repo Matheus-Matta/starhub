@@ -1,0 +1,18 @@
+{% comment %}
+Resumo dos erros do Django: aponta o campo e leva o foco ate ele.
+O erro continua aparecendo junto ao campo no componente/fieldset correspondente.
+{% endcomment %}
+{% if form.errors %}
+  <div class="form-error-summary" role="alert" aria-labelledby="form-errors-title" tabindex="-1">
+    <strong id="form-errors-title">Não foi possível salvar. Corrija os erros abaixo:</strong>
+    <ul>
+      {% for erro in form.non_field_errors %}<li>{{ erro }}</li>{% endfor %}
+      {% for campo in form.visible_fields %}
+        {% if campo.errors %}<li><a href="#{{ campo.id_for_label }}">{{ campo.label }}: {{ campo.errors|join:", " }}</a></li>{% endif %}
+      {% endfor %}
+      {% for campo in form.hidden_fields %}
+        {% if campo.errors %}<li>{{ campo.label }}: {{ campo.errors|join:", " }}</li>{% endif %}
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}

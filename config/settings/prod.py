@@ -1,5 +1,6 @@
-"""Prod (Docker): uvicorn, worker e beat do Celery em containers separados, Redis e
-PostgreSQL de fora. Tudo que muda por ambiente vem do .env (veja .env.example)."""
+"""Prod (Docker): uvicorn (blue e green), worker e beat do Celery em containers separados,
+Redis e PostgreSQL no compose (ou o banco de fora, por POSTGRES_HOST). Tudo que muda por
+ambiente vem do .env (veja .env.example)."""
 
 from django.core.exceptions import ImproperlyConfigured
 

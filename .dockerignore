@@ -17,4 +17,5 @@ staticfiles
 example_templetes_react_to_convert_html
 examples
 docs
+docker
 *.log

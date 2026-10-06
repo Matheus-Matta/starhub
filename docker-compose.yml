@@ -1,5 +1,6 @@
 # Producao do StarHub com a imagem gerada pelo GitHub (.github/workflows/docker.yml).
-# O PostgreSQL fica de fora (POSTGRES_* no .env); o Redis sobe aqui.
+# PostgreSQL e Redis sobem aqui (POSTGRES_* no .env; POSTGRES_HOST=postgres). Banco de
+# fora: aponte POSTGRES_HOST para ele e suba sem o servico postgres.
 #
 #   docker compose pull && docker compose up -d     # sobe tudo
 #   docker compose logs -f web-blue web-green worker
@@ -10,17 +11,19 @@
 # backend parado espera ate o timeout. Atualizacao sem tirar o site do ar, um por vez:
 #
 #   docker compose pull
-#   docker compose up -d --no-deps web-blue      # espera ficar healthy (docker compose ps)
+#   docker compose up -d --no-deps web-blue
+#   docker compose logs --tail=100 web-blue      # confirme "Uvicorn running"
 #   docker compose up -d --no-deps web-green
 #   docker compose up -d --no-deps worker beat
 #
-# Ordem na primeira subida: redis -> web-blue e web-green (cada um roda `migrar` ao subir:
-# trava no banco, um migra por vez; depois o uvicorn) -> worker e beat.
+# Ordem na primeira subida: postgres e redis -> web-blue e web-green (cada um roda, ao
+# subir, `criar_banco` (POSTGRES_DB, se faltar) e `migrar` (trava no banco, um migra por
+# vez); depois o uvicorn) -> worker e beat.
 name: starhub
 
 # Logs do Docker com teto: 2 arquivos de 8 MB por container (o mais velho e apagado
-# quando enche). 5 containers (web-blue, web-green, worker, beat, redis) x 16 MB
-# = 80 MB no maximo, abaixo do limite de 100 MB do servidor. Container novo aqui: usa o
+# quando enche). 6 containers (web-blue, web-green, worker, beat, redis, postgres)
+# x 16 MB = 96 MB no maximo, abaixo do limite de 100 MB do servidor. Container novo aqui: usa o
 # mesmo &logs e refaca a conta (a soma tem que continuar abaixo de 100 MB).
 x-logs: &logs
   driver: json-file
@@ -47,14 +50,8 @@ x-web: &web
   depends_on:
     redis:
       condition: service_healthy
-  healthcheck:
-    # So a porta: ALLOWED_HOSTS e o redirect https recusariam um GET em localhost.
-    test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8000), 3)"]
-    interval: 30s
-    timeout: 5s
-    retries: 3
-    # Primeira subida de uma versao com muitas migrations: o migrate vem antes da porta.
-    start_period: 120s
+    postgres:
+      condition: service_healthy
 
 services:
   web-blue:
@@ -73,9 +70,9 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      # Blue saudavel = `migrar` terminou: o banco ja esta na versao da imagem.
+      # Aguarda o container web iniciar, sem depender de healthcheck HTTP.
       web-blue:
-        condition: service_healthy
+        condition: service_started
 
   beat:
     <<: *app
@@ -85,7 +82,25 @@ services:
       redis:
         condition: service_healthy
       web-blue:
-        condition: service_healthy
+        condition: service_started
+
+  postgres:
+    image: postgres:16-alpine
+    logging: *logs
+    # Os mesmos nomes do .env do app: a imagem cria o usuario e o POSTGRES_DB na primeira
+    # subida (volume vazio). Volume que ja existe: o `criar_banco` do web cria o que faltar.
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-starhub}
+      POSTGRES_USER: ${POSTGRES_USER:-starhub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   redis:
     image: redis:7-alpine
@@ -104,3 +119,4 @@ services:
 volumes:
   media:
   redis:
+  postgres:
