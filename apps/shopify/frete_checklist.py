@@ -11,7 +11,8 @@ das tabelas, peso, embalagem) so avisam. `para_ligar` e o que o dialogo do "Liga
 lista antes de confirmar.
 """
 
-from django.db.models import Q
+from django.db.models import CharField, Q
+from django.db.models.functions import Cast
 from django.utils.dateparse import parse_datetime
 
 from apps.core.models import ExternalReference, Origin
@@ -72,8 +73,10 @@ def _origem_das_tabelas(locais):
 
 def _peso():
     ligadas = ExternalReference.objects.filter(platform=Origin.SHOPIFY, entity_type="variantes")
-    sem_peso = VarianteProduto.objects.filter(
-        pk__in=ligadas.values("object_id")).filter(Q(weight__isnull=True) | Q(weight=0)).count()
+    # object_id e texto; PostgreSQL exige comparar valores do mesmo tipo.
+    sem_peso = (VarianteProduto.objects.annotate(id_texto=Cast("pk", CharField()))
+                .filter(id_texto__in=ligadas.values("object_id"))
+                .filter(Q(weight__isnull=True) | Q(weight=0)).count())
     if not sem_peso:
         return _item("Peso nos produtos", "ok", "Todas as variantes da loja tem peso.")
     return _item("Peso nos produtos", "aviso", f"{sem_peso} variante(s) da loja sem peso.",
