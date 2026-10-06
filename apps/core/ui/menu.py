@@ -74,6 +74,30 @@ def montar_menu(available_apps, caminho):
     return sorted(secoes, key=lambda secao: posicoes.get(secao["rotulo"], len(ordem)))
 
 
+def com_minha_conta(app_list, request):
+    """Troca o item "Contas" por "Minha conta", que abre direto a conta do usuario.
+
+    Fora o superusuario, a lista de contas tem uma linha so (a propria): o link
+    direto poupa um clique. O superusuario mantem a lista, pois e la que cadastra
+    contas novas, e ganha "Minha conta" ao lado.
+    """
+    conta_id = getattr(request.user, "account_id", None)
+    if conta_id is None:
+        return app_list
+    for app in app_list:
+        for posicao, modelo in enumerate(app["models"]):
+            if not (_do_model(modelo, "account") and modelo.get("admin_url")):
+                continue
+            minha = {**modelo, "name": "Minha conta", "add_url": None,
+                     "admin_url": reverse("admin:core_account_change", args=[conta_id])}
+            if request.user.is_superuser:
+                app["models"].insert(posicao + 1, minha)
+            else:
+                app["models"][posicao] = minha
+            return app_list
+    return app_list
+
+
 def _do_model(modelo, nome):
     return str(modelo.get("object_name", "")).lower() == nome
 

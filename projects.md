@@ -682,7 +682,7 @@ tema (Liquid assina o token) --POST multipart--> /integracoes/shopify/avaliacoes
 
   Sem nenhuma aprovada os tres metafields sao apagados (o tema esconde o bloco).
 - **Producao:** em Nucleo > Contas, o Administrador da conta cadastra o dominio
-  exato da vitrine em `dominio_avaliacoes` (ex.: `maxxxmoveis.com.br`, sem
+  exato da vitrine em `dominio_avaliacoes` (ex.: `minhaloja.com.br`, sem
   `https://`). Ele tambem pode ajustar e-mail e telefone; identidade, status,
   fuso e moeda da conta continuam restritos ao superusuario.
   A rota libera CORS somente para `https://` desse dominio, sem depender do CORS

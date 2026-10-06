@@ -14,11 +14,11 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='account',
             name='dominio_avaliacoes',
-            field=models.CharField(blank=True, db_default='', default='', help_text='Ex.: maxxxmoveis.com.br. Informe o dominio exato, sem https:// ou caminho.', max_length=253, validators=[django.core.validators.DomainNameValidator(accept_idna=False)], verbose_name='dominio da loja para avaliacoes'),
+            field=models.CharField(blank=True, db_default='', default='', help_text='Ex.: minhaloja.com.br. Informe o dominio exato, sem https:// ou caminho.', max_length=253, validators=[django.core.validators.DomainNameValidator(accept_idna=False)], verbose_name='dominio da loja para avaliacoes'),
         ),
         migrations.AlterField(
             model_name='historicalaccount',
             name='dominio_avaliacoes',
-            field=models.CharField(blank=True, db_default='', default='', help_text='Ex.: maxxxmoveis.com.br. Informe o dominio exato, sem https:// ou caminho.', max_length=253, validators=[django.core.validators.DomainNameValidator(accept_idna=False)], verbose_name='dominio da loja para avaliacoes'),
+            field=models.CharField(blank=True, db_default='', default='', help_text='Ex.: minhaloja.com.br. Informe o dominio exato, sem https:// ou caminho.', max_length=253, validators=[django.core.validators.DomainNameValidator(accept_idna=False)], verbose_name='dominio da loja para avaliacoes'),
         ),
     ]

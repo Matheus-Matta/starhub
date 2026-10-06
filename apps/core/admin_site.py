@@ -6,7 +6,7 @@ from django.urls import path
 
 from apps.core.busca import TAMANHO_MINIMO, buscar
 from apps.core.perfil import perfil_view
-from apps.core.ui.menu import agrupar_apps
+from apps.core.ui.menu import agrupar_apps, com_minha_conta
 
 
 class LoginForm(AdminAuthenticationForm):
@@ -35,7 +35,8 @@ class StarHubAdminSite(admin.AdminSite):
         apps = super().get_app_list(request, app_label)
         if app_label is not None:  # pagina de UM app: mostra os models dele mesmo
             return apps
-        return agrupar_apps(apps, getattr(settings, "STARHUB_MENU_AGRUPAR", {}))
+        apps = agrupar_apps(apps, getattr(settings, "STARHUB_MENU_AGRUPAR", {}))
+        return com_minha_conta(apps, request)
 
     def get_urls(self):
         extras = [

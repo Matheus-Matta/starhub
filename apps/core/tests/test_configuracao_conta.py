@@ -20,11 +20,30 @@ def administrador(client, conta):
     return client
 
 
+def _menu(cliente):
+    html = cliente.get(reverse("admin:index")).content.decode()
+    return html.split('class="sidebar-menu"')[1].split("</nav>")[0]
+
+
+def test_menu_leva_direto_a_minha_conta_em_vez_da_lista(administrador, conta):
+    """A lista "Contas" tinha uma linha so: o operador clicava duas vezes para chegar."""
+    menu = _menu(administrador)
+
+    assert "Minha conta" in menu
+    assert reverse("admin:core_account_change", args=[conta.pk]) in menu
+    assert f'href="{reverse(LISTA)}"' not in menu
+
+
+def test_superusuario_ve_minha_conta_e_mantem_a_lista_de_contas(admin_logado, conta):
+    """O superusuario cadastra contas novas: tirar a lista do menu esconderia esse fluxo."""
+    menu = _menu(admin_logado)
+
+    assert reverse("admin:core_account_change", args=[conta.pk]) in menu
+    assert f'href="{reverse(LISTA)}"' in menu
+
+
 def test_administrador_ve_a_configuracao_da_propria_conta(administrador, conta):
     """O bloqueio antigo escondia a configuracao apesar da permissao do perfil."""
-    painel = administrador.get(reverse("admin:index")).content.decode()
-
-    assert reverse(LISTA) in painel
     assert administrador.get(reverse(LISTA)).status_code == 200
     pagina = administrador.get(
         reverse("admin:core_account_change", args=[conta.pk])

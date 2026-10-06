@@ -22,7 +22,7 @@ class Account(models.Model):
         "dominio da loja para avaliacoes", max_length=253, blank=True,
         default="", db_default="",
         validators=[DomainNameValidator(accept_idna=False)],
-        help_text="Ex.: maxxxmoveis.com.br. Informe o dominio exato, sem https:// ou caminho.",
+        help_text="Ex.: minhaloja.com.br. Informe o dominio exato, sem https:// ou caminho.",
     )
     timezone = models.CharField("fuso horario", max_length=50, default="America/Sao_Paulo")
     currency = models.CharField("moeda", max_length=3, default="BRL")
