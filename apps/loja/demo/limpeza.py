@@ -82,7 +82,12 @@ def remover(conta):
     removidos["perfis de acesso"] = _apagar(perfis)
     _apagar(Group.objects.filter(pk__in=grupos))
     contas = Account.objects.filter(slug__startswith=PREFIXO_CONTA).exclude(pk=conta.pk)
-    # Conta nova nasce com os perfis fixos (perfis_padrao), que a protegem: saem antes.
+    # Conta nova nasce com os perfis fixos (perfis_padrao), o SMTP e a configuracao de
+    # notificacao (apps/notificacoes/contas.py), que a protegem: saem antes.
     AccessProfile.all_objects.filter(account__in=contas, users__isnull=True).delete()
+    from apps.notificacoes.models import ConfiguracaoEmail, ConfiguracaoNotificacao, Notificacao
+
+    for modelo in (Notificacao, ConfiguracaoEmail, ConfiguracaoNotificacao):
+        modelo.all_objects.filter(account__in=contas).delete()
     removidos["contas"] = _apagar(contas)
     return {nome: total for nome, total in removidos.items() if total}

@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "apps.shopify",
     "apps.woocommerce",
     "apps.suri",
+    "apps.notificacoes",
 ]
 
 MIDDLEWARE = [
@@ -84,6 +85,8 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                # Sino do cabecalho: contador e ultimas notificacoes do usuario.
+                "apps.notificacoes.contexto.notificacoes",
             ],
             # Tags do tema ({% icone %}, {% componente %}...) sem {% load %} em todo template.
             "builtins": ["apps.core.templatetags.starhub"],
@@ -135,6 +138,10 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {"jwt_login": "20/min", "avaliacoes": "10/hour"},
 }
 
+# Endereco publico do hub (https://hub.suaempresa.com.br): o e-mail de notificacao leva o
+# link do registro. Vazio, o e-mail vai sem link.
+STARHUB_URL_PUBLICA = env("STARHUB_URL_PUBLICA", "")
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=int(env("JWT_ACESSO_DIAS", "7"))),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
@@ -146,46 +153,4 @@ CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
 
-# Menu lateral do admin (apps/core/ui/menu.py). Cada app vira uma SECAO com
-# separador; cada model e um item com o proprio icone (id do simbolo em
-# static/starhub/img/icones.svg). Chave: "app_label.model_name".
-STARHUB_MENU_ICONES = {
-    "loja.produto": "package",
-    "loja.categoria": "layout-list",
-    "loja.cliente": "users-round",
-    "loja.pedido": "clipboard-list",
-    "loja.tag": "star",
-    "loja.cupom": "wallet",
-    "loja.avaliacao": "message-square-text",
-    "logistica.tabelafrete": "truck",
-    "loja.tipovariante": "layout-grid",
-    "loja.varianteproduto": "archive",
-    "core.account": "house",
-    "core.user": "user",
-    "core.accessprofile": "shield",
-    "core.address": "folder",
-    "integracoes.configuracaointegracao": "marca:shopify",
-    "integracoes.execucaointegracao": "history",
-    "woo_api.chaveapi": "key-round",
-}
-# Models de um app que aparecem na secao de outro: {"app_origem": "app_destino"} move o
-# app inteiro; {"app.model": "app_destino"} move so aquele model.
-# As chaves da API Woo sao credencial de acesso da conta, entao ficam junto de
-# contas, usuarios e perfis de acesso (app core).
-STARHUB_MENU_AGRUPAR = {
-    "woo_api": "core",
-    # Tarefas rodam integracoes e importacoes de planilha: ficam no Nucleo; a secao
-    # Integracoes fica so com a configuracao de cada plataforma.
-    "integracoes.execucaointegracao": "core",
-}
-# Fluxo operacional primeiro; auditoria fica no final para nao disputar atencao.
-STARHUB_MENU_ORDEM = ["loja", "logistica", "integracoes", "core", "auditlog"]
-# Paginas custom (sem model) no menu: {"app_label": [("Titulo", "admin:nome_url")]}.
-# Pagina do admin sem model proprio: {app: [(titulo, nome da url, icone opcional)]}.
-STARHUB_MENU_PAGINAS = {
-    "integracoes": [("WooCommerce", "admin:integracoes_configuracaointegracao_woocommerce",
-                     "marca:woocommerce"),
-                    ("Suri Shop", "admin:integracoes_configuracaointegracao_suri",
-                     "marca:suri")],
-}
-
+from .menu import *  # noqa: E402, F403 - menu lateral (config/settings/menu.py)

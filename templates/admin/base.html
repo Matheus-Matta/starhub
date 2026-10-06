@@ -69,6 +69,7 @@ sidebar, footer...), entao qualquer template do admin continua funcionando.
                 <div id="user-tools" class="header-tools">
                   {% block welcome-msg %}{% endblock %}
                   {% include "components/header_busca.html" %}
+                  {% include "components/notificacoes_menu.html" %}
                   {% include "components/user_menu.html" %}
                   {# Telas nativas (ex.: trocar senha) repetem aqui links que o menu ja tem. #}
                   <div hidden>{% block userlinks %}{% endblock %}</div>
@@ -104,6 +105,7 @@ sidebar, footer...), entao qualquer template do admin continua funcionando.
 <script src="{% static 'starhub/js/starhub.js' %}"></script>
 {# Widgets do tema (select, multi-select, calendario). Ordem importa: ui-base primeiro. #}
 <script src="{% static 'starhub/js/ui-base.js' %}"></script>
+<script src="{% static 'starhub/js/notificacoes.js' %}"></script>
 <script src="{% static 'starhub/js/mascaras.js' %}"></script>
 <script src="{% static 'starhub/js/select.js' %}"></script>
 <script src="{% static 'starhub/js/multiselect.js' %}"></script>

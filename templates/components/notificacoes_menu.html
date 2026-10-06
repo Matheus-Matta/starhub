@@ -1,0 +1,34 @@
+{# Sino do cabecalho: contador de nao lidas e as ultimas (apps/notificacoes/contexto.py). #}
+{# js/notificacoes.js abre o WebSocket /ws/notificacoes/ e poe o aviso novo aqui na hora. #}
+<div class="dropdown" data-dropdown data-notificacoes="/ws/notificacoes/">
+  <button type="button" class="btn-header notificacoes-sino" data-acao="dropdown"
+          aria-haspopup="true" aria-expanded="false" aria-label="Notificacoes">
+    {% icone "bell" %}
+    <span class="notificacoes-contador" data-notificacoes-contador
+          {% if not notificacoes_nao_lidas %}hidden{% endif %}>{{ notificacoes_nao_lidas }}</span>
+  </button>
+  <div class="dropdown-menu dropdown-notificacoes" role="menu">
+    <div class="dropdown-titulo notificacoes-topo">
+      <span>Notificacoes</span>
+      {% if notificacoes_nao_lidas %}
+        <form method="post" action="{% url 'notificacoes_marcar_lidas' %}" data-notificacoes-marcar>
+          {% csrf_token %}<button type="submit" class="btn btn-sm btn-ghost">Marcar como lidas</button>
+        </form>
+      {% endif %}
+    </div>
+    <ul class="notificacoes-lista" data-notificacoes-lista>
+      {% for item in notificacoes_ultimas %}
+        <li class="notificacao{% if not item.lida %} notificacao-nova{% endif %}">
+          <a href="{{ item.link|default:'#' }}" class="notificacao-link">
+            <strong>{{ item.titulo }}</strong>
+            {% if item.mensagem %}<span class="notificacao-texto">{{ item.mensagem }}</span>{% endif %}
+            <span class="notificacao-quando">{{ item.criada_em }}</span>
+          </a>
+        </li>
+      {% empty %}
+        <li class="notificacoes-vazio" data-notificacoes-vazio>Nenhuma notificacao.</li>
+      {% endfor %}
+    </ul>
+    <a class="dropdown-item notificacoes-todas" href="{% url 'admin:notificacoes_notificacao_changelist' %}">Ver todas</a>
+  </div>
+</div>

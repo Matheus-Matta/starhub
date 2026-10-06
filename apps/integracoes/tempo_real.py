@@ -21,6 +21,7 @@ from channels.layers import get_channel_layer
 logger = logging.getLogger(__name__)
 GRUPO = "tarefa-{}"
 TIPO = "tarefa.progresso"  # -> TarefaConsumer.tarefa_progresso
+FALHAS = ("failed", "completed_errors")  # ExecucaoIntegracao.Status: FALHOU e com falhas
 _loop_do_servidor = None
 
 
@@ -36,22 +37,37 @@ async def _enviar_e_fechar(layer, grupo, mensagem):
         await layer.close_pools()
 
 
+def enviar_ao_grupo(grupo, mensagem):
+    """Manda a mensagem a quem esta no grupo; serve a tarefa e as notificacoes."""
+    layer = get_channel_layer()
+    if layer is None:
+        return
+    loop = _loop_do_servidor
+    if loop is not None and loop.is_running() and not loop.is_closed():
+        asyncio.run_coroutine_threadsafe(layer.group_send(grupo, mensagem), loop)
+    else:
+        async_to_sync(_enviar_e_fechar)(layer, grupo, mensagem)
+
+
 def publicar(execucao_id):
     """Manda o estado atual da tarefa a quem a acompanha; falha aqui nunca derruba a tarefa."""
     from apps.integracoes.models import ExecucaoIntegracao
     from apps.integracoes.progresso import estado
 
+    execucao = None
     try:
-        layer = get_channel_layer()
         execucao = ExecucaoIntegracao.all_objects.filter(pk=execucao_id).first()
-        if layer is None or execucao is None:
+        if execucao is None:
             return
-        grupo, mensagem = GRUPO.format(execucao.pk), {"type": TIPO, "dados": estado(execucao)}
-        loop = _loop_do_servidor
-        if loop is not None and loop.is_running() and not loop.is_closed():
-            asyncio.run_coroutine_threadsafe(layer.group_send(grupo, mensagem), loop)
-        else:
-            async_to_sync(_enviar_e_fechar)(layer, grupo, mensagem)
+        enviar_ao_grupo(GRUPO.format(execucao.pk), {"type": TIPO, "dados": estado(execucao)})
     except Exception:  # sem tela aberta ou layer fora: o banco ja tem o andamento
         logger.warning("Progresso da tarefa %s nao foi publicado no WebSocket", execucao_id,
                        exc_info=True)
+    if execucao is not None and execucao.status in FALHAS:
+        # A tarefa grava o fim uma vez (so a aberta e gravada): um aviso por fim.
+        from apps.notificacoes.sinais import tarefa_terminou
+
+        try:
+            tarefa_terminou(execucao)
+        except Exception:  # aviso e extra: nunca derruba a tarefa que terminou
+            logger.warning("Aviso da tarefa %s nao foi agendado", execucao_id, exc_info=True)

@@ -75,10 +75,9 @@ docker compose run --rm web python manage.py criar_conta_inicial   # primeira ve
 
 | Servico | O que roda |
 | --- | --- |
-| `migrate` | `migrate --noinput` uma vez a cada subida; os outros esperam ele terminar |
-| `web` | `uvicorn config.asgi:application` (HTTP + WebSocket), `WEB_WORKERS` processos, porta `WEB_PORT` |
-| `worker` | `celery -A config worker` (`CELERY_CONCURRENCY` tarefas) |
-| `beat` | `celery -A config beat` (hoje sem tarefa agendada) |
+| `web-blue`, `web-green` | os dois backends, iguais: ao subir, `migrar` (migrate com trava no PostgreSQL, um por vez); se passar, `uvicorn config.asgi:application` (HTTP + WebSocket), `WEB_WORKERS` processos, portas `WEB_PORT_BLUE` (8001) e `WEB_PORT_GREEN` (8002) |
+| `worker` | `celery -A config worker` (`CELERY_CONCURRENCY` tarefas); espera o `web-blue` saudavel |
+| `beat` | `celery -A config beat` (hoje sem tarefa agendada); espera o `web-blue` saudavel |
 | `redis` | fila do Celery, cache e channel layer (volume `redis`) |
 
 - **Proxy na frente** (nginx, Caddy, Traefik) faz o TLS e repassa ao `web` com
@@ -89,7 +88,16 @@ docker compose run --rm web python manage.py criar_conta_inicial   # primeira ve
   `SERVIR_MEDIA=1`; com o nginx servindo a pasta, ponha `0`.
 - **CORS**: `CORS_ALLOWED_ORIGINS` (dominios da loja) e `CORS_URLS_REGEX` (rotas;
   padrao: avaliacoes do tema). **Banco**: `POSTGRES_*`, `POSTGRES_SSLMODE`.
-- **Logs** saem no `docker compose logs` (`LOG_LEVEL`).
+- **Logs** saem no `docker compose logs` (`LOG_LEVEL`). Teto no compose (`x-logs`):
+  2 arquivos de 8 MB por container, 80 MB no total (5 containers); o mais velho e
+  apagado sozinho. Container novo: refaca a conta, o teto do servidor e 100 MB.
+- **Blue/green:** o balanceador de fora (o do servidor ou da nuvem) reparte entre as
+  portas dos dois backends, com checagem de saude (porta aberta) ou "tentar o outro em
+  caso de erro": sem isso, a requisicao que cai num backend parado espera o timeout.
+  Atualizar sem tirar do ar: `docker compose pull`, depois
+  `docker compose up -d --no-deps web-blue`, esperar ficar healthy
+  (`docker compose ps`), `... web-green`, e por fim `... worker beat`. Sessao e
+  WebSocket nao precisam de "sticky": a sessao fica no banco e o channel layer no Redis.
 
 ## 4. Estrutura
 
@@ -102,6 +110,7 @@ apps/integracoes/       configuracao comum das lojas + historico das tarefas de 
 apps/shopify/           cliente, consultas, webhooks e tarefas Celery do Shopify
 apps/woocommerce/       cliente REST v3, importacao, webhooks, envio e tarefas do WooCommerce
 apps/suri/              Suri Shop (by Totvs, venda pelo WhatsApp): catalogo, pedidos e envio
+apps/notificacoes/      SMTP de cada conta, configuracao de notificacoes e o sino do cabecalho
 apps/loja/              dados do hub: Produto + VarianteProduto, Categoria, Tag, Cliente,
                         Pedido, ItemPedido, PagamentoPedido, EntregaPedido, Cupom
 apps/woo_api/           API compativel com WooCommerce + login JWT + chaves ck_/cs_
@@ -874,6 +883,39 @@ checkout das lojas" de cada tabela (Shopify, WooCommerce e Suri, abaixo). Menu
 - **Usar no codigo:** `apps.logistica.cotacao.cotar(tabela, "20040-020")` devolve
   `Cotacao(valor, prazo_dias, distancia_km, detalhe)` ou levanta `FreteIndisponivel` com
   o motivo. Botao **Simular cotacao** na tabela para conferir um CEP.
+
+### 7.8 Notificacoes e e-mail (SMTP) da conta (`apps/notificacoes`)
+
+Toda conta nasce com um **E-mail (SMTP)** e uma configuracao de **Notificacoes**
+(post_save da `Account`; as que ja existiam ganharam pela migration `notificacoes.0002`).
+As duas ficam no Nucleo do menu e abrem direto a da conta ativa.
+
+- **E-mail (SMTP):** servidor, porta, STARTTLS/SSL/nenhuma, usuario, senha
+  (criptografada, nunca volta para a tela; vazio mantem a salva) e remetente. Todo
+  e-mail da conta sai por ele (`email.py`), nunca pelo `EMAIL_*` do settings. O switch
+  "enviar e-mail de teste ao salvar" manda um teste para o e-mail de quem salvou; o
+  resultado (ou o erro exato do servidor) chega no sino.
+- **Notificacoes:** chave geral, **e-mails alvo** (so eles recebem os e-mails; obrigatorio
+  quando algum switch de e-mail esta ligado; cada um validado) e um switch **Navegador**
+  e um **E-mail** por evento: criado, alterado e excluido de
+  pedido, produto, cliente, categoria, cupom e avaliacao, e "tarefa de integracao falhou
+  ou terminou com falhas". Tudo comeca desligado. Catalogo em `eventos.py`: evento novo
+  ali aparece sozinho na tela.
+- **Como sai:** post_save/post_delete dos models (`sinais.py`) -> um aviso por registro por
+  commit (`agenda.py`: criado + alterado = criado; + excluido = excluido; rollback nao
+  avisa) -> tarefa `notificacoes.tasks.notificar` -> `EnviadorNotificacao` (`entrega.py`),
+  que rele a configuracao e: no navegador, cria uma `Notificacao` so para os usuarios
+  ativos da conta com permissao de ver o registro do evento (`loja.view_pedido` para
+  aviso de pedido, `integracoes.view_execucaointegracao` para tarefa; superusuario ve
+  tudo) e empurra no WebSocket `/ws/notificacoes/` (grupo do usuario); no e-mail, manda
+  pelo SMTP da conta so para os e-mails alvo (sem alvo ou SMTP sem servidor, nem conecta). A tarefa que termina com falha avisa por
+  `apps/integracoes/tempo_real.publicar`. SMTP fora do ar nao derruba o aviso do navegador.
+- **Sino do cabecalho** (`components/notificacoes_menu.html`, `js/notificacoes.js`):
+  contador de nao lidas, as 8 ultimas, "Marcar como lidas" e "Ver todas" (so as do
+  proprio usuario). Aviso novo entra na lista e aparece num aviso rapido na tela, sem a
+  pagina perguntar; conexao que cai tenta de novo com espera crescente.
+- `STARHUB_URL_PUBLICA` (`.env`): endereco do hub para o link no e-mail; vazio, o e-mail
+  vai sem link.
 
 ## 8. Regras que valem aqui
 

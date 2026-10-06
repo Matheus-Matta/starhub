@@ -78,6 +78,16 @@ class AccountAdmin(TemaMixin, admin.ModelAdmin):
         qs = super().get_queryset(request)
         return qs if request.user.is_superuser else qs.filter(pk=get_current_account_id())
 
+    # Contas so o superusuario ve: fora do menu e 403 na URL, mesmo com a permissao.
+    def has_module_permission(self, request):
+        return request.user.is_superuser
+
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_superuser
+
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_superuser
+
     def has_add_permission(self, request):
         return request.user.is_superuser
 

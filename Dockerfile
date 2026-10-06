@@ -29,5 +29,9 @@ RUN useradd --create-home --uid 1000 starhub \
 USER starhub
 
 EXPOSE 8000
+# Comando do web: `migrar` a cada subida (migrate com trava no banco: blue e green
+# subindo juntos migram um por vez) e, so se ele passar, o uvicorn (exec: o uvicorn vira
+# o processo 1 e recebe o SIGTERM do docker stop). Migrate que falha derruba o container,
+# que reinicia e tenta de novo: o site nunca sobe com o banco atrasado.
 # WEB_WORKERS processos do uvicorn; --proxy-headers: o proxy (TLS) informa o IP e o https.
-CMD ["sh", "-c", "uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --workers ${WEB_WORKERS:-2} --proxy-headers --forwarded-allow-ips='*'"]
+CMD ["sh", "-c", "python manage.py migrar && exec uvicorn config.asgi:application --host 0.0.0.0 --port 8000 --workers ${WEB_WORKERS:-2} --proxy-headers --forwarded-allow-ips='*'"]

@@ -1,0 +1,91 @@
+/* Sino do cabecalho (components/notificacoes_menu.html) e o aviso rapido do WebSocket. */
+
+.notificacoes-sino { position: relative; }
+
+.notificacoes-contador {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--destructive);
+  color: var(--primary-foreground);
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+}
+
+.notificacoes-contador[hidden] { display: none; }
+
+.dropdown-notificacoes {
+  width: 340px;
+  top: calc(100% + 11px);
+}
+
+.notificacoes-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.notificacoes-topo form { margin: 0; }
+
+.notificacoes-lista {
+  max-height: 360px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.notificacao-link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  color: var(--foreground) !important;
+}
+
+.notificacao-link:hover { background: var(--accent); }
+
+.notificacao-nova .notificacao-link { background: var(--primary-soft); }
+
+.notificacao-texto,
+.notificacao-quando {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.notificacoes-vazio {
+  padding: 16px 10px;
+  color: var(--muted-foreground);
+  text-align: center;
+}
+
+.notificacoes-todas { justify-content: center; }
+
+.notificacao-toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 340px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--background);
+  box-shadow: var(--shadow-md);
+  color: var(--foreground);
+  font-size: 0.8125rem;
+}
+
+.notificacao-toast span { color: var(--muted-foreground); }

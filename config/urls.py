@@ -11,6 +11,7 @@ urlpatterns = [
     path("integracoes/shopify/", include("apps.shopify.urls")),
     path("integracoes/woocommerce/", include("apps.woocommerce.urls")),
     path("integracoes/suri/", include("apps.suri.urls")),
+    path("notificacoes/", include("apps.notificacoes.urls")),
     # Mesmo prefixo do WordPress: o ERP aponta para este dominio como se fosse a loja.
     path("wp-json/", include("apps.woo_api.urls")),
     path("wp-json", RaizView.as_view()),

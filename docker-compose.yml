@@ -1,11 +1,32 @@
 # Producao do StarHub com a imagem gerada pelo GitHub (.github/workflows/docker.yml).
 # O PostgreSQL fica de fora (POSTGRES_* no .env); o Redis sobe aqui.
 #
-#   docker compose pull && docker compose up -d     # sobe / atualiza
-#   docker compose logs -f web worker               # acompanha
+#   docker compose pull && docker compose up -d     # sobe tudo
+#   docker compose logs -f web-blue web-green worker
 #
-# Ordem: redis -> migrate (roda uma vez e sai) -> web, worker e beat.
+# Dois backends, blue e green, cada um na sua porta (WEB_PORT_BLUE e WEB_PORT_GREEN): o
+# balanceador de fora reparte entre as duas. Ligue nele a checagem de saude (porta
+# aberta) ou o "tentar o outro em caso de erro": sem isso, a requisicao que cai num
+# backend parado espera ate o timeout. Atualizacao sem tirar o site do ar, um por vez:
+#
+#   docker compose pull
+#   docker compose up -d --no-deps web-blue      # espera ficar healthy (docker compose ps)
+#   docker compose up -d --no-deps web-green
+#   docker compose up -d --no-deps worker beat
+#
+# Ordem na primeira subida: redis -> web-blue e web-green (cada um roda `migrar` ao subir:
+# trava no banco, um migra por vez; depois o uvicorn) -> worker e beat.
 name: starhub
+
+# Logs do Docker com teto: 2 arquivos de 8 MB por container (o mais velho e apagado
+# quando enche). 5 containers (web-blue, web-green, worker, beat, redis) x 16 MB
+# = 80 MB no maximo, abaixo do limite de 100 MB do servidor. Container novo aqui: usa o
+# mesmo &logs e refaca a conta (a soma tem que continuar abaixo de 100 MB).
+x-logs: &logs
+  driver: json-file
+  options:
+    max-size: "8m"
+    max-file: "2"
 
 x-app: &app
   image: ${STARHUB_IMAGE:-ghcr.io/matheus-matta/starhub:latest}
@@ -15,35 +36,36 @@ x-app: &app
     DJANGO_SETTINGS_MODULE: config.settings.prod
     REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
   volumes:
-    # Fotos de avaliacao e imagens importadas: o worker grava, o web serve.
+    # Fotos de avaliacao e imagens importadas: o worker grava, blue e green servem.
     - media:/app/media
   restart: unless-stopped
+  logging: *logs
+
+# Backend web (comando padrao da imagem: `migrar` e depois o uvicorn).
+x-web: &web
+  <<: *app
+  depends_on:
+    redis:
+      condition: service_healthy
+  healthcheck:
+    # So a porta: ALLOWED_HOSTS e o redirect https recusariam um GET em localhost.
+    test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8000), 3)"]
+    interval: 30s
+    timeout: 5s
+    retries: 3
+    # Primeira subida de uma versao com muitas migrations: o migrate vem antes da porta.
+    start_period: 120s
 
 services:
-  migrate:
-    <<: *app
-    command: python manage.py migrate --noinput
-    restart: "no"
-    depends_on:
-      redis:
-        condition: service_healthy
-
-  web:
-    <<: *app
+  web-blue:
+    <<: *web
     ports:
-      - "${WEB_PORT:-8000}:8000"
-    depends_on:
-      redis:
-        condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
-    healthcheck:
-      # So a porta: ALLOWED_HOSTS e o redirect https recusariam um GET em localhost.
-      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8000), 3)"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
+      - "${WEB_PORT_BLUE:-8001}:8000"
+
+  web-green:
+    <<: *web
+    ports:
+      - "${WEB_PORT_GREEN:-8002}:8000"
 
   worker:
     <<: *app
@@ -51,8 +73,9 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
+      # Blue saudavel = `migrar` terminou: o banco ja esta na versao da imagem.
+      web-blue:
+        condition: service_healthy
 
   beat:
     <<: *app
@@ -61,11 +84,12 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
+      web-blue:
+        condition: service_healthy
 
   redis:
     image: redis:7-alpine
+    logging: *logs
     # appendonly: fila do Celery e resultados sobrevivem a um reinicio do Redis.
     command: redis-server --appendonly yes
     volumes:
