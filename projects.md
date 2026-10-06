@@ -87,8 +87,9 @@ docker compose run --rm web python manage.py criar_conta_inicial   # primeira ve
 - **Estaticos**: WhiteNoise serve `/static/` (gerado no build da imagem). **Media**
   (`/media/`, volume `media` compartilhado por web e worker) e servida pelo app com
   `SERVIR_MEDIA=1`; com o nginx servindo a pasta, ponha `0`.
-- **CORS**: `CORS_ALLOWED_ORIGINS` (dominios da loja) e `CORS_URLS_REGEX` (rotas;
-  padrao: avaliacoes do tema). **Banco**: `POSTGRES_*`, `POSTGRES_SSLMODE`.
+- **CORS geral**: `CORS_ALLOWED_ORIGINS` e `CORS_URLS_REGEX` para outras rotas;
+  avaliacoes usam o dominio cadastrado na conta. **Banco**: `POSTGRES_*`,
+  `POSTGRES_SSLMODE`.
 - **Logs** saem no `docker compose logs` (`LOG_LEVEL`). Teto no compose (`x-logs`):
   2 arquivos de 8 MB por container, 80 MB no total (5 containers); o mais velho e
   apagado sozinho. Container novo: refaca a conta, o teto do servidor e 100 MB.
@@ -680,8 +681,11 @@ tema (Liquid assina o token) --POST multipart--> /integracoes/shopify/avaliacoes
 | metaobject `avaliacao_produto` | campos | `product`, `author` ("Ana L."), `rating`, `body`, `photos` (`list.file_reference`), `verified`, `date` |
 
   Sem nenhuma aprovada os tres metafields sao apagados (o tema esconde o bloco).
-- **Producao:** `AVALIACOES_ORIGENS` no `.env` com os dominios da loja (CORS so
-  desta rota) e `client_max_body_size 16m` no nginx (3 fotos de 5 MB).
+- **Producao:** em Nucleo > Contas, o superusuario cadastra o dominio exato da
+  vitrine em `dominio_avaliacoes` (ex.: `maxxxmoveis.com.br`, sem `https://`).
+  A rota libera CORS somente para `https://` desse dominio, sem depender do CORS
+  geral do `.env`; o endereco do hub continua em `DJANGO_ALLOWED_HOSTS`.
+  No nginx, `client_max_body_size 16m` permite 3 fotos de 5 MB.
 
 ### 7.4 WooCommerce (`apps/woocommerce`)
 

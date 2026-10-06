@@ -52,16 +52,16 @@ def test_prod_carrega_com_o_env_de_producao():
     assert s["middleware"][1] == "whitenoise.middleware.WhiteNoiseMiddleware"
     assert s["estaticos"].startswith("whitenoise.")
     assert s["ssl"] is True and s["hsts"] > 0 and s["media"] is True and s["log"] == "INFO"
-    assert "corsheaders" not in s["apps"]  # sem dominio no .env, sem CORS
+    assert "corsheaders" not in s["apps"]  # sem CORS geral; avaliacoes usam a conta
 
 
-def test_cors_vem_do_env_e_o_nome_antigo_continua_valendo():
+def test_cors_geral_vem_do_env_sem_controlar_avaliacoes():
     s = _prod(CORS_ALLOWED_ORIGINS="https://www.loja.com.br, https://loja.myshopify.com",
               AVALIACOES_ORIGENS="https://antiga.com.br")
-    assert s["cors"] == ["https://www.loja.com.br", "https://loja.myshopify.com",
-                         "https://antiga.com.br"]
-    assert s["cors_url"] == "^/integracoes/shopify/avaliacoes/"
-    assert s["middleware"][0] == "corsheaders.middleware.CorsMiddleware"
+    assert s["cors"] == ["https://www.loja.com.br", "https://loja.myshopify.com"]
+    assert s["cors_url"] == "^$"
+    assert s["middleware"][0] == "apps.shopify.avaliacoes_cors.CorsPadraoSemAvaliacoes"
+    assert "apps.shopify.avaliacoes_cors.AvaliacoesCorsMiddleware" in s["middleware"]
     assert _prod(CORS_ALLOWED_ORIGINS="https://a.com", CORS_URLS_REGEX="^/wp-json/")[
         "cors_url"] == "^/wp-json/"
 

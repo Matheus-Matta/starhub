@@ -39,14 +39,36 @@ class UsuarioAdmin(TemaMixin, UserAdmin):
     fieldsets = [
         (None, {"fields": ["username", "password"]}),
         ("Dados pessoais", {"fields": [("first_name", "last_name"), "email"]}),
-        ("Acesso", {"fields": ["account", "access_profile", ("is_active", "is_staff")]}),
+        ("Acesso", {"fields": ["account", "access_profile", "is_active", "is_staff"]}),
         ("Datas", {"fields": ["last_login", "date_joined"]}),
     ]
     add_fieldsets = [
         (None, {"classes": ["wide"], "fields": [
-            "username", "email", "access_profile", "password1", "password2",
+            "username", "email", "access_profile", "password1", "password2", "is_staff",
         ]}),
     ]
+
+    def get_fieldsets(self, request, obj=None):
+        secoes = super().get_fieldsets(request, obj)
+        if request.user.is_superuser:
+            return secoes
+        return [
+            (titulo, {**opcoes, "fields": [campo for campo in opcoes["fields"]
+                                         if campo != "is_staff"]})
+            for titulo, opcoes in secoes
+        ]
+
+    def get_list_display(self, request):
+        colunas = super().get_list_display(request)
+        return colunas if request.user.is_superuser else [
+            coluna for coluna in colunas if coluna != "is_staff"
+        ]
+
+    def get_changeform_initial_data(self, request):
+        inicial = super().get_changeform_initial_data(request)
+        if request.user.is_superuser:
+            inicial.setdefault("is_staff", True)
+        return inicial
 
     def get_queryset(self, request):
         qs = super().get_queryset(request)
@@ -56,6 +78,10 @@ class UsuarioAdmin(TemaMixin, UserAdmin):
         if not change and not obj.account_id:
             # Usuario comum nao ve o campo conta: o novo usuario entra na conta dele.
             obj.account_id = get_current_account_id()
+        # Cadastro feito por gestor entra no admin; so o superusuario pode depois
+        # desativar esse acesso sem que outra edicao volte a ativa-lo.
+        if not change and not request.user.is_superuser:
+            obj.is_staff = True
         super().save_model(request, obj, form, change)
 
 
@@ -68,7 +94,7 @@ class AccountAdmin(TemaMixin, admin.ModelAdmin):
     larguras = {"timezone": 5, "currency": 3}
     fieldsets = [
         ("Conta", {"fields": [("name", "slug"), ("legal_name", "document"), "active"]}),
-        ("Contato", {"fields": [("email", "phone")]}),
+        ("Contato", {"fields": [("email", "phone"), "dominio_avaliacoes"]}),
         ("Regiao", {"fields": [("timezone", "currency")]}),
     ]
 

@@ -33,14 +33,14 @@ DATABASES = {
 
 # Dev aberto para testar integracao de qualquer lugar (tunel do VS Code, ngrok,
 # IP da rede local, front em outra porta). NUNCA copie isto para o prod.py: la
-# o host vem de DJANGO_ALLOWED_HOSTS e o CORS nao existe.
+# o Host vem de DJANGO_ALLOWED_HOSTS e o CORS geral depende do .env.
 ALLOWED_HOSTS = ["*"]
 
-# CORS: qualquer origem pode chamar a API pelo navegador. Com credenciais, o
-# django-cors-headers devolve a propria origem (e nao "*"), que o navegador exige.
+# CORS geral em dev: avaliacoes seguem o dominio da conta mesmo aqui.
+# Com credenciais, django-cors-headers devolve a origem em vez de "*".
 INSTALLED_APPS = [*INSTALLED_APPS, "corsheaders"]  # noqa: F405
 # Primeiro da lista: responde o preflight (OPTIONS) antes de autenticacao e CSRF.
-MIDDLEWARE = ["corsheaders.middleware.CorsMiddleware", *MIDDLEWARE]  # noqa: F405
+MIDDLEWARE = ["apps.shopify.avaliacoes_cors.CorsPadraoSemAvaliacoes", *MIDDLEWARE]  # noqa: F405
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 # Cabecalhos de paginacao do Woo: sem isto o JS do navegador nao consegue le-los.

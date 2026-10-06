@@ -73,13 +73,13 @@ CSRF_COOKIE_SECURE = SECURE_SSL_REDIRECT
 SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30 if SECURE_SSL_REDIRECT else 0
 SECURE_CONTENT_TYPE_NOSNIFF = True
 
-# CORS: so os dominios do .env e so nas rotas de CORS_URLS_REGEX (padrao: avaliacoes do
-# tema da loja). AVALIACOES_ORIGENS e o nome antigo e continua valendo.
-CORS_ALLOWED_ORIGINS = [*env_lista("CORS_ALLOWED_ORIGINS"), *env_lista("AVALIACOES_ORIGENS")]
+# CORS geral para outras rotas. Avaliacoes usam o dominio salvo na conta,
+# independentemente destas variaveis e do middleware geral.
+CORS_ALLOWED_ORIGINS = env_lista("CORS_ALLOWED_ORIGINS")
 if CORS_ALLOWED_ORIGINS:
     INSTALLED_APPS = [*INSTALLED_APPS, "corsheaders"]  # noqa: F405
-    MIDDLEWARE = ["corsheaders.middleware.CorsMiddleware", *MIDDLEWARE]
-    CORS_URLS_REGEX = env("CORS_URLS_REGEX", r"^/integracoes/shopify/avaliacoes/")
+    MIDDLEWARE = ["apps.shopify.avaliacoes_cors.CorsPadraoSemAvaliacoes", *MIDDLEWARE]
+    CORS_URLS_REGEX = env("CORS_URLS_REGEX", r"^$")
 
 # Tudo para a saida padrao: o Docker guarda (docker compose logs). Sem isto o Django em
 # DEBUG=False mandaria os erros so para e-mail, que nao esta configurado.
