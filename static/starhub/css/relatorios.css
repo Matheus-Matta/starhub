@@ -1,0 +1,33 @@
+/* Pagina de relatorio (templates/admin/relatorio.html). */
+
+.relatorio {
+  display: grid;
+  gap: var(--gap-pagina, 20px);
+  min-width: 0;
+}
+
+.relatorio-barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+/* O .filtro-periodo da gaveta tem recuo lateral; na barra ele fica encostado. */
+.relatorio-periodo {
+  padding: 0;
+  min-width: 240px;
+}
+
+.relatorio-acoes {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* .table th alinha a esquerda com mais especificidade: o titulo de coluna de
+   dinheiro precisa acompanhar o valor, a direita. */
+.table .relatorio-numero {
+  text-align: right;
+  white-space: nowrap;
+}

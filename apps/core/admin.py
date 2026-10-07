@@ -36,6 +36,7 @@ class UsuarioAdmin(TemaMixin, UserAdmin):
     filter_horizontal = ()
     list_display = ["username", "email", "access_profile", "is_active", "is_staff"]
     list_filter = ["is_active", "access_profile"]
+    campo_criacao = "date_joined"  # o User do Django nao tem created_at
     fieldsets = [
         (None, {"fields": ["username", "password"]}),
         ("Dados pessoais", {"fields": [("first_name", "last_name"), "email"]}),

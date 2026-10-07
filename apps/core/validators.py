@@ -8,6 +8,7 @@ preenchimento e o blank=False do campo.
 import re
 
 from django.core.exceptions import ValidationError
+from django.core.validators import DomainNameValidator
 
 UFS = frozenset(
     "AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split()
@@ -78,6 +79,26 @@ def validar_gtin(value):
     soma = sum(int(d) * (3 if i % 2 == 0 else 1) for i, d in enumerate(corpo))
     if (10 - soma % 10) % 10 != int(codigo[-1]):
         raise ValidationError("Codigo de barras invalido: o digito verificador nao confere.")
+
+
+def separar_dominios(value):
+    """"a.com, B.com,,a.com" -> ["a.com", "b.com"]: sem vazios nem repetidos."""
+    return list(dict.fromkeys(
+        parte.strip().lower() for parte in str(value or "").split(",") if parte.strip()
+    ))
+
+
+def validar_dominios(value):
+    """Um ou mais dominios separados por virgula; o erro diz qual item esta errado."""
+    validar = DomainNameValidator(accept_idna=False)
+    for dominio in separar_dominios(value):
+        try:
+            validar(dominio)
+        except ValidationError:
+            raise ValidationError(
+                f'Dominio invalido: "{dominio}". Use so o dominio, sem https:// ou caminho, '
+                "ex.: minhaloja.com.br, www.minhaloja.com.br."
+            ) from None
 
 
 def validar_uf(value):

@@ -10,7 +10,7 @@ from django.contrib import admin
 from django.utils.dateparse import parse_date
 
 
-def _data(valor):
+def ler_data(valor):
     if isinstance(valor, list):
         valor = valor[-1] if valor else ""
     try:
@@ -32,8 +32,8 @@ class FiltroPeriodo(admin.FieldListFilter):
         return [self.param_de, self.param_ate]
 
     def datas(self):
-        return (_data(self.used_parameters.get(self.param_de)),
-                _data(self.used_parameters.get(self.param_ate)))
+        return (ler_data(self.used_parameters.get(self.param_de)),
+                ler_data(self.used_parameters.get(self.param_ate)))
 
     def queryset(self, request, queryset):
         de, ate = self.datas()

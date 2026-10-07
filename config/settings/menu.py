@@ -41,6 +41,9 @@ STARHUB_MENU_AGRUPAR = {
 }
 # Fluxo operacional primeiro; auditoria fica no final para nao disputar atencao.
 STARHUB_MENU_ORDEM = ["loja", "logistica", "integracoes", "core", "auditlog"]
+# Relatorios especiais do dropdown "Relatorios" (apps/core/relatorios), antes dos
+# genericos (um por ModelAdmin do tema). Classe com chave, titulo, permitido e gerar.
+STARHUB_RELATORIOS = ["apps.loja.relatorios.UsoCupons"]
 # Paginas custom (sem model) no menu: {"app_label": [("Titulo", "admin:nome_url")]}.
 # Pagina do admin sem model proprio: {app: [(titulo, nome da url, icone opcional)]}.
 STARHUB_MENU_PAGINAS = {

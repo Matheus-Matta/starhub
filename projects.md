@@ -356,6 +356,9 @@ class ProdutoAdmin(TemaModelAdmin):
   so o miolo rola. Depois de clicar num filtro a gaveta volta aberta.
 - Filtro de data: `list_filter = [("criado_em", FiltroPeriodo), ...]`
   (`apps/core/filtros.py`). Usa `__date__gte/__date__lte`: "ate 30/09" inclui o dia 30 inteiro.
+  Toda lista do tema ja ganha o periodo da **data de criacao** sozinha (`TemaMixin.get_list_filter`,
+  campo `auto_now_add` do model, primeiro da gaveta). Outro campo: `campo_criacao = "date_joined"`.
+  Declarar `("created_at", FiltroPeriodo)` no `list_filter` so serve para mudar a posicao.
 - Coluna **codigo externo** (`apps/loja/admin/codigo_externo.py`): o id do vinculo do
   marketplace de origem (`gid://shopify/Product/123` aparece `123`; pedido usa
   `external_number`); sem vinculo, `-`. Todo registro tem `uuid` (BaseModel), mas ele
@@ -385,6 +388,36 @@ Exemplo real: `ChaveApiAdmin.guia_view` (`apps/woo_api/admin.py`).
 4. Para aparecer no menu lateral: `STARHUB_MENU_PAGINAS` no `config/settings/base.py`.
 
 Pagina fora do admin (ex.: login): estenda `layouts/auth.html`.
+
+### 5.7 Relatorios (`apps/core/relatorios`)
+
+Dropdown **Relatorios** no menu lateral, logo abaixo do Painel (o unico grupo que
+abre e fecha; `static/starhub/css/menu-grupo.css`). Cada item abre
+`/admin/relatorios/<chave>/`: seletor de periodo (o mesmo calendario do filtro da
+lista), total de registros, previa de 50 linhas e os botoes **Excel** e **PDF**.
+
+- **Um por model, sem configurar:** todo ModelAdmin do tema vira relatorio (chave
+  `app.model`) com as **colunas da `list_display`** e o queryset do proprio admin
+  (conta e superusuario valem igual a lista). Periodo pela data de criacao
+  (`campo_criacao`, ver 5.4). Tela de configuracao unica por conta desliga com
+  `relatorio = False` no ModelAdmin.
+- **Valor da coluna:** HTML de badge/avatar vira texto, sem o que o tema marca com
+  `aria-hidden` (iniciais, icones). Coluna-metodo com `ordering` num campo numerico
+  ou de data (`total_fmt` -> `total`) exporta o valor do campo, entao o Excel soma;
+  se a tela mostra "R$", a coluna sai em reais.
+- **Relatorio especial:** classe com `chave`, `titulo`, `permitido(request)` e
+  `gerar(request, de, ate, limite)` (`apps/core/relatorios/base.py`), listada em
+  `STARHUB_RELATORIOS` (`config/settings/menu.py`). Hoje: **Uso de cupons**
+  (`apps/loja/relatorios.py`), uma linha por cupom usado em pedido (data do pedido
+  na loja, `placed_at`; sem ela, a criacao), mais o resumo por cupom (usos, desconto
+  total, total dos pedidos). Rascunho e lixeira ficam fora; cancelado entra com o
+  status. Exige ver pedidos e cupons.
+- **Arquivos** (`exportar.py`, `pdf.py`): Excel com numero e data de verdade (aba
+  "Resumo" quando ha resumo); PDF A4 deitado (reportlab, Python puro). Sao gerados
+  na requisicao, com teto: 50.000 linhas no Excel e 5.000 no PDF; acima disso a tela
+  pede periodo menor. Sem `de`/`ate` na URL abre no mes atual.
+- **Quem ve:** so o relatorio do que a pessoa pode ver no admin; URL direta sem a
+  permissao da 403.
 
 ## 6. API WooCommerce (`apps/woo_api`)
 
@@ -681,11 +714,12 @@ tema (Liquid assina o token) --POST multipart--> /integracoes/shopify/avaliacoes
 | metaobject `avaliacao_produto` | campos | `product`, `author` ("Ana L."), `rating`, `body`, `photos` (`list.file_reference`), `verified`, `date` |
 
   Sem nenhuma aprovada os tres metafields sao apagados (o tema esconde o bloco).
-- **Producao:** em Nucleo > Contas, o Administrador da conta cadastra o dominio
-  exato da vitrine em `dominio_avaliacoes` (ex.: `minhaloja.com.br`, sem
-  `https://`). Ele tambem pode ajustar e-mail e telefone; identidade, status,
-  fuso e moeda da conta continuam restritos ao superusuario.
-  A rota libera CORS somente para `https://` desse dominio, sem depender do CORS
+- **Producao:** em Nucleo > Minha conta, o Administrador da conta cadastra os
+  dominios exatos da vitrine em `dominio_avaliacoes`, separados por virgula (ex.:
+  `minhaloja.com.br, www.minhaloja.com.br`, sem `https://`). O hub grava a lista em
+  minusculas, sem repetidos. Ele tambem pode ajustar e-mail e telefone; identidade,
+  status, fuso e moeda da conta continuam restritos ao superusuario.
+  A rota libera CORS somente para `https://` de cada um desses dominios, sem depender do CORS
   geral do `.env`; o endereco do hub continua em `DJANGO_ALLOWED_HOSTS`.
   No nginx, `client_max_body_size 16m` permite 3 fotos de 5 MB.
 

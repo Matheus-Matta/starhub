@@ -1,0 +1,17 @@
+{# Tabela de um relatorio (relatorio.html); celula = (texto, e dinheiro?). #}
+{% if tabela.linhas %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>{% for coluna, numero in tabela.colunas %}<th{% if numero %} class="relatorio-numero"{% endif %}>{{ coluna }}</th>{% endfor %}</tr>
+      </thead>
+      <tbody>
+        {% for linha in tabela.linhas %}
+          <tr>{% for texto, numero in linha %}<td{% if numero %} class="relatorio-numero"{% endif %}>{{ texto }}</td>{% endfor %}</tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  {% include "components/empty_state.html" with icone="chart-column" texto="Nenhum registro no periodo." detalhe="Escolha outro periodo no calendario acima." %}
+{% endif %}

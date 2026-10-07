@@ -5,6 +5,7 @@ from pathlib import Path
 from django import template
 from django.contrib.staticfiles import finders
 from django.templatetags.static import static
+from django.urls import reverse
 from django.utils.html import format_html
 
 from apps.core.ui import componentes, formatos, formulario, listagem, menu
@@ -46,6 +47,22 @@ def menu_lateral(context):
     request = context.get("request")
     caminho = request.path if request else ""
     return menu.montar_menu(context.get("available_apps"), caminho)
+
+
+@register.simple_tag(takes_context=True)
+def menu_relatorios(context):
+    """Itens do dropdown "Relatorios": so os que a pessoa pode abrir."""
+    from apps.core.relatorios import registro  # le os ModelAdmin ja registrados
+
+    request = context.get("request")
+    if request is None or not getattr(request.user, "is_staff", False):
+        return {"itens": [], "ativo": False}
+    itens = []
+    for relatorio in registro.disponiveis(request):
+        url = reverse("admin:relatorio", args=[relatorio.chave])
+        itens.append({"titulo": relatorio.titulo, "url": url, "icone": relatorio.icone,
+                      "ativo": request.path == url})
+    return {"itens": itens, "ativo": any(item["ativo"] for item in itens)}
 
 
 @register.filter

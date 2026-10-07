@@ -43,8 +43,16 @@ class StarHubAdminSite(admin.AdminSite):
             path("busca/", self.admin_view(self.busca_view), name="busca"),
             path("perfil/", self.admin_view(lambda request: perfil_view(self, request)),
                  name="perfil"),
+            path("relatorios/<str:chave>/", self.admin_view(self.relatorio_view),
+                 name="relatorio"),
         ]
         return [*extras, *super().get_urls()]
+
+    def relatorio_view(self, request, chave):
+        # Import tardio: o registro de relatorios le os ModelAdmin ja registrados.
+        from apps.core.relatorios.views import relatorio_view
+
+        return relatorio_view(self, request, chave)
 
     def busca_view(self, request):
         termo = request.GET.get("q", "").strip()

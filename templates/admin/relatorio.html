@@ -1,0 +1,44 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{# Relatorio do menu (apps/core/relatorios/views.py): periodo, download e previa. #}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'starhub/css/relatorios.css' %}">{% endblock %}
+
+{% block breadcrumbs %}
+  <div class="breadcrumbs"><a href="{% url 'admin:index' %}">Painel</a> &rsaquo; Relatorios &rsaquo; {{ relatorio.titulo }}</div>
+{% endblock %}
+
+{% block content_title %}
+  {% include "components/page_header.html" with titulo=relatorio.titulo subtitulo=relatorio.descricao %}
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="relatorio">
+  {% componente "card" %}
+    <div class="relatorio-barra">
+      {# Mesmo seletor do filtro "Periodo" da lista: o datas.js abre o calendario e envia. #}
+      <form method="get" class="filtro-periodo relatorio-periodo" data-filtro-periodo>
+        <input type="hidden" name="de" value="{{ de }}" data-periodo-de>
+        <input type="hidden" name="ate" value="{{ ate }}" data-periodo-ate>
+        <button type="button" class="sh-select" data-abrir-periodo>
+          {% icone "calendar" "icon-sm text-muted" %}<span class="sh-select-valor">Escolha o periodo</span>
+        </button>
+      </form>
+      <span class="text-sm text-muted">{{ total }} registro{{ total|pluralize }}</span>
+      <div class="relatorio-acoes">
+        <a class="btn btn-outline btn-sm" href="{{ url_xlsx }}">{% icone "file-spreadsheet" "icon-sm" %} Excel</a>
+        <a class="btn btn-outline btn-sm" href="{{ url_pdf }}">{% icone "file-text" "icon-sm" %} PDF</a>
+      </div>
+    </div>
+  {% endcomponente %}
+
+  {% for tabela in resumos %}
+    {% componente "card" titulo=tabela.titulo %}
+      {% include "admin/relatorio_tabela.html" with tabela=tabela %}
+    {% endcomponente %}
+  {% endfor %}
+
+  {% componente "card" titulo=principal.titulo subtitulo=aviso_previa %}
+    {% include "admin/relatorio_tabela.html" with tabela=principal %}
+  {% endcomponente %}
+</div>
+{% endblock %}

@@ -27,7 +27,7 @@ PLACEHOLDERS = {
     "reference": "Perto de...", "latitude": "-8.0476", "longitude": "-34.8770",
     # conta
     "Account.name": "Minha Loja", "slug": "gerado a partir do nome",
-    "Account.dominio_avaliacoes": "minhaloja.com.br",
+    "Account.dominio_avaliacoes": "minhaloja.com.br, www.minhaloja.com.br",
     "timezone": "America/Sao_Paulo", "currency": "BRL", "moeda": "BRL", "locale": "pt-BR",
     "AccessProfile.name": "Operador de pedidos", "code": "operador",
     "Address.name": "Casa, Trabalho...", "SalesChannel.name": "Shopify Loja Principal",

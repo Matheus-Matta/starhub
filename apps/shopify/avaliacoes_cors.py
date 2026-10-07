@@ -25,8 +25,8 @@ def _origem_permitida(configuracao_id, origem):
     ).first()
     if configuracao is None:
         return False
-    dominio = configuracao.account.dominio_avaliacoes.strip().lower()
-    return bool(dominio) and origem.lower() == f"https://{dominio}"
+    permitidas = {f"https://{dominio}" for dominio in configuracao.account.dominios_avaliacoes()}
+    return origem.lower() in permitidas
 
 
 def _negada():

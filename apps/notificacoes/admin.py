@@ -17,6 +17,8 @@ from apps.notificacoes.models import ConfiguracaoEmail, ConfiguracaoNotificacao,
 
 
 class _UmaPorConta(TemaModelAdmin):
+    relatorio = False  # uma configuracao por conta: nao ha lista para relatar
+
     def changelist_view(self, request, extra_context=None):
         email, notificacao = contas.garantir(get_current_account_id())
         obj = email if self.model is ConfiguracaoEmail else notificacao

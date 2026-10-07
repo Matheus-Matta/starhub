@@ -1,12 +1,16 @@
 import uuid
 
 from django.core.exceptions import ValidationError
-from django.core.validators import DomainNameValidator
 from django.db import models
 from simple_history.models import HistoricalRecords
 
 from apps.core.tenant.context import usuario_do_historico
-from apps.core.validators import validar_documento, validar_telefone
+from apps.core.validators import (
+    separar_dominios,
+    validar_documento,
+    validar_dominios,
+    validar_telefone,
+)
 
 
 class Account(models.Model):
@@ -18,11 +22,15 @@ class Account(models.Model):
     email = models.EmailField("e-mail", blank=True)
     phone = models.CharField("telefone", max_length=30, blank=True)
     # Models historicos ainda podem criar contas sem conhecer este campo.
+    # Lista separada por virgula: a mesma loja costuma abrir com e sem www.
     dominio_avaliacoes = models.CharField(
-        "dominio da loja para avaliacoes", max_length=253, blank=True,
+        "dominios da loja para avaliacoes", max_length=1000, blank=True,
         default="", db_default="",
-        validators=[DomainNameValidator(accept_idna=False)],
-        help_text="Ex.: minhaloja.com.br. Informe o dominio exato, sem https:// ou caminho.",
+        validators=[validar_dominios],
+        help_text=(
+            "Ex.: minhaloja.com.br, www.minhaloja.com.br. Um ou mais dominios exatos, "
+            "separados por virgula, sem https:// ou caminho."
+        ),
     )
     timezone = models.CharField("fuso horario", max_length=50, default="America/Sao_Paulo")
     currency = models.CharField("moeda", max_length=3, default="BRL")
@@ -39,8 +47,12 @@ class Account(models.Model):
     def __str__(self):
         return self.name
 
+    def dominios_avaliacoes(self):
+        return separar_dominios(self.dominio_avaliacoes)
+
     def clean(self):
         super().clean()
+        self.dominio_avaliacoes = ", ".join(self.dominios_avaliacoes())
         erros = {}
         for campo, validar in (("document", validar_documento), ("phone", validar_telefone)):
             try:

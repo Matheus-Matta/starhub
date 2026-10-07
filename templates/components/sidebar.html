@@ -16,6 +16,24 @@
       {% icone "layout-grid" %}<span class="menu-label">Painel</span>
     </a>
 
+    {# Relatorios (apps/core/relatorios): o unico grupo que abre e fecha; aberto na pagina de um deles. #}
+    {% menu_relatorios as relatorios %}
+    {% if relatorios.itens %}
+      <details class="menu-grupo" data-menu-grupo="relatorios"{% if relatorios.ativo %} open{% endif %}>
+        <summary class="menu-link{% if relatorios.ativo %} active{% endif %}" title="Relatorios">
+          {% icone "chart-column" %}<span class="menu-label">Relatorios</span>{% icone "chevron-down" "icon-sm menu-seta" %}
+        </summary>
+        <div class="menu-sub">
+          {% for item in relatorios.itens %}
+            <a class="menu-link{% if item.ativo %} active{% endif %}" href="{{ item.url }}" title="{{ item.titulo }}"
+               {% if item.ativo %}aria-current="page"{% endif %}>
+              {% icone item.icone %}<span class="menu-label">{{ item.titulo }}</span>
+            </a>
+          {% endfor %}
+        </div>
+      </details>
+    {% endif %}
+
     {# Uma secao por app (titulo + separador); cada item com o proprio icone. #}
     {% menu_lateral as secoes %}
     {% for secao in secoes %}

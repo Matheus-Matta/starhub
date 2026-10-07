@@ -19,6 +19,7 @@ from django.db import models
 from apps.core import admin_condicoes, admin_lista_modal, admin_logs
 from apps.core.admin_conta import ContaAdminMixin
 from apps.core.fields import TextoHTMLField
+from apps.core.filtros import FiltroPeriodo
 from apps.core.json_widgets import campo_json, widget_padrao
 from apps.core.ui import entradas
 from apps.core.widgets import DataHoraTema, DataTema, EditorHTML, SwitchTema, ligar_periodo
@@ -51,6 +52,20 @@ class TemaMixin(ContaAdminMixin):
     # FK para o pai quando o form abre no modal da lista dele (admin_lista_modal):
     # "produto" na variante. Nesse modal o campo fica oculto, o pai ja esta decidido.
     pai_da_lista = None
+    # Data que ganha o filtro de periodo na lista; None = o campo auto_now_add do model.
+    campo_criacao = None
+
+    # Entra no menu Relatorios (apps/core/relatorios). Tela de configuracao unica por
+    # conta, que redireciona a lista para o formulario, desliga.
+    relatorio = True
+
+    def get_list_filter(self, request):
+        filtros = list(super().get_list_filter(request))
+        campo = campo_de_criacao(self)
+        # Admin que ja declara o periodo escolheu a posicao dele; nao duplica.
+        if campo and all(_campo_do_filtro(filtro) != campo for filtro in filtros):
+            filtros.insert(0, (campo, FiltroPeriodo))
+        return filtros
 
     def render_change_form(self, request, context, *args, **kwargs):
         context["condicoes_tela"] = admin_condicoes.para_tela(
@@ -106,6 +121,18 @@ class TemaMixin(ContaAdminMixin):
             # ao help_text. Volta para o texto do proprio campo do model.
             campo.help_text = db_field.help_text
         return campo
+
+
+def campo_de_criacao(model_admin):
+    """Data de criacao do model do admin: a declarada ou o campo auto_now_add."""
+    if model_admin.campo_criacao:
+        return model_admin.campo_criacao
+    return next((campo.name for campo in model_admin.model._meta.concrete_fields
+                 if getattr(campo, "auto_now_add", False)), None)
+
+
+def _campo_do_filtro(filtro):
+    return filtro[0] if isinstance(filtro, (list, tuple)) else filtro
 
 
 def _tem_uuid(modelo):

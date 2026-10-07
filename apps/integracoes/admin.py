@@ -58,6 +58,7 @@ class ConfiguracaoIntegracaoAdmin(TemaModelAdmin):
         "permissoes", "token_criptografado", "segredo_criptografado",
         "segredo_avaliacoes_criptografado",
     ]
+    relatorio = False  # a lista redireciona para a tela de cada plataforma
 
     def get_urls(self):
         urls = [

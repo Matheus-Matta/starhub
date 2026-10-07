@@ -1,0 +1,46 @@
+/* Grupo do menu que abre e fecha (<details>), hoje so "Relatorios"
+   (templates/components/sidebar.html). Os itens usam o mesmo .menu-link. */
+
+.menu-grupo {
+  margin-top: 2px;
+}
+
+.menu-grupo > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.menu-grupo > summary::-webkit-details-marker {
+  display: none;
+}
+
+.menu-grupo .menu-seta {
+  margin-left: auto;
+  transition: transform 0.15s;
+}
+
+.menu-grupo[open] .menu-seta {
+  transform: rotate(180deg);
+}
+
+.menu-sub {
+  display: grid;
+  gap: 2px;
+  margin-top: 2px;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+  margin-left: 17px;
+}
+
+@media (min-width: 1024px) {
+  /* Recolhido: so icones, sem seta e sem o recuo do submenu. */
+  body.sidebar-collapse .menu-grupo .menu-seta {
+    display: none;
+  }
+
+  body.sidebar-collapse .menu-sub {
+    margin-left: 0;
+    padding-left: 0;
+    border-left: 0;
+  }
+}

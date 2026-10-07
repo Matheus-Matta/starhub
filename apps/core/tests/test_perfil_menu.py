@@ -12,7 +12,7 @@ def test_sidebar_em_secoes_com_chaves_de_api_junto_dos_usuarios(admin_logado):
     secao_auth = menu.split("Nucleo")[1].split('class="menu-secao"')[0]
     assert "/admin/core/user/" in secao_auth
     assert "/admin/woo_api/chaveapi/" in secao_auth
-    assert "<details" not in menu  # secao fixa, nao dropdown
+    assert "<details" not in secao_auth  # secao fixa; dropdown so o de Relatorios
     assert "#key-round" in secao_auth  # icone no item
 
 
