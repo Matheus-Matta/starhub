@@ -6,6 +6,7 @@ cadastro nasce na hora, com SKU SERV-<NOME>. Na leitura, servico antigo (sem
 servico_id) e achado pelo nome.
 """
 
+from apps.loja.dinheiro import ValorInvalido, dinheiro
 from apps.loja.models import Servico
 from apps.loja.models.servico import sku_do_servico
 
@@ -62,6 +63,41 @@ def cadastrar_dos_pedidos(pedido_model, servico_model):
                                          sku=sku_do_servico(nome))
             criados += 1
     return criados
+
+
+def preencher_precos_dos_pedidos(pedido_model, servico_model):
+    """Servico com preco zero recebe o ultimo preco pago por ele num pedido (migration).
+
+    Servico criado sozinho pelo pedido nascia sem preco. Servico nunca vendido fica
+    em zero para o operador preencher. Devolve quantos ganharam preco.
+    """
+    sem_preco = {s.pk: s for s in servico_model.objects.filter(preco=0)}
+    por_nome = {(s.account_id, s.nome_normalizado): s for s in sem_preco.values()}
+    ultimo = {}
+    for conta, metadados in (pedido_model.objects.order_by("pk")
+                             .values_list("account_id", "metadados").iterator()):
+        starhub = next((m.get("value") for m in metadados or []
+                        if isinstance(m, dict) and m.get("key") == "starhub"), None)
+        servicos = starhub.get("servicos") if isinstance(starhub, dict) else None
+        for servico in servicos if isinstance(servicos, list) else []:
+            if not isinstance(servico, dict):
+                continue
+            cadastro = sem_preco.get(servico.get("servico_id")) or por_nome.get(
+                (conta, _chave(servico.get("servico"))))
+            preco = _preco_valido(servico.get("preco"))
+            if cadastro and preco:
+                ultimo[cadastro.pk] = preco  # pedido mais novo por ultimo: ele vence
+    for pk, preco in ultimo.items():
+        servico_model.objects.filter(pk=pk).update(preco=preco)
+    return len(ultimo)
+
+
+def _preco_valido(valor):
+    try:
+        preco = dinheiro(valor)
+    except ValorInvalido:
+        return None
+    return preco if preco and preco > 0 else None
 
 
 def do_cadastro(servico, mapa):

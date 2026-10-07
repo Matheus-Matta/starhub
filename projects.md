@@ -392,9 +392,24 @@ Pagina fora do admin (ex.: login): estenda `layouts/auth.html`.
 ### 5.7 Relatorios (`apps/core/relatorios`)
 
 Dropdown **Relatorios** no menu lateral, logo abaixo do Painel (o unico grupo que
-abre e fecha; `static/starhub/css/menu-grupo.css`). Cada item abre
-`/admin/relatorios/<chave>/`: seletor de periodo (o mesmo calendario do filtro da
-lista), total de registros, previa de 50 linhas e os botoes **Excel** e **PDF**.
+abre e fecha; `static/starhub/css/menu-grupo.css`). Os subitens sao so texto, sem
+icone; com o menu recolhido eles somem. Cada item abre `/admin/relatorios/<chave>/`
+no padrao do Painel: seletor de periodo (o mesmo calendario do filtro da lista) e
+botoes **Excel**/**PDF**, mini cards (`components/stat_card.html`), graficos e a
+lista no padrao `list-card` da listagem do admin (nao card com tabela dentro),
+com previa de 50 linhas.
+
+- **Graficos:** Chart.js 4.5.1 servido pelo hub (`static/starhub/vendor/chart.umd.min.js`,
+  licenca MIT, sem CDN). O servidor monta os dados (`apps/core/relatorios/graficos.py`:
+  `indicador`, `grafico`, `eixo_do_tempo`) e o `js/relatorio-graficos.js` so desenha,
+  com as cores dos tokens do tema (redesenha ao trocar claro/escuro). Dinheiro vai ao
+  JS em texto ("200.00"). Eixo do tempo dia a dia ate 62 dias; acima, mes a mes.
+- **Generico** (`painel_modelo.py`): registros no periodo, media por dia (com o pico),
+  soma da primeira coluna em reais da lista (com grafico por dia), ativos e rosca do
+  primeiro filtro de escolhas (status). Agrega sobre os mesmos registros da lista, mas
+  sem as anotacoes do admin: a lista de pedidos junta os itens, e agrupar por cima
+  dela contava e somava cada pedido uma vez por item.
+- `gerar(..., painel=True)` so na tela: o Excel e o PDF nao calculam os graficos.
 
 - **Um por model, sem configurar:** todo ModelAdmin do tema vira relatorio (chave
   `app.model`) com as **colunas da `list_display`** e o queryset do proprio admin
@@ -481,6 +496,17 @@ de `regular_price`, `sale_price` e `stock_quantity`. Filtros/corpos aparecem no 
   (`apps/loja/services/servicos.vincular`, SKU `SERV-<NOME>`) na importacao do
   Shopify e no PUT; o servico guardado leva `servico_id`, e o antigo sem ele e
   achado pelo nome (a migration `loja.0019` cadastrou os dos pedidos existentes).
+- **Preco e regras do servico** (`Servico.preco`, `RegraServico`, Loja > Servicos): o
+  preco padrao veio do ultimo preco pago em pedido (migration `loja.0021`; nunca
+  vendido fica em zero). Na pagina do servico, a secao "Regras" e uma lista com
+  modal (mesmo mecanismo das variantes, classe `secao-lista`): uma regra por linha,
+  com `ordem` editavel. A regra pega a **selecao dinamica** (categorias E faixa de
+  preco, pelo preco normal da variante padrao) **mais** os produtos escolhidos a
+  mao; regra sem nenhum criterio e recusada. Para cada produto vale a primeira
+  regra ativa pela ordem: o preco dela, ou o padrao do servico
+  (`apps/loja/services/servicos_regras.servicos_do_produto`). A pagina do produto
+  mostra, so para consulta, os servicos que valem para ele (secao "Servicos"). A API
+  Woo continua mandando o preco **pago** no pedido, nao o da regra.
 - `starhub` do pedido na saida (`recursos/pedidos_starhub.py`): `entrega.agendamento`
   sempre `dd-mm-aaaa` (texto que nao e data sai como veio) e `idVendedor` inteiro, o
   `ConfiguracaoIntegracao.id_vendedor` da plataforma de origem do pedido

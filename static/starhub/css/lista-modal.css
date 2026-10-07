@@ -5,12 +5,13 @@
   min-width: 0;
 }
 
-.form-card-grid fieldset.module.secao-variantes {
+/* secao-lista no fieldset (variantes do produto, regras do servico). */
+.form-card-grid fieldset.module.secao-lista {
   position: relative;
 }
 
-.form-card-grid fieldset.module.secao-variantes > .form-row,
-.form-card-grid fieldset.module.secao-variantes > .form-row:first-of-type {
+.form-card-grid fieldset.module.secao-lista > .form-row,
+.form-card-grid fieldset.module.secao-lista > .form-row:first-of-type {
   padding: 0;
 }
 

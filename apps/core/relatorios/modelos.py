@@ -15,6 +15,7 @@ from django.db import models
 from django.utils.text import capfirst, slugify
 
 from apps.core.admin_base import campo_de_criacao
+from apps.core.relatorios import painel_modelo
 from apps.core.relatorios.base import Relatorio, Resultado, Tabela, local, no_periodo
 
 # Colunas de tela (marcar linha, botoes) que nao sao dado.
@@ -88,9 +89,9 @@ def _celula(model_admin, obj, nome):
 
 
 class RelatorioModelo(Relatorio):
-    def __init__(self, model, model_admin, icone):
+    def __init__(self, model, model_admin):
         opcoes = model._meta
-        self.model, self.model_admin, self.icone = model, model_admin, icone
+        self.model, self.model_admin = model, model_admin
         self.chave = opcoes.label_lower
         self.titulo = capfirst(opcoes.verbose_name_plural)
         self.descricao = f"Cadastro de {opcoes.verbose_name_plural} pela data de criacao."
@@ -116,7 +117,20 @@ class RelatorioModelo(Relatorio):
         ordem = admin.get_ordering(request) or self.model._meta.ordering or ["-pk"]
         return consulta.order_by(*ordem)
 
-    def gerar(self, request, de, ate, limite):
+    def _campo_em_reais(self, nomes, indices):
+        """Campo do model por tras da primeira coluna em reais ("total_fmt" -> total)."""
+        for indice in sorted(indices):
+            nome = nomes[indice]
+            try:
+                return self.model._meta.get_field(nome)
+            except FieldDoesNotExist:
+                attr = getattr(self.model_admin, nome, None) or getattr(self.model, nome, None)
+                campo = _campo_por_tras(self.model, attr)
+                if isinstance(campo, models.DecimalField):
+                    return campo
+        return None
+
+    def gerar(self, request, de, ate, limite, painel=False):
         nomes = self._colunas(request)
         consulta = self._consulta(request, de, ate)
         tabela = Tabela(self.titulo, [
@@ -127,4 +141,10 @@ class RelatorioModelo(Relatorio):
             celulas = [_celula(self.model_admin, obj, nome) for nome in nomes]
             tabela.linhas.append([valor for valor, _reais in celulas])
             tabela.moeda |= {indice for indice, (_v, reais) in enumerate(celulas) if reais}
-        return Resultado(tabela, consulta.count())
+        resultado = Resultado(tabela, consulta.count())
+        if painel:
+            resultado.indicadores, resultado.graficos = painel_modelo.montar(
+                consulta, resultado.total, campo_de_criacao(self.model_admin),
+                self.model_admin.get_list_filter(request),
+                self._campo_em_reais(nomes, tabela.moeda), de, ate)
+        return resultado

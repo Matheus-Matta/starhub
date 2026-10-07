@@ -27,7 +27,7 @@
           {% for item in relatorios.itens %}
             <a class="menu-link{% if item.ativo %} active{% endif %}" href="{{ item.url }}" title="{{ item.titulo }}"
                {% if item.ativo %}aria-current="page"{% endif %}>
-              {% icone item.icone %}<span class="menu-label">{{ item.titulo }}</span>
+              <span class="menu-label">{{ item.titulo }}</span>
             </a>
           {% endfor %}
         </div>

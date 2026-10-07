@@ -1,0 +1,21 @@
+{# Secao "Servicos" do produto (ProdutoAdmin.servicos_do_produto): o que as regras de cada servico dao a ele. #}
+<div class="sh-servicos-do-produto">
+  {% if servicos %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Servico</th><th>SKU</th><th class="num">Preco para este produto</th></tr></thead>
+        <tbody>
+          {% for servico, preco in servicos %}
+            <tr>
+              <td><a href="{% url 'admin:loja_servico_change' servico.pk %}">{{ servico.nome }}</a></td>
+              <td class="text-muted">{{ servico.sku }}</td>
+              <td class="num nowrap">{{ preco|moeda }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    {% include "components/empty_state.html" with icone="sliders-horizontal" texto="Nenhum servico vale para este produto." detalhe="As regras ficam em Loja > Servicos." %}
+  {% endif %}
+</div>

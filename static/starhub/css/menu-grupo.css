@@ -32,15 +32,16 @@
   margin-left: 17px;
 }
 
-@media (min-width: 1024px) {
-  /* Recolhido: so icones, sem seta e sem o recuo do submenu. */
-  body.sidebar-collapse .menu-grupo .menu-seta {
-    display: none;
-  }
+/* Sem icone o item fica mais baixo: a lista de relatorios e longa. */
+.menu-sub .menu-link {
+  height: 30px;
+}
 
+@media (min-width: 1024px) {
+  /* Recolhido: so icones. Os subitens nao tem icone (so texto), entao somem; para
+     escolher um relatorio, abra o menu. */
+  body.sidebar-collapse .menu-grupo .menu-seta,
   body.sidebar-collapse .menu-sub {
-    margin-left: 0;
-    padding-left: 0;
-    border-left: 0;
+    display: none;
   }
 }

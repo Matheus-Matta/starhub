@@ -69,7 +69,7 @@ def test_pagina_mostra_so_o_periodo_e_inclui_o_ultimo_dia_inteiro(admin_logado, 
     assert resposta.status_code == 200
     html = resposta.content.decode()
     assert "Setembro" in html and "Janeiro" not in html
-    assert "1 registro" in html
+    assert resposta.context["total"] == 1
 
 
 def test_excel_tem_as_colunas_da_lista_e_as_linhas_do_periodo(admin_logado, tags):

@@ -60,8 +60,7 @@ def menu_relatorios(context):
     itens = []
     for relatorio in registro.disponiveis(request):
         url = reverse("admin:relatorio", args=[relatorio.chave])
-        itens.append({"titulo": relatorio.titulo, "url": url, "icone": relatorio.icone,
-                      "ativo": request.path == url})
+        itens.append({"titulo": relatorio.titulo, "url": url, "ativo": request.path == url})
     return {"itens": itens, "ativo": any(item["ativo"] for item in itens)}
 
 

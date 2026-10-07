@@ -13,6 +13,16 @@
   gap: 12px;
 }
 
+/* Altura fixa: o Chart.js ocupa o pai (maintainAspectRatio: false). */
+.relatorio-grafico {
+  position: relative;
+  height: 260px;
+}
+
+.relatorio-grafico-rosca {
+  height: 280px;
+}
+
 /* O .filtro-periodo da gaveta tem recuo lateral; na barra ele fica encostado. */
 .relatorio-periodo {
   padding: 0;

@@ -4,7 +4,14 @@ produtos simples (com galeria demo1/demo2 na variante padrao)."""
 from decimal import Decimal
 
 from apps.loja.demo import imagem, marca, nome_n
-from apps.loja.models import Categoria, Servico, Tag, TipoVariante, ValorVariante
+from apps.loja.models import (
+    Categoria,
+    RegraServico,
+    Servico,
+    Tag,
+    TipoVariante,
+    ValorVariante,
+)
 from apps.loja.services.midias import sincronizar_midias
 from apps.loja.services.slugs import slug_livre
 from apps.loja.services.variantes import criar_produto
@@ -46,8 +53,26 @@ def tags(quantidade):
 
 
 def servicos(quantidade):
-    return [Servico.objects.create(nome=nome_n(SERVICOS, i), metadados=marca())
+    return [Servico.objects.create(nome=nome_n(SERVICOS, i), metadados=marca(),
+                                   preco=Decimal(50 + 10 * i))
             for i in range(quantidade)]
+
+
+def regras_servicos(servicos_criados, categorias_criadas, produtos):
+    """Uma regra por servico, alternando os tres criterios: categoria, faixa de
+    preco e produto escolhido a mao (a tela ja nasce com exemplo de cada).
+    categorias_criadas e o {nome: Categoria} de categorias()."""
+    categorias_criadas = list(categorias_criadas.values())
+    for i, servico in enumerate(servicos_criados):
+        regra = RegraServico.objects.create(servico=servico, ordem=10, metadados=marca(),
+                                            preco=Decimal(40 + 5 * i) if i % 2 else None)
+        if i % 3 == 0:
+            regra.categorias.set([categorias_criadas[i % len(categorias_criadas)]])
+        elif i % 3 == 1:
+            regra.preco_ate = Decimal("500.00")
+            regra.save()
+        else:
+            regra.produtos.set([produtos[i % len(produtos)]])
 
 
 def categorias(conta, quantidade):

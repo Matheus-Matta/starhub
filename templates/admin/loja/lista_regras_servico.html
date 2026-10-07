@@ -1,0 +1,50 @@
+{% load static %}{% comment %}
+Secao "Regras" da pagina do servico (apps/loja/admin/servicos.py, lista_regras).
+Mesmo desenho da lista de variantes do produto: linha e botoes com data-modal-url
+abrem o form da regra num modal (modal-lista.js).
+{% endcomment %}
+<div class="sh-lista-variantes">
+  <div class="sh-lista-acoes">
+    <button type="button" class="btn btn-sm btn-outline sh-adicionar-relacionado" data-modal-chave="regras"
+            data-modal-titulo="Adicionar regra"
+            {% if url_adicionar %}data-modal-url="{{ url_adicionar }}"{% else %}data-modal-salvar-antes{% endif %}>
+      <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="" width="14" height="14"> Adicionar regra
+    </button>
+  </div>
+  {% if linhas %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th class="num">Ordem</th><th>Criterios</th><th class="num">Produtos</th>
+            <th class="num">Preco do servico</th><th>Situacao</th>
+            <th class="sh-coluna-acoes"><span class="visually-hidden">Acoes</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for linha in linhas %}{% with r=linha.regra %}
+            <tr class="sh-linha-modal" tabindex="0" data-modal-url="{{ linha.url_editar }}"
+                data-modal-titulo="Editar regra {{ r.ordem }}">
+              <td class="num font-medium">{{ r.ordem }}</td>
+              <td>{{ linha.criterios }}</td>
+              <td class="num">{{ linha.produtos }} produto{{ linha.produtos|pluralize }}</td>
+              <td class="num nowrap">
+                {% if r.preco is not None %}{{ r.preco|moeda }}{% else %}<span class="text-muted">padrao ({{ servico.preco|moeda }})</span>{% endif %}
+              </td>
+              <td>{% if r.active %}{% include "components/badge.html" with texto="Ativa" tom="success" %}{% else %}{% include "components/badge.html" with texto="Inativa" %}{% endif %}</td>
+              <td class="sh-coluna-acoes">
+                <button type="button" class="btn btn-sm btn-outline" data-modal-url="{{ linha.url_editar }}"
+                        data-modal-titulo="Editar regra {{ r.ordem }}">Editar</button>
+                <button type="button" class="btn btn-ghost btn-icon sh-remover-linha" data-modal-url="{{ linha.url_excluir }}"
+                        data-modal-titulo="Excluir regra {{ r.ordem }}"
+                        title="Excluir regra" aria-label="Excluir regra {{ r.ordem }}">{% icone "trash-2" %}</button>
+              </td>
+            </tr>
+          {% endwith %}{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    {% include "components/empty_state.html" with icone="sliders-horizontal" texto="Nenhuma regra ainda." detalhe="Sem regra o servico nao vale para nenhum produto. Adicione uma por categoria, faixa de preco ou produto." %}
+  {% endif %}
+</div>

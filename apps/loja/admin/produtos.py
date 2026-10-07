@@ -17,6 +17,7 @@ from apps.loja.admin.detalhes import variacoes_do_produto
 from apps.loja.admin.variante_unica import VarianteUnicaInline
 from apps.loja.admin.variantes import lista_variantes
 from apps.loja.models import Produto, VarianteProduto
+from apps.loja.services.servicos_regras import servicos_do_produto
 
 # Tres jeitos de mostrar o produto, pelo tipo (condicoes.js troca na hora):
 #   simples/externo/agrupado: a variante unica vira secoes da pagina (Preco, Estoque...);
@@ -40,10 +41,10 @@ class ProdutoAdmin(CodigoExternoMixin, TemaModelAdmin):
     ]
     search_fields = ["nome", "variantes__sku", "variantes__barcode", "slug"]
     list_per_page = 25
-    readonly_fields = ["lista_variantes", "estoque_bundle", "total_vendas", "created_at",
-                       "updated_at"]
+    readonly_fields = ["lista_variantes", "estoque_bundle", "servicos_do_produto",
+                       "total_vendas", "created_at", "updated_at"]
     # Campo so de leitura que ocupa a linha toda (tabela), e nao meia coluna.
-    readonly_largos = ["lista_variantes", "estoque_bundle"]
+    readonly_largos = ["lista_variantes", "estoque_bundle", "servicos_do_produto"]
     inlines = [VarianteUnicaInline, ComponenteInline]
     condicoes = {
         "#variantes-group": {"campo": "tipo", "em": UNICA},
@@ -59,9 +60,12 @@ class ProdutoAdmin(CodigoExternoMixin, TemaModelAdmin):
             ("nome", "slug"), ("tipo", "status"), ("visibilidade", "destaque"),
             ("fornecedor", "marca"), "categoria", "categorias", "tags",
         ]}),
-        ("Variantes", {"classes": ["secao-variantes"], "fields": ["lista_variantes"]}),
+        # secao-variantes: condicoes acima; secao-lista: desenho da lista (lista-modal.css).
+        ("Variantes", {"classes": ["secao-variantes", "secao-lista"],
+                       "fields": ["lista_variantes"]}),
         ("Estoque", {"classes": ["secao-estoque-bundle"], "fields": ["estoque_bundle"]}),
         # "sh-final": depois das secoes da variante (Preco, Estoque...) e dos componentes.
+        ("Servicos", {"classes": ["sh-final"], "fields": ["servicos_do_produto"]}),
         ("Descricao", {"classes": ["collapse", "sh-final"],
                        "fields": ["descricao_curta", "descricao"]}),
         ("SEO", {"classes": ["collapse", "sh-final"], "fields": ["seo_titulo", "seo_descricao"]}),
@@ -96,6 +100,13 @@ class ProdutoAdmin(CodigoExternoMixin, TemaModelAdmin):
     @admin.display(description="Estoque")
     def estoque_bundle(self, obj):
         return estoque_calculado(obj)
+
+    @admin.display(description="Servicos")
+    def servicos_do_produto(self, obj):
+        # Vem das regras de cada servico (Loja > Servicos); aqui so se consulta.
+        return render_to_string("admin/loja/servicos_do_produto.html", {
+            "servicos": servicos_do_produto(obj) if obj and obj.pk else [],
+        })
 
     @admin.display(description="produto", ordering="nome")
     def produto_info(self, obj):

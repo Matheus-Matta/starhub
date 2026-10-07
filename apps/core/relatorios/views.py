@@ -65,13 +65,15 @@ def relatorio_view(admin_site, request, chave):
     formato = request.GET.get("formato")
     if formato in exportar.TIPOS:
         return _exportar(request, relatorio, formato, de, ate)
-    resultado = relatorio.gerar(request, de, ate, PREVIA)
+    resultado = relatorio.gerar(request, de, ate, PREVIA, painel=True)
     contexto = {
         **admin_site.each_context(request),
         "title": relatorio.titulo,
         "subtitle": None,
         "relatorio": relatorio,
         "total": resultado.total,
+        "indicadores": resultado.indicadores,
+        "graficos": resultado.graficos,
         "aviso_previa": (
             f"Mostrando {len(resultado.principal.linhas)} de {resultado.total}; "
             "o Excel e o PDF levam o periodo inteiro."

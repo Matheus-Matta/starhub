@@ -22,13 +22,15 @@ class Resultado:
     principal: Tabela
     total: int  # linhas do periodo; `principal.linhas` pode vir cortada no limite
     resumos: list = field(default_factory=list)
+    # Topo da pagina, no padrao do Painel (graficos.py): mini cards e graficos.
+    indicadores: list = field(default_factory=list)
+    graficos: list = field(default_factory=list)
 
 
 class Relatorio:
     chave = ""
     titulo = ""
     descricao = ""
-    icone = "chart-column"
     # Nome da aba/arquivo: so letras simples, o Excel recusa ":" "/" e afins.
     nome_arquivo = "relatorio"
 

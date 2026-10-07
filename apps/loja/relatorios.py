@@ -12,6 +12,7 @@ from django.db.models import Q
 from django.db.models.functions import Coalesce
 
 from apps.core.relatorios.base import Relatorio, Resultado, Tabela, local, no_periodo
+from apps.core.relatorios.graficos import eixo_do_tempo, grafico, indicador, pico
 from apps.loja.dinheiro import ValorInvalido, dinheiro, somar
 from apps.loja.models import Pedido
 
@@ -63,21 +64,50 @@ class UsoCupons(Relatorio):
     chave = "uso-cupons"
     titulo = "Uso de cupons"
     descricao = "Cada cupom usado em pedido, pela data do pedido na loja, e o total por cupom."
-    icone = "wallet"
     nome_arquivo = "uso-de-cupons"
 
     def permitido(self, request):
         return (request.user.has_perm("loja.view_pedido")
                 and request.user.has_perm("loja.view_cupom"))
 
-    def gerar(self, request, de, ate, limite):
-        linhas = [
-            [local(pedido.placed_at or pedido.created_at), codigo, pedido.number,
-             str(pedido.cliente or ""), pedido.email, pedido.get_status_display(),
-             desconto, pedido.total]
-            for pedido in _pedidos(de, ate)
-            for codigo, desconto in _usos(pedido)
-        ]
+    def gerar(self, request, de, ate, limite, painel=False):
+        linhas, totais = [], {}
+        for pedido in _pedidos(de, ate):
+            for codigo, desconto in _usos(pedido):
+                linhas.append([local(pedido.placed_at or pedido.created_at), codigo,
+                               pedido.number, str(pedido.cliente or ""), pedido.email,
+                               pedido.get_status_display(), desconto, pedido.total])
+                # Pelo id: o superusuario ve varias contas, e o numero repete entre elas.
+                totais[pedido.pk] = pedido.total
         principal = Tabela("Usos", COLUNAS, linhas[:limite], moeda={6, 7})
-        resumo = Tabela("Resumo", RESUMO, _resumo(linhas), moeda={2, 3})
-        return Resultado(principal, len(linhas), [resumo])
+        resumo = _resumo(linhas)
+        resultado = Resultado(principal, len(linhas), [Tabela("Resumo", RESUMO, resumo,
+                                                               moeda={2, 3})])
+        if painel:
+            resultado.indicadores, resultado.graficos = _painel(linhas, totais, resumo, de, ate)
+        return resultado
+
+
+def _painel(linhas, pedidos, resumo, de, ate):
+    """pedidos: {id: total}. Pedido com dois cupons conta uma vez no total vendido."""
+    por_dia = {}
+    for linha in linhas:
+        por_dia[linha[0].date()] = por_dia.get(linha[0].date(), 0) + 1
+    cards = [
+        indicador("Usos", len(linhas), "wallet", "primary", pico(por_dia)),
+        indicador("Desconto total", somar(linha[6] for linha in linhas), "trending-up",
+                  "success", "dado pelos cupons no periodo", eh_moeda=True),
+        indicador("Total dos pedidos", somar(pedidos.values()), "shopping-cart", "info",
+                  f"{len(pedidos)} pedido(s) com cupom", eh_moeda=True),
+        indicador("Cupons diferentes", len(resumo), "star", "warning",
+                  f"mais usado: {resumo[0][0]}" if resumo else ""),
+    ]
+    unidade, rotulos, valores = eixo_do_tempo(por_dia, de, ate)
+    graficos = [
+        grafico(f"Usos por {unidade}", "barra", rotulos, valores, "Usos"),
+        grafico("Desconto por cupom", "rosca", [r[0] for r in resumo], [r[2] for r in resumo],
+                "Desconto", moeda=True),
+        grafico("Usos por cupom", "barra", [r[0] for r in resumo], [r[1] for r in resumo],
+                "Usos"),
+    ]
+    return cards, graficos

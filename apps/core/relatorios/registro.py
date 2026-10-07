@@ -10,19 +10,12 @@ from django.utils.module_loading import import_string
 
 from apps.core.admin_base import TemaMixin
 from apps.core.relatorios.modelos import RelatorioModelo
-from apps.core.ui.menu import ICONE_PADRAO, PREFIXO_MARCA
-
-
-def _icone(model):
-    icone = getattr(settings, "STARHUB_MENU_ICONES", {}).get(model._meta.label_lower, "")
-    # Logo de plataforma nao cabe no submenu: fica o icone comum.
-    return ICONE_PADRAO if not icone or icone.startswith(PREFIXO_MARCA) else icone
 
 
 def _dos_admins():
     ordem = getattr(settings, "STARHUB_MENU_ORDEM", [])
     relatorios = [
-        RelatorioModelo(model, model_admin, _icone(model))
+        RelatorioModelo(model, model_admin)
         for model, model_admin in admin.site._registry.items()
         if isinstance(model_admin, TemaMixin) and model_admin.relatorio
     ]

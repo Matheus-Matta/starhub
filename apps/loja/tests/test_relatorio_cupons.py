@@ -72,6 +72,22 @@ def test_data_de_uso_e_a_do_pedido_na_loja_e_nao_a_da_importacao(admin_logado):
     assert usos[1][0] == datetime(2026, 9, 20, 9, 30)
 
 
+def test_mini_cards_e_graficos_do_uso_de_cupons(admin_logado):
+    _pedido("1001", 5, [("BLACK10", "10.05")])
+    _pedido("1002", 6, [("BLACK10", "9.95"), ("FRETEGRATIS", "20.00")], total="80.00")
+
+    resposta = admin_logado.get(URL)
+
+    cards = {item["rotulo"]: item["valor"] for item in resposta.context["indicadores"]}
+    assert cards == {"Usos": 3, "Desconto total": Decimal("40.00"),
+                     "Total dos pedidos": Decimal("180.00"), "Cupons diferentes": 2}
+    graficos = {g["titulo"]: g for g in resposta.context["graficos"]}
+    por_cupom = graficos["Desconto por cupom"]
+    assert dict(zip(por_cupom["rotulos"], por_cupom["series"][0]["dados"], strict=True)) == {
+        "BLACK10": "20.00", "FRETEGRATIS": "20.00"}
+    assert sum(graficos["Usos por dia"]["series"][0]["dados"]) == 3
+
+
 def test_pagina_mostra_o_resumo_e_os_usos(admin_logado):
     _pedido("1001", 5, [("BLACK10", "10.05")])
 
