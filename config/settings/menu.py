@@ -12,6 +12,7 @@ STARHUB_MENU_ICONES = {
     "loja.cliente": "users-round",
     "loja.pedido": "clipboard-list",
     "loja.tag": "star",
+    "loja.servico": "sliders-horizontal",
     "loja.cupom": "wallet",
     "loja.avaliacao": "message-square-text",
     "logistica.tabelafrete": "truck",

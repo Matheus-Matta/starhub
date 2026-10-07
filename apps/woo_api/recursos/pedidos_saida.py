@@ -4,7 +4,8 @@ from apps.loja.dinheiro import texto as dinheiro_texto
 from apps.loja.services.pedidos import transacao
 from apps.woo_api import datas
 from apps.woo_api.recursos import enderecos
-from apps.woo_api.recursos.pedidos_servicos import meta_do_item, meta_do_pedido, servicos_por_item
+from apps.woo_api.recursos.pedidos_servicos import meta_do_item, servicos_por_item
+from apps.woo_api.recursos.pedidos_starhub import meta_do_pedido
 
 SIMBOLOS = {"BRL": "R$", "USD": "$", "EUR": "€"}
 
@@ -68,7 +69,7 @@ def pedido_para_woo(pedido):
         **datas.par("date_paid", pedido.paid_at),
         "cart_hash": pedido.hash_carrinho,
         "number": str(pedido.pk),
-        "meta_data": meta_do_pedido(pedido.metadados),
+        "meta_data": meta_do_pedido(pedido),
         "line_items": [item_para_woo(item, servicos.get(item.pk)) for item in pedido.itens.all()],
         "tax_lines": pedido.linhas_imposto or [],
         "shipping_lines": pedido.linhas_frete or [],

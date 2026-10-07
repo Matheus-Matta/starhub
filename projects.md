@@ -475,6 +475,19 @@ de `regular_price`, `sale_price` e `stock_quantity`. Filtros/corpos aparecem no 
   `epofw_field_<n>` no formato do plugin EPOFW (value em texto JSON), que e o que
   o ERP le (`apps/woo_api/recursos/pedidos_epofw.py`). Na volta os dois formatos
   sao aceitos; vindo os dois, vale o `starhub`, sem duplicar.
+- Cada servico sai com `id`, `nome`, `sku`, `preco` e `opcao`. `id` e `sku` sao do
+  **cadastro de Servicos** (`Servico`, Loja > Servicos), nao de Produto (produto
+  vai para a loja como item a venda). Servico sem cadastro nasce na hora
+  (`apps/loja/services/servicos.vincular`, SKU `SERV-<NOME>`) na importacao do
+  Shopify e no PUT; o servico guardado leva `servico_id`, e o antigo sem ele e
+  achado pelo nome (a migration `loja.0019` cadastrou os dos pedidos existentes).
+- `starhub` do pedido na saida (`recursos/pedidos_starhub.py`): `entrega.agendamento`
+  sempre `dd-mm-aaaa` (texto que nao e data sai como veio) e `idVendedor` inteiro, o
+  `ConfiguracaoIntegracao.id_vendedor` da plataforma de origem do pedido
+  (`pedido.origin`); sem numero, o campo nao sai. No PUT o `idVendedor` e ignorado.
+- O JSON completo explicado para o ERP fica em `docs/pedido-json-erp.md`, conferido
+  por `apps/woo_api/tests/test_doc_pedido_json.py` (rode com `ATUALIZAR_EXEMPLOS=1`
+  para regravar depois de mudar a saida).
 
 ### 6.3 Erros
 

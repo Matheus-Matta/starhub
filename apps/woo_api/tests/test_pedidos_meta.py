@@ -5,7 +5,7 @@ from decimal import Decimal
 
 import pytest
 
-from apps.loja.models import Pedido
+from apps.loja.models import Pedido, Servico
 from apps.loja.services.extras_pedido import extras
 from apps.loja.services.variantes import criar_produto
 
@@ -84,15 +84,21 @@ def test_formato_antigo_do_md_vira_um_so_campo_starhub(api, pedido, produto):
                    "url": "https://loja.test/pedido", "status_financeiro": "paid",
                    "atualizado_em": "2026-09-30T15:00:00-03:00"},
         "cliente": {"cpf": "12345678900", "tipo_pessoa": "1"},
-        "entrega": {"agendamento": "2026-10-15", "tipo": "delivery"},
+        # O ERP le a data sempre em dd-mm-aaaa (recursos/pedidos_starhub.py).
+        "entrega": {"agendamento": "15-10-2026", "tipo": "delivery"},
         "cupons": ["PROMO10"],
     }
-    servico = {"servico": "Impermeabilização da poltrona", "opcao": "Sim", "preco": "499.99"}
+    cadastro = Servico.objects.get()  # nasceu no PUT, com SKU gerado
+    servico = {"opcao": "Sim", "preco": "499.99"}
     meta_item = corpo["line_items"][0]["meta_data"]
-    assert meta_item[0] == {"id": 1, "key": "starhub", "value": {"servicos": [servico]}}
+    assert meta_item[0] == {"id": 1, "key": "starhub", "value": {"servicos": [{
+        "id": cadastro.pk, "nome": "Impermeabilização da poltrona",
+        "sku": "SERV-IMPERMEABILIZACAO-DA-POLTRONA", **servico}]}}
     # O mesmo servico volta tambem como EPOFW (ver test_pedidos_epofw_saida.py).
     assert [m["key"] for m in meta_item[1:]] == ["epofw_field_1"]
-    assert _gravados(pedido) == [{"item_id": item_id, "sku": "POLTRONA-001", **servico}]
+    assert _gravados(pedido) == [{"item_id": item_id, "sku": "POLTRONA-001",
+                                  "servico": "Impermeabilização da poltrona", **servico,
+                                  "servico_id": cadastro.pk}]
 
 
 def test_preco_numerico_no_json_do_epofw_vira_texto_com_centavos(api, pedido, produto):
@@ -115,7 +121,7 @@ def test_formato_novo_em_put_parcial_troca_so_a_secao_enviada(api, pedido):
     }}]})
 
     assert _starhub(corpo) == {"origem": {"canal": "erp", "id": "9"},
-                               "entrega": {"agendamento": "2026-11-01", "tipo": "pickup"}}
+                               "entrega": {"agendamento": "01-11-2026", "tipo": "pickup"}}
     assert [m["key"] for m in corpo["meta_data"]] == ["starhub"]
 
 
@@ -123,7 +129,7 @@ def test_chave_antiga_solta_em_put_mescla_campo_a_campo(api, pedido):
     """delivery_type sozinho nao pode apagar o agendamento que ja estava gravado."""
     _put(api, pedido, {"meta_data": [{"key": "delivery_date", "value": "2026-10-15"}]})
     corpo = _put(api, pedido, {"meta_data": [{"key": "delivery_type", "value": "pickup"}]})
-    assert _starhub(corpo) == {"entrega": {"agendamento": "2026-10-15", "tipo": "pickup"}}
+    assert _starhub(corpo) == {"entrega": {"agendamento": "15-10-2026", "tipo": "pickup"}}
 
 
 def test_chave_desconhecida_fica_intacta_ao_lado_do_starhub(api, pedido):
@@ -134,7 +140,7 @@ def test_chave_desconhecida_fica_intacta_ao_lado_do_starhub(api, pedido):
     ]})
     corpo = api.get(f"{URL}/{pedido.pk}").json()
     assert {m["key"]: m["value"] for m in corpo["meta_data"]} == {
-        "_erp_lote": {"numero": 7}, "starhub": {"entrega": {"agendamento": "2026-10-15"}},
+        "_erp_lote": {"numero": 7}, "starhub": {"entrega": {"agendamento": "15-10-2026"}},
     }
     pedido.refresh_from_db()
     assert [m["key"] for m in pedido.metadados] == ["_erp_lote", "starhub"]
@@ -155,7 +161,7 @@ def test_servico_de_um_item_nao_apaga_o_servico_de_outro(api, pedido, produto):
     assert [(s["item_id"], s["servico"], s["preco"]) for s in _gravados(pedido)] == [
         (item_a, "Montagem", "80.00"), (item_b, "Garantia estendida", "150.00"),
     ]
-    assert [_starhub(linha)["servicos"][0]["servico"] for linha in corpo["line_items"]] == [
+    assert [_starhub(linha)["servicos"][0]["nome"] for linha in corpo["line_items"]] == [
         "Montagem", "Garantia estendida"]
 
 

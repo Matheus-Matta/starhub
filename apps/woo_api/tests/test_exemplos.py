@@ -14,6 +14,7 @@ import pytest
 
 from apps.loja.models import Categoria, Cliente
 from apps.loja.services.variantes import criar_produto
+from apps.woo_api.recursos.pedidos_starhub import data_brasileira
 from apps.woo_api.tests.conftest import criar_pedido
 
 EXEMPLOS = Path(__file__).resolve().parent / "exemplos"
@@ -69,7 +70,8 @@ def test_pedido_do_exemplo_volta_igual(api, pedido_exemplo):
     }
     assert starhub["cliente"] == {"cpf": antigo["_billing_cpf"],
                                   "tipo_pessoa": antigo["_billing_persontype"]}
-    assert starhub["entrega"] == {"agendamento": antigo["delivery_date"],
+    # O ERP le o agendamento sempre em dd-mm-aaaa (recursos/pedidos_starhub.py).
+    assert starhub["entrega"] == {"agendamento": data_brasileira(antigo["delivery_date"]),
                                   "tipo": antigo["delivery_type"]}
 
 

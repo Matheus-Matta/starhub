@@ -31,6 +31,12 @@ class ConfiguracaoIntegracao(BaseModel):
     # Liga/desliga do frete do hub no checkout: desligado, a rota de cotacao responde sem
     # opcoes na hora, e o cadastro na Shopify fica inativo (ela para de chamar).
     frete_ativo = models.BooleanField("frete do hub no checkout", default=True)
+    # Cada origem vende por um vendedor no ERP: sai como starhub.idVendedor nos pedidos
+    # desta plataforma (API Woo). Vazio, o campo nao sai: um 0 o ERP aceitaria calado.
+    id_vendedor = models.PositiveIntegerField(
+        "ID do vendedor no ERP", null=True, blank=True,
+        help_text="Numero do vendedor no ERP para os pedidos que vem desta loja. "
+                  "Vai no meta_data do pedido como idVendedor.")
     # So WooCommerce, so o superusuario muda: ligado, a rota de pedidos da API Woo do hub
     # repassa a requisicao do ERP para a loja e devolve a resposta dela (woo_api).
     encaminhar_pedidos = models.BooleanField(

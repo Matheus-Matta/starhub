@@ -24,7 +24,7 @@ def _virgula(preco):
 
 def _campo(numero, item, servico):
     nome = f"epofw_field_{numero}"
-    rotulo = f"{str(servico.get('servico') or '').upper()}:"
+    rotulo = f"{str(servico.get('nome') or servico.get('servico') or '').upper()}:"
     opcao = str(servico.get("opcao") or "")
     preco = str(servico.get("preco") or "0.00")
     opcoes = {opcao: f"{opcao}||fixed||{_virgula(preco)}"}

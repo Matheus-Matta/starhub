@@ -4,7 +4,7 @@ import pytest
 
 from apps.core.models import ExternalReference, Origin
 from apps.integracoes.models import ConfiguracaoIntegracao
-from apps.loja.models import Cliente, ItemPedido, Pedido
+from apps.loja.models import Cliente, ItemPedido, Pedido, Servico
 from apps.loja.services.extras_pedido import extras
 from apps.loja.services.variantes import criar_produto
 from apps.shopify.tests.pedido_exemplo import pedido_shopify, produto_shopify_falso  # noqa: F401
@@ -97,6 +97,8 @@ def test_pedido_do_shopify_guarda_extras_num_unico_metadado_starhub(poltrona):
         "servicos": [{
             "item_id": item.pk, "sku": "POLTRONA-001",
             "servico": "Impermeabilização da poltrona", "opcao": "Sim", "preco": "499.99",
+            # Sem cadastro, o servico nasce na importacao e fica vinculado.
+            "servico_id": Servico.objects.get(nome="Impermeabilização da poltrona").pk,
         }],
     }
 

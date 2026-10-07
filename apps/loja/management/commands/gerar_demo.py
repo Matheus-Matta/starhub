@@ -83,6 +83,7 @@ class Command(BaseCommand):
         nucleo.contas(quantidade)
         nucleo.usuarios(conta, nucleo.perfis(conta, quantidade))
         tags = catalogo.tags(quantidade)
+        catalogo.servicos(quantidade)
         categorias = catalogo.categorias(conta, quantidade)
         valores = catalogo.tipos_e_valores()
         simples = catalogo.simples(categorias, tags, quantidade)

@@ -8,11 +8,12 @@ from .opcoes import TipoVariante, ValorDaVarianteProduto, ValorVariante
 from .pedido import ItemPedido, Pedido
 from .pedido_eventos import EntregaPedido, PagamentoPedido
 from .produto import Produto
+from .servico import Servico
 from .variantes import VarianteProduto
 
 __all__ = [
     "Avaliacao", "Categoria", "Cliente", "ClienteEndereco", "Cupom", "EntregaPedido",
     "FotoAvaliacao", "ItemBundle", "ItemPedido", "MidiaProduto", "PagamentoPedido", "Pedido",
-    "Produto", "Tag",
+    "Produto", "Servico", "Tag",
     "TipoVariante", "ValorDaVarianteProduto", "ValorVariante", "VarianteProduto",
 ]

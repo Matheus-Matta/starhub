@@ -30,6 +30,7 @@ from apps.loja.models import (
     ItemBundle,
     Pedido,
     Produto,
+    Servico,
     Tag,
     TipoVariante,
     ValorVariante,
@@ -42,7 +43,7 @@ def _modelos():
     # Avaliacao primeiro: PROTECT em produto e cliente (as fotos vao junto, CASCADE).
     return [Avaliacao, Pedido, ItemBundle, Cupom, PublicationState, ExternalReference,
             PublicationPolicy, SalesChannel, Produto, ValorVariante, TipoVariante, Categoria, Tag,
-            Cliente, Address, ChaveApi]
+            Servico, Cliente, Address, ChaveApi]
 
 
 def _demo(modelo, conta):

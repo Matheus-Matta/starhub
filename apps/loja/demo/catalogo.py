@@ -4,13 +4,16 @@ produtos simples (com galeria demo1/demo2 na variante padrao)."""
 from decimal import Decimal
 
 from apps.loja.demo import imagem, marca, nome_n
-from apps.loja.models import Categoria, Tag, TipoVariante, ValorVariante
+from apps.loja.models import Categoria, Servico, Tag, TipoVariante, ValorVariante
 from apps.loja.services.midias import sincronizar_midias
 from apps.loja.services.slugs import slug_livre
 from apps.loja.services.variantes import criar_produto
 
 TAGS = ["Promocao", "Lancamento", "Mais vendido", "Frete gratis", "Sustentavel", "Importado",
         "Kit", "Presente", "Inverno", "Verao"]
+SERVICOS = ["Montagem", "Impermeabilização da poltrona", "Garantia estendida", "Instalação",
+            "Frete expresso", "Embalagem para presente", "Higienização", "Desmontagem",
+            "Retirada do móvel antigo", "Personalização"]
 # (nome, pai): as filhas apontam para o pai pelo nome.
 CATEGORIAS = [("Moda", None), ("Casa", None), ("Eletronicos", None),
               ("Camisetas", "Moda"), ("Calcados", "Moda"), ("Acessorios", "Moda"),
@@ -40,6 +43,11 @@ SIMPLES = [
 
 def tags(quantidade):
     return [Tag.objects.create(nome=nome_n(TAGS, i), metadados=marca()) for i in range(quantidade)]
+
+
+def servicos(quantidade):
+    return [Servico.objects.create(nome=nome_n(SERVICOS, i), metadados=marca())
+            for i in range(quantidade)]
 
 
 def categorias(conta, quantidade):

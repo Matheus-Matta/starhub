@@ -8,6 +8,7 @@ orders/updated acha o item certo em vez de criar outro.
 from apps.core.models import ExternalReference, Origin
 from apps.loja.dinheiro import ZERO, dinheiro, somar
 from apps.loja.models import ItemPedido, Produto, VarianteProduto
+from apps.loja.services.servicos import vincular
 from apps.loja.totais import valores_do_item
 from apps.shopify.pedidos_base import gid, soma_alocacoes, valor, valor_com_fallback
 from apps.shopify.pedidos_servicos import servicos_do_item
@@ -98,4 +99,5 @@ def gravar_itens(pedido, dados):
         for servico in servicos_do_item(linha.get("properties")):
             servicos.append({"item_id": item.pk, "sku": item.sku, **servico,
                              "preco": f"{servico['preco']:.2f}"})
-    return servicos
+    # Servico sem cadastro nasce aqui: o ERP recebe id e SKU ja no primeiro GET.
+    return vincular(servicos)

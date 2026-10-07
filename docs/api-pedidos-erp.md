@@ -125,13 +125,25 @@ CPF e tipo de pessoa.
 
 ### Entrega
 
-Data agendada e tipo (delivery, pickup, etc).
+Data agendada e tipo (delivery, pickup, etc). O agendamento sai sempre em
+`dd-mm-aaaa`, seja qual for o formato que a loja mandou; texto que nao e data sai
+como veio.
 
 ```json
 "entrega": {
-  "agendamento": "2026-10-15",
+  "agendamento": "15-10-2026",
   "tipo": "delivery"
 }
+```
+
+### Vendedor
+
+`idVendedor` (numero inteiro): o id do vendedor no ERP configurado na integracao
+da loja de origem (Integracoes > loja > "ID do vendedor no ERP"). Sem numero
+configurado, o campo nao sai. No PUT ele e ignorado.
+
+```json
+"idVendedor": 12
 ```
 
 ### Cupons
@@ -144,16 +156,16 @@ Lista de codigos de cupom aplicados ao pedido.
 
 ### Servicos (no item, nao no pedido)
 
-Servico extra (montagem, impermeabilizacao, garantia) e do item: sai no `meta_data` do proprio `line_item`, com a mesma chave `starhub`. Nao tem `item_id` nem `sku` porque o item ja tem. Item sem servico nao recebe esse meta; o `starhub` do pedido nunca traz `servicos`.
+Servico extra (montagem, impermeabilizacao, garantia) e do item: sai no `meta_data` do proprio `line_item`, com a mesma chave `starhub`. Cada servico traz `id` e `sku` do **cadastro de Servicos** do hub (Loja > Servicos), `nome`, `preco` pago neste item e `opcao`. Servico que chega num pedido sem cadastro nasce na hora, com SKU `SERV-<NOME>`; troque pelo codigo do ERP no cadastro. Item sem servico nao recebe esse meta; o `starhub` do pedido nunca traz `servicos`.
 
 ```json
 "line_items": [{"id": 1, "sku": "POLTRONA-001", "meta_data": [
-  {"id": 1, "key": "_shopify_line_item_id", "value": "555"},
-  {"id": 2, "key": "starhub", "value": {"servicos": [
-    {"servico": "Impermeabilização da poltrona", "opcao": "Sim", "preco": "499.99"}]}}]}]
+  {"id": 1, "key": "starhub", "value": {"servicos": [
+    {"id": 1, "nome": "Impermeabilização da poltrona",
+     "sku": "SERV-IMPERMEABILIZACAO-DA-POLTRONA", "preco": "499.99", "opcao": "Sim"}]}}]}]
 ```
 
-No PUT (e no `update` do batch) o ERP pode devolver o item como recebeu: os servicos do `starhub` do item trocam os daquele item, sem duplicar. `"servicos": []` tira os servicos do item. Item que nao manda `starhub` nem EPOFW no `meta_data` mantem os servicos que tinha.
+No PUT (e no `update` do batch) o ERP pode devolver o item como recebeu: os servicos do `starhub` do item trocam os daquele item, sem duplicar; `id` e `sku` sao ignorados na entrada (vem do cadastro). `nome` (ou `servico`, do formato anterior) diz qual e o servico. `"servicos": []` tira os servicos do item. Item que nao manda `starhub` nem EPOFW no `meta_data` mantem os servicos que tinha.
 
 ## Formato antigo aceito na entrada
 
@@ -180,7 +192,7 @@ Tambem continuam aceitos:
 {"key": "epofw_field_55", "value": "{\"epofw_field_55\": {\"epofw_label\": \"IMPERMEABILIZAÇÃO:\", \"epofw_value\": \"Sim\", \"epofw_price\": 499.99}}"}
 ```
 
-vira, no GET, `{"servico": "Impermeabilização da poltrona", "opcao": "Sim", "preco": "499.99"}` dentro do `starhub` do item.
+vira, no GET, `{"id": 1, "nome": "Impermeabilização da poltrona", "sku": "SERV-IMPERMEABILIZACAO-DA-POLTRONA", "preco": "499.99", "opcao": "Sim"}` dentro do `starhub` do item.
 
 ## Criacao de categoria e cupom
 
@@ -191,4 +203,4 @@ vira, no GET, `{"servico": "Impermeabilização da poltrona", "opcao": "Sim", "p
 
 ## Exemplo JSON completo
 
-Veja [docs/exemplos/pedido-completo.json](exemplos/pedido-completo.json) para uma resposta real com todos os campos preenchidos.
+Veja [docs/pedido-json-erp.md](pedido-json-erp.md): o JSON completo do pedido explicado campo por campo. O mesmo JSON fica em [docs/exemplos/pedido-completo.json](exemplos/pedido-completo.json); os dois sao conferidos por teste contra a resposta real da API (`apps/woo_api/tests/test_doc_pedido_json.py`).

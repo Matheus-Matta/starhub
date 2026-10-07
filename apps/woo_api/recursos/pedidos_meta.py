@@ -15,6 +15,7 @@ import re
 
 from apps.loja.dinheiro import ValorInvalido, dinheiro
 from apps.loja.services.extras_pedido import CHAVE, RECUSAS, extras, mesclar_extras, rotulo_servico
+from apps.loja.services.servicos import vincular
 from apps.woo_api import metadados
 from apps.woo_api.erros import WooErro, parametro_invalido
 
@@ -84,6 +85,9 @@ def gravar_meta(pedido, meta_data):
         chave = item.get("key") if isinstance(item, dict) else None
         if chave == CHAVE:
             secoes.update(_objeto(item.get("value"), CHAVE))
+            # Sai da integracao de origem a cada GET; gravado, um numero velho
+            # continuaria saindo depois de trocarem o da integracao.
+            secoes.pop("idVendedor", None)
         elif chave in _ANTIGAS:
             secao, campo = _ANTIGAS[chave]
             soltas.setdefault(secao, {})[campo] = str(item.get("value") or "")
@@ -92,7 +96,7 @@ def gravar_meta(pedido, meta_data):
         elif chave not in _NO_ENDERECO:
             resto.append(item)
     if isinstance(secoes.get("servicos"), list):
-        secoes["servicos"] = [servico_valido(servico) for servico in secoes["servicos"]]
+        secoes["servicos"] = vincular([servico_valido(s) for s in secoes["servicos"]])
     # Chave solta e UM campo: mescla dentro da secao em vez de trocar a secao toda.
     for secao, campos in soltas.items():
         base = secoes.get(secao, atual.get(secao))
@@ -145,7 +149,7 @@ def gravar_servicos(pedido, por_item):
     atuais = extras(pedido).get("servicos") or []
     ids = set(pedido.itens.values_list("pk", flat=True))
     mantidos = [s for s in atuais if s.get("item_id") in ids and s.get("item_id") not in por_item]
-    novos = [servico for servicos in por_item.values() for servico in servicos]
+    novos = vincular([servico for servicos in por_item.values() for servico in servicos])
     servicos = sorted(mantidos + novos, key=lambda s: s.get("item_id") or 0)
     if servicos == atuais:
         return False

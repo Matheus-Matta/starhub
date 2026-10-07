@@ -36,7 +36,7 @@ ACOES = {
 }
 Plataforma = ConfiguracaoIntegracao.Plataforma
 CAMPOS_API = ("dominio_loja", "token_acesso", "segredo_app", "segredo_avaliacoes",
-              "url_webhook", "active")
+              "url_webhook", "id_vendedor", "active")
 # O que muda de uma plataforma para outra na mesma tela de configuracao.
 TELAS = {
     Plataforma.SHOPIFY: {"nome": "Shopify", "form": ConfiguracaoShopifyForm, "acoes": ACOES},

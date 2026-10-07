@@ -40,9 +40,10 @@ class ConfiguracaoShopifyForm(forms.ModelForm):
 
     class Meta:
         model = ConfiguracaoIntegracao
-        fields = ["dominio_loja", "url_webhook", "active"]
+        fields = ["dominio_loja", "url_webhook", "id_vendedor", "active"]
         labels = {"active": "Integracao ativa"}
         widgets = {
+            "id_vendedor": forms.NumberInput(attrs={"placeholder": "12", "min": 1}),
             "dominio_loja": forms.TextInput(
                 attrs={"placeholder": "sua-loja.myshopify.com"}
             ),

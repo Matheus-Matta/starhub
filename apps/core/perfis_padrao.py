@@ -24,7 +24,7 @@ TODOS = "*"  # todos os models do app
 PEDIDOS = ["pedido", "itempedido", "pagamentopedido", "entregapedido"]
 CLIENTES = ["cliente", "clienteendereco"]
 CATALOGO = ["produto", "varianteproduto", "midiaproduto", "categoria", "tag", "tipovariante",
-            "valorvariante", "valordavarianteproduto", "itembundle"]
+            "valorvariante", "valordavarianteproduto", "itembundle", "servico"]
 INTEGRACOES_ANTIGAS = [
     "saleschannel", "publicationpolicy", "publicationstate", "externalreference",
 ]

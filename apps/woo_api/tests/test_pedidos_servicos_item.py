@@ -8,7 +8,7 @@ from decimal import Decimal
 
 import pytest
 
-from apps.loja.models import Pedido
+from apps.loja.models import Pedido, Servico
 from apps.loja.services.extras_pedido import extras
 from apps.loja.services.variantes import criar_produto
 
@@ -42,6 +42,13 @@ def _meta(lista, chave="starhub"):
     return next((m["value"] for m in lista if m["key"] == chave), None)
 
 
+def _saida(servico):
+    """Como a API mostra o servico: id e SKU do cadastro, nome, preco e opcao."""
+    cadastro = Servico.objects.get(nome=servico["servico"])
+    return {"id": cadastro.pk, "nome": cadastro.nome, "sku": cadastro.sku,
+            "preco": servico["preco"], "opcao": servico["opcao"]}
+
+
 def _itens(corpo):
     return {linha["id"]: linha for linha in corpo["line_items"]}
 
@@ -58,8 +65,8 @@ def test_get_mostra_o_servico_no_item_certo_e_nao_no_pedido(api, pedido_com_serv
     corpo = api.get(f"{URL}/{pedido.pk}").json()
     itens = _itens(corpo)
 
-    assert _meta(corpo["meta_data"]) == {"entrega": {"agendamento": "2026-10-15"}}
-    assert _meta(itens[item_a]["meta_data"]) == {"servicos": [MONTAGEM]}
+    assert _meta(corpo["meta_data"]) == {"entrega": {"agendamento": "15-10-2026"}}
+    assert _meta(itens[item_a]["meta_data"]) == {"servicos": [_saida(MONTAGEM)]}
     assert _meta(itens[item_b]["meta_data"]) is None
 
 
@@ -69,7 +76,7 @@ def test_pedido_so_com_servicos_nao_manda_meta_starhub_vazio(api, pedido_com_ser
     _put(api, pedido, {"meta_data": [{"key": "starhub", "value": {"entrega": {}}}]})
     corpo = api.get(f"{URL}/{pedido.pk}").json()
     assert _meta(corpo["meta_data"]) is None
-    assert _meta(_itens(corpo)[item_a]["meta_data"]) == {"servicos": [MONTAGEM]}
+    assert _meta(_itens(corpo)[item_a]["meta_data"]) == {"servicos": [_saida(MONTAGEM)]}
 
 
 def test_round_trip_get_put_do_mesmo_corpo_nao_duplica_servicos(api, pedido_com_servico):
@@ -83,7 +90,7 @@ def test_round_trip_get_put_do_mesmo_corpo_nao_duplica_servicos(api, pedido_com_
 
     pedido.refresh_from_db()
     assert extras(pedido)["servicos"] == antes
-    assert _meta(_itens(depois)[item_a]["meta_data"]) == {"servicos": [MONTAGEM]}
+    assert _meta(_itens(depois)[item_a]["meta_data"]) == {"servicos": [_saida(MONTAGEM)]}
     assert all(m["key"] != "starhub" for item in pedido.itens.all()
                for m in item.metadados or [])
 
@@ -95,7 +102,7 @@ def test_put_com_starhub_no_item_grava_o_servico_daquele_item(api, pedido_com_se
         {"key": "starhub", "value": {"servicos": [garantia]}}]}]})
 
     assert _meta(_itens(corpo)[item_b]["meta_data"]) == {
-        "servicos": [{**garantia, "preco": "150.00"}]}
+        "servicos": [_saida({**garantia, "preco": "150.00"})]}
     pedido.refresh_from_db()
     assert [(s["item_id"], s["sku"], s["servico"]) for s in extras(pedido)["servicos"]] == [
         (item_a, "POLTRONA-001", "Montagem"), (item_b, "POLTRONA-001", "Garantia estendida")]
