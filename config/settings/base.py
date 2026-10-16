@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "apps.shopify",
     "apps.woocommerce",
     "apps.suri",
+    "apps.starchats",
     "apps.notificacoes",
 ]
 

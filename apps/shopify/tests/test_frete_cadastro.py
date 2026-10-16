@@ -52,6 +52,17 @@ def test_cria_com_a_url_de_cotacao_e_guarda_o_id(configuracao):
     assert ExternalReference.objects.get(entity_type="carrier_service").external_id == GID
 
 
+def test_atualiza_para_o_nome_de_frete_escolhido_na_integracao(configuracao):
+    """Trocar o titulo atualiza o cadastro existente em vez de criar outro."""
+    _cadastrar(configuracao, LojaFalsa())
+    configuracao.nome_frete = "Entrega Maxxx"
+    configuracao.save()
+    loja = LojaFalsa()
+    _cadastrar(configuracao, loja)
+    assert "carrierServiceUpdate" in loja.chamadas[-1][0]
+    assert loja.chamadas[-1][1]["input"]["name"] == "Entrega Maxxx"
+
+
 def test_cadastrar_de_novo_atualiza_o_mesmo_e_nao_cria_outro(configuracao):
     """Dois cadastros mostrariam as opcoes do hub em dobro no checkout."""
     _cadastrar(configuracao, LojaFalsa())
@@ -86,6 +97,9 @@ def test_botao_da_tela_coloca_o_cadastro_na_fila(admin_logado, configuracao, mon
     pagina = "/admin/integracoes/configuracaointegracao/shopify/"
     assert "Cadastrar frete no checkout" in admin_logado.get(pagina).content.decode()
     admin_logado.post(pagina, {"acao": "frete", "dominio_loja": "loja.myshopify.com",
-                               "url_webhook": configuracao.url_webhook, "active": "on"})
+                               "url_webhook": configuracao.url_webhook,
+                               "nome_frete": "Entrega Maxxx", "active": "on"})
     execucao = ExecucaoIntegracao.objects.get(tipo=ExecucaoIntegracao.Tipo.FRETE_CHECKOUT)
     tarefa.delay.assert_called_once_with(str(execucao.pk))
+    configuracao.refresh_from_db()
+    assert configuracao.nome_frete == "Entrega Maxxx"

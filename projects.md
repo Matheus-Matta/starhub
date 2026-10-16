@@ -112,6 +112,7 @@ apps/integracoes/       configuracao comum das lojas + historico das tarefas de 
 apps/shopify/           cliente, consultas, webhooks e tarefas Celery do Shopify
 apps/woocommerce/       cliente REST v3, importacao, webhooks, envio e tarefas do WooCommerce
 apps/suri/              Suri Shop (by Totvs, venda pelo WhatsApp): catalogo, pedidos e envio
+apps/starchats/         StarChats: mensagens de WhatsApp por templates oficiais e regras
 apps/notificacoes/      SMTP de cada conta, configuracao de notificacoes e o sino do cabecalho
 apps/loja/              dados do hub: Produto + VarianteProduto, Categoria, Tag, Cliente,
                         Pedido, ItemPedido, PagamentoPedido, EntregaPedido, Cupom
@@ -507,6 +508,10 @@ de `regular_price`, `sale_price` e `stock_quantity`. Filtros/corpos aparecem no 
   (`apps/loja/services/servicos_regras.servicos_do_produto`). A pagina do produto
   mostra, so para consulta, os servicos que valem para ele (secao "Servicos"). A API
   Woo continua mandando o preco **pago** no pedido, nao o da regra.
+- **Update de pedido** (PUT/PATCH/lote, v1 e v3) aceita o servico como o GET mostra:
+  reconhece pelo `id`, depois `sku`, depois `nome` (`loja.services.servicos.do_erp`,
+  antes de salvar o item); id/SKU inexistente e 400 `rest_invalid_param`. Sem `preco`,
+  vale o da regra para o produto do item, ou o padrao do servico.
 - `starhub` do pedido na saida (`recursos/pedidos_starhub.py`): `entrega.agendamento`
   sempre `dd-mm-aaaa` (texto que nao e data sai como veio) e `idVendedor` inteiro, o
   `ConfiguracaoIntegracao.id_vendedor` da plataforma de origem do pedido
@@ -930,11 +935,13 @@ checkout das lojas" de cada tabela (Shopify, WooCommerce e Suri, abaixo). Menu
   `cep_inicial`, `cep_final`, `valor` e `prazo_dias`. Tabela que nao existe nasce "Por
   faixa de CEP"; mesma faixa atualiza; faixa que cruza outra e recusada na linha. A opcao
   "substituir" apaga antes as faixas das tabelas da planilha (`apps/logistica/importacao.py`).
-- **Frete no checkout da Shopify (CarrierService):** marque "oferecer no checkout" nas
+- **Frete no checkout da Shopify (CarrierService):** o nome da calculadora e configuravel
+  em Integracoes > Shopify (vazio usa "StarHub Frete"). Marque "oferecer no checkout" nas
   tabelas e clique **Cadastrar frete no checkout** em Integracoes > Shopify (tarefa;
   escopo `write_shipping`; loja com calculadora de terceiros liberada). A Shopify chama
-  `POST /integracoes/shopify/frete/<uuid>/` (HMAC do segredo do app) a cada CEP do
-  checkout e espera 3 s: cada tabela que atende vira uma opcao (`service_code` `HUB_<id>`,
+  `POST /integracoes/shopify/frete/<uuid>/` a cada CEP do checkout. CarrierService nao
+  envia o HMAC de webhook; o UUID aleatorio identifica a configuracao. A Shopify
+  espera 3 s: cada tabela que atende vira uma opcao (`service_code` `HUB_<id>`,
   valor em centavos, prazo em dias uteis). No checkout cada API externa tem 0,8 s e o
   total 2,2 s; coordenadas e rotas ficam em `CoordenadaCep`/`DistanciaCep` (2a cotacao do
   mesmo CEP ~0,02 s). CEP que as bases nao conhecem e localizado pela cidade que o
@@ -996,6 +1003,25 @@ As duas ficam no Nucleo do menu e abrem direto a da conta ativa.
   pagina perguntar; conexao que cai tenta de novo com espera crescente.
 - `STARHUB_URL_PUBLICA` (`.env`): endereco do hub para o link no e-mail; vazio, o e-mail
   vai sem link.
+
+### 7.9 StarChats: mensagens pelo WhatsApp oficial (`apps/starchats`)
+
+A integracao aparece no sistema somente como **StarChats**. Ela usa a Application API
+compativel com Chatwoot para conversar com uma caixa de WhatsApp oficial; `url_base`, ID
+da conta e token ficam na configuracao da conta do StarHub, e o token e criptografado.
+
+- Marque **Buscar caixas e modelos ao salvar**: uma tarefa Celery lista as caixas, mantem
+  somente as de WhatsApp e sincroniza os templates aprovados da caixa selecionada. Se
+  houver varias caixas, volte a configuracao e escolha uma; salvar a escolha sincroniza
+  os modelos dela automaticamente.
+- **Regras de envio** sao reutilizaveis. **Conjuntos de envio** tem relacao N:N com elas,
+  escolhem se todas ou qualquer regra deve valer, o evento e o modelo da mensagem.
+- Os parametros `{{1}}` ou nomeados apontam para dados do cliente/pedido, por exemplo
+  `cliente.nome_completo`, `pedido.numero` e `pedido.total`. Cabecalho com texto/midia e
+  botao de copiar codigo tambem sao enviados em `template_params.processed_params`.
+- Salvar cliente ou pedido apenas agenda a tarefa depois do commit. O worker cria/reusa
+  contato e conversa no StarChats e envia o template. `EnvioStarChats` guarda sucesso ou
+  erro e uma chave unica no banco impede duplicacao em tarefas concorrentes.
 
 ## 8. Regras que valem aqui
 

@@ -100,5 +100,59 @@ def _preco_valido(valor):
     return preco if preco and preco > 0 else None
 
 
+class ServicoDesconhecido(ValueError):
+    pass
+
+
+def _cadastro_do_erp(servico):
+    """Servico do cadastro pelo id, depois pelo SKU, depois pelo nome (cria se novo)."""
+    if "_id" in servico:
+        try:
+            achado = Servico.objects.filter(pk=int(servico["_id"])).first()
+        except (TypeError, ValueError):
+            achado = None
+        if achado is None:
+            raise ServicoDesconhecido(
+                f'Servico id {servico["_id"]} nao existe. Use o id que o GET do pedido '
+                "devolve ou cadastre o servico em Loja > Servicos.")
+        return achado
+    if "_sku" in servico:
+        achado = Servico.objects.filter(sku=str(servico["_sku"]).strip()).first()
+        if achado is None:
+            raise ServicoDesconhecido(
+                f'Servico com SKU "{servico["_sku"]}" nao existe. Confira o SKU em '
+                "Loja > Servicos ou mande o nome do servico.")
+        return achado
+    if not _chave(servico.get("servico")):
+        raise ServicoDesconhecido(
+            'Servico sem "id", "sku" nem "nome". Mande um deles; o cadastro fica em '
+            "Loja > Servicos.")
+    nome = str(servico["servico"]).strip()
+    return Servico.objects.get_or_create(nome_normalizado=_chave(nome),
+                                         defaults={"nome": nome})[0]
+
+
+def do_erp(servicos, produto):
+    """Servicos que o ERP mandou para um item, prontos para guardar.
+
+    Cada um vira o cadastro dele (nome e servico_id). Sem preco, vale o da regra
+    que pega o produto do item; sem regra, o preco padrao do servico.
+    """
+    from apps.loja.services.servicos_regras import servicos_do_produto
+
+    das_regras = None
+    saida = []
+    for servico in servicos or []:
+        cadastro = _cadastro_do_erp(servico)
+        limpo = {k: v for k, v in servico.items() if k not in ("_id", "_sku")}
+        limpo.update(servico=cadastro.nome, servico_id=cadastro.pk)
+        if not limpo.get("preco"):
+            if das_regras is None:
+                das_regras = dict(servicos_do_produto(produto)) if produto else {}
+            limpo["preco"] = f"{das_regras.get(cadastro, cadastro.preco):.2f}"
+        saida.append(limpo)
+    return saida
+
+
 def do_cadastro(servico, mapa):
     return mapa.get(servico.get("servico_id")) or mapa.get(_chave(servico.get("servico")))

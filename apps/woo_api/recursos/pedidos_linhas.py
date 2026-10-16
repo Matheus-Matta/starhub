@@ -7,6 +7,7 @@ linha, mande o "id" com "quantity": 0 (itens) ou "method_id"/"name" nulo (frete/
 from apps.loja.dinheiro import ValorInvalido, dinheiro
 from apps.loja.dinheiro import texto as dinheiro_texto
 from apps.loja.models import ItemPedido, Produto, VarianteProduto
+from apps.loja.services.servicos import ServicoDesconhecido, do_erp
 from apps.loja.totais import valores_do_item
 from apps.woo_api import metadados
 from apps.woo_api.erros import WooErro, parametro_invalido
@@ -81,6 +82,12 @@ def _gravar_item(pedido, linha, item):
         do_starhub, resto = separar_starhub(linha["meta_data"])
         do_epofw, resto = separar_servicos(resto)
         servicos = do_epofw if do_starhub is None else do_starhub
+        if servicos is not None:
+            # Antes do save: id/SKU errado nao pode deixar o item gravado pela metade.
+            try:
+                servicos = do_erp(servicos, item.produto)
+            except ServicoDesconhecido as erro:
+                raise parametro_invalido("line_items", str(erro)) from None
         item.metadados = metadados.mesclar(item.metadados, resto)
     item.pedido = pedido
     item.save()

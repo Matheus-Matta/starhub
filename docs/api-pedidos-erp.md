@@ -165,7 +165,7 @@ Servico extra (montagem, impermeabilizacao, garantia) e do item: sai no `meta_da
      "sku": "SERV-IMPERMEABILIZACAO-DA-POLTRONA", "preco": "499.99", "opcao": "Sim"}]}}]}]
 ```
 
-No PUT (e no `update` do batch) o ERP pode devolver o item como recebeu: os servicos do `starhub` do item trocam os daquele item, sem duplicar; `id` e `sku` sao ignorados na entrada (vem do cadastro). `nome` (ou `servico`, do formato anterior) diz qual e o servico. `"servicos": []` tira os servicos do item. Item que nao manda `starhub` nem EPOFW no `meta_data` mantem os servicos que tinha.
+No PUT (e no `update` do batch, em v1 e v3) o ERP pode devolver o item como recebeu: os servicos do `starhub` do item trocam os daquele item, sem duplicar. O servico e reconhecido pelo cadastro na ordem `id`, `sku`, `nome` (ou `servico`, do formato anterior); `id` ou `sku` inexistente volta `400 rest_invalid_param` com o motivo em `data.params.line_items`. Sem `preco`, vale o da regra do servico para o produto do item, ou o preco padrao. `"servicos": []` tira os servicos do item. Item que nao manda `starhub` nem EPOFW no `meta_data` mantem os servicos que tinha.
 
 ## Formato antigo aceito na entrada
 

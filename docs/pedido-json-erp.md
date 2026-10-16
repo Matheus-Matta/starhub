@@ -376,12 +376,18 @@ some os dois: são o mesmo serviço.
 
 ## Devolvendo o pedido (PUT)
 
-O ERP pode mandar de volta o pedido como recebeu (`PUT /wp-json/wc/v3/orders/<id>`)
-sem duplicar nada:
+O update usa o mesmo formato do GET, em `PUT`/`PATCH /wp-json/wc/v3/orders/<id>`, na
+rota antiga `wc/v1/orders/<id>` e no lote `orders/batch` (`update`). O ERP pode
+mandar de volta o pedido como recebeu sem duplicar nada:
 
-- os serviços do `starhub` do item trocam os serviços daquele item. `id` e `sku`
-  vêm do cadastro e são ignorados na entrada. `"servicos": []` tira os serviços
-  do item;
+- os serviços do `starhub` do item trocam os serviços daquele item.
+  `"servicos": []` tira os serviços do item;
+- cada serviço é reconhecido pelo cadastro, nesta ordem: `id`, depois `sku`,
+  depois `nome`. Basta um deles, por exemplo `{"id": 2, "opcao": "Sim"}`. `id` ou
+  `sku` que não existe é recusado com `400 rest_invalid_param`, e o motivo vem em
+  `data.params.line_items`. Nome novo cria o serviço no cadastro;
+- serviço sem `preco` recebe o preço que vale para o produto do item: o da regra
+  do serviço, ou o preço padrão dele;
 - `idVendedor` é ignorado na entrada, porque vem sempre da configuração da
   integração;
 - `entrega.agendamento` pode voltar em `dd-mm-aaaa`.

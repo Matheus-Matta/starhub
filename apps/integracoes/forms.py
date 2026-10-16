@@ -40,13 +40,14 @@ class ConfiguracaoShopifyForm(forms.ModelForm):
 
     class Meta:
         model = ConfiguracaoIntegracao
-        fields = ["dominio_loja", "url_webhook", "id_vendedor", "active"]
+        fields = ["dominio_loja", "url_webhook", "nome_frete", "id_vendedor", "active"]
         labels = {"active": "Integracao ativa"}
         widgets = {
             "id_vendedor": forms.NumberInput(attrs={"placeholder": "12", "min": 1}),
             "dominio_loja": forms.TextInput(
                 attrs={"placeholder": "sua-loja.myshopify.com"}
             ),
+            "nome_frete": forms.TextInput(attrs={"placeholder": "StarHub Frete"}),
             "url_webhook": forms.URLInput(attrs={
                 "placeholder": "https://seu-dominio.com/integracoes/shopify/webhook"
             }),

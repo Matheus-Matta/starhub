@@ -26,6 +26,11 @@ STARHUB_MENU_ICONES = {
     "integracoes.execucaointegracao": "history",
     "notificacoes.configuracaoemail": "mail",
     "notificacoes.configuracaonotificacao": "bell",
+    "starchats.configuracaostarchats": "marca:starchats",
+    "starchats.modelomensagem": "message-square-text",
+    "starchats.regraenvio": "filter",
+    "starchats.conjuntoenvio": "sliders-horizontal",
+    "starchats.enviostarchats": "mail",
     "woo_api.chaveapi": "key-round",
 }
 # Models de um app que aparecem na secao de outro: {"app_origem": "app_destino"} move o
@@ -41,7 +46,7 @@ STARHUB_MENU_AGRUPAR = {
     "notificacoes": "core",
 }
 # Fluxo operacional primeiro; auditoria fica no final para nao disputar atencao.
-STARHUB_MENU_ORDEM = ["loja", "logistica", "integracoes", "core", "auditlog"]
+STARHUB_MENU_ORDEM = ["loja", "logistica", "integracoes", "starchats", "core", "auditlog"]
 # Relatorios especiais do dropdown "Relatorios" (apps/core/relatorios), antes dos
 # genericos (um por ModelAdmin do tema). Classe com chave, titulo, permitido e gerar.
 STARHUB_RELATORIOS = ["apps.loja.relatorios.UsoCupons"]

@@ -81,10 +81,22 @@ def test_rota_assinada_responde_as_opcoes_no_formato_da_shopify(client, conta):
     assert resposta.json()["rates"][0]["service_code"] == f"HUB_{tabela.pk}"
 
 
-def test_rota_sem_assinatura_valida_ou_loja_desconhecida_e_recusada(client, conta):
-    """Sem conferir o HMAC qualquer um descobriria a tabela de precos da loja."""
+def test_rota_aceita_a_cotacao_sem_hmac_de_webhook(client, conta):
+    """CarrierService nao assina a cotacao como webhook; exigir HMAC esconde o frete."""
     configuracao = _configuracao(conta)
-    assert _post(client, configuracao, CHECKOUT, assinatura="falsa").status_code == 401
+    tabela = _faixa()
+    resposta = client.post(
+        f"/integracoes/shopify/frete/{configuracao.uuid}/",
+        data=json.dumps(CHECKOUT).encode(),
+        content_type="application/json",
+    )
+    assert resposta.status_code == 200
+    assert resposta.json()["rates"][0]["service_code"] == f"HUB_{tabela.pk}"
+
+
+def test_rota_de_loja_desconhecida_e_recusada(client, conta):
+    """O UUID impede misturar a cotacao com uma configuracao que nao existe."""
+    _configuracao(conta)
     resposta = client.post("/integracoes/shopify/frete/00000000-0000-0000-0000-000000000000/",
                            data=b"{}", content_type="application/json")
     assert resposta.status_code == 404

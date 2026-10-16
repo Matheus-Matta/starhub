@@ -55,7 +55,13 @@ def acoes_da_linha(obj, conteudo="", rotulo="Ver detalhes"):
 # Icones das marcas: Simple Icons (https://simpleicons.org, CC0), baixados para
 # static/starhub/img/marcas com a cor oficial. Plataforma que nao esta la (Mercado
 # Livre, Magalu, Amazon) usa o icone de loja; as internas, um icone do sprite.
-MARCAS = {"shopify": "#7AB55C", "woocommerce": "#96588A", "shopee": "#EE4D2D"}
+MARCAS = {
+    "shopify": "#7AB55C",
+    "woocommerce": "#96588A",
+    "shopee": "#EE4D2D",
+    # Identidade fornecida para a integracao; o SVG preserva o proprio gradiente.
+    "starchats": "#7138FF",
+}
 ICONES = {"api": "plug", "import": "archive"}
 # Marca que so existe em imagem: o proprio StarHub (o simbolo do favicon) e o Suri
 # (o icone do site deles, sem SVG publico).

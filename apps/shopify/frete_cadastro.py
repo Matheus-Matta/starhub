@@ -48,16 +48,21 @@ def _mutacao(cliente, query, entrada, campo):
     return dados["carrierService"]
 
 
+def _nome(configuracao):
+    return configuracao.nome_frete.strip() or NOME
+
+
 def cadastrar_frete(configuracao, progresso):
     url = url_de_cotacao(configuracao)
     cliente = ShopifyClient(configuracao)
     vinculo = _vinculo(configuracao)
+    nome = _nome(configuracao)
     existente = vinculo.external_id if vinculo else next(
         (no["id"] for no in (cliente.graphql(LISTAR).get("carrierServices") or {}).get("nodes", [])
-         if no.get("name") == NOME), None)
+         if no.get("callbackUrl") == url or no.get("name") in {NOME, nome}), None)
     progresso(0, 1, "Cadastrando o frete no checkout")
     # active segue o liga/desliga do hub: inativo, a Shopify para de chamar a cotacao.
-    entrada = {"name": NOME, "callbackUrl": url, "active": configuracao.frete_ativo,
+    entrada = {"name": nome, "callbackUrl": url, "active": configuracao.frete_ativo,
                "supportsServiceDiscovery": True}
     if existente:
         servico = _mutacao(cliente, ATUALIZAR, {"id": existente, **entrada},

@@ -27,6 +27,10 @@ class ConfiguracaoIntegracao(BaseModel):
     # app: este fica nas configuracoes do tema, que qualquer editor do tema le.
     segredo_avaliacoes_criptografado = models.TextField(editable=False, blank=True)
     url_webhook = models.URLField("URL publica dos webhooks", blank=True)
+    nome_frete = models.CharField(
+        "nome do frete no checkout", max_length=150, default="StarHub Frete", blank=True,
+        help_text="Nome da calculadora exibido na Shopify. Vazio usa StarHub Frete.",
+    )
     permissoes = models.JSONField("permissoes", default=permissoes.matriz_vazia, blank=True)
     # Liga/desliga do frete do hub no checkout: desligado, a rota de cotacao responde sem
     # opcoes na hora, e o cadastro na Shopify fica inativo (ela para de chamar).

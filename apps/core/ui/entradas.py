@@ -39,6 +39,12 @@ PLACEHOLDERS = {
     "ConfiguracaoIntegracao.nome": "Shopify principal",
     "dominio_loja": "sua-loja.myshopify.com", "versao_api": "2026-07",
     "url_webhook": "https://hub.exemplo.com/integracoes/shopify/webhook",
+    "ConfiguracaoStarChats.url_base": "https://chat.suaempresa.com.br",
+    "RegraEnvio.nome": "Pedidos confirmados",
+    "RegraEnvio.valor": "confirmed, true ou 100.00",
+    "ConjuntoEnvio.nome": "Confirmacao de pedido",
+    "midia_cabecalho_url": "https://cdn.exemplo.com/banner.png",
+    "codigo_botao": "BEMVINDO20",
     "motivo_rejeicao": "Ex.: fala de outro produto",
     # logistica
     "TabelaFrete.nome": "Entrega propria Grande SP", "cep_origem": "00000-000",

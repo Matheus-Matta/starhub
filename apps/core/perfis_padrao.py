@@ -36,12 +36,14 @@ GRUPOS = [
         ("loja", TODOS, TUDO), ("woo_api", TODOS, TUDO), "woo_api.usar_api",
         ("core", ["user", "address", *INTEGRACOES_ANTIGAS], TUDO),
         ("integracoes", TODOS, TUDO), ("core", ["accessprofile"], VER),
+        ("starchats", TODOS, TUDO),
         ("core", ["account"], ["view", "change"]), LOGS,
     ]),
     ("gerente", "Gerente", "Opera a loja inteira, sem excluir; ve usuarios e logs.", [
         ("loja", TODOS, EDITAR), ("woo_api", ["chaveapi"], VER),
         ("core", ["address", *INTEGRACOES_ANTIGAS], EDITAR),
         ("integracoes", TODOS, EDITAR),
+        ("starchats", TODOS, EDITAR),
         ("core", ["user", "accessprofile", "account"], VER), LOGS,
     ]),
     ("vendas", "Vendas", "Pedidos e clientes; consulta catalogo e cupons.", [
@@ -65,10 +67,12 @@ GRUPOS = [
         ("loja", CLIENTES, EDITAR), ("core", ["address"], EDITAR),
         ("loja", ["pedido"], ["view", "change"]),
         ("loja", ["itempedido", "entregapedido", "pagamentopedido", *CATALOGO], VER),
+        ("starchats", TODOS, VER),
     ]),
     ("leitura", "Somente leitura", "Consulta tudo da loja, sem alterar nada.", [
         ("loja", TODOS, VER), ("core", ["address", *INTEGRACOES_ANTIGAS], VER),
         ("integracoes", TODOS, VER),
+        ("starchats", TODOS, VER),
     ]),
     ("integracao-api", "Integracao API", "Usuario do ERP (JWT) na API Woo.", [
         "woo_api.usar_api", ("loja", TODOS, EDITAR),

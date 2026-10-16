@@ -61,7 +61,14 @@ def meta_do_item(item, servicos):
 def _do_corpo(servico):
     servico = servico_valido(servico)
     nome = servico.get("nome") or servico.get("servico")
-    return {**{k: v for k, v in servico.items() if k not in _DERIVADOS}, "servico": nome}
+    saida = {**{k: v for k, v in servico.items() if k not in _DERIVADOS}, "servico": nome}
+    # O ERP pode mandar so o id ou o SKU que recebeu no GET: viram referencia ao
+    # cadastro, resolvida com o produto do item (loja.services.servicos.do_erp).
+    if servico.get("id") not in (None, ""):
+        saida["_id"] = servico["id"]
+    if servico.get("sku"):
+        saida["_sku"] = servico["sku"]
+    return saida
 
 
 def separar_starhub(meta_data):
