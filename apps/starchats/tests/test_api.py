@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 from apps.loja.models import Cliente
@@ -12,6 +14,12 @@ from apps.starchats.renderizacao import mapear
 from apps.starchats.sincronizacao import sincronizar
 
 pytestmark = pytest.mark.django_db
+
+
+def test_cliente_http_declara_requests_nas_dependencias_de_producao():
+    """Um ambiente limpo precisa instalar o cliente HTTP antes de coletar os testes."""
+    requisitos = (Path(__file__).parents[3] / "requirements.txt").read_text()
+    assert any(linha.startswith("requests") for linha in requisitos.splitlines())
 
 
 def test_cabecalho_nomeado_pode_usar_dado_do_cliente():
