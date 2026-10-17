@@ -18,7 +18,6 @@ def _dados(**extras):
         "segredo_app": "segredo-novo",
         "url_webhook": "https://hub.test/integracoes/shopify/webhook/",
         "exibir_prazo_frete": "on",
-        "dominios_frete_publico": "www.minha-loja.com.br",
         "active": "on",
         "receber__produtos__get": "on",
         "receber__pedidos__create": "on",
@@ -92,6 +91,7 @@ def test_pagina_shopify_exibe_configuracao_e_matriz_amigavel(admin_logado):
     assert 'name="versao_api"' not in html
     assert 'name="client_id"' not in html
     assert 'name="exibir_prazo_frete"' in html
+    assert 'name="dominios_frete_publico"' not in html
 
 
 @pytest.mark.django_db
@@ -178,7 +178,6 @@ def test_salvar_pagina_cria_e_depois_atualiza_a_mesma_configuracao(admin_logado)
     assert configuracao.versao_api == "2026-07"
     assert configuracao.token_acesso == "shpat_token-novo"
     assert configuracao.exibir_prazo_frete
-    assert configuracao.dominios_frete_publico == "www.minha-loja.com.br"
 
 
 @pytest.mark.django_db

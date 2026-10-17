@@ -3,7 +3,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from apps.core.models import BaseModel
-from apps.core.validators import separar_dominios, validar_dominios
+from apps.core.validators import separar_dominios
 from apps.integracoes import permissoes, segredos
 
 
@@ -35,11 +35,6 @@ class ConfiguracaoIntegracao(BaseModel):
     exibir_prazo_frete = models.BooleanField(
         "exibir prazo no checkout", default=True,
         help_text="Desligue para ocultar os dias uteis. O prazo da tabela continua salvo.",
-    )
-    dominios_frete_publico = models.CharField(
-        "dominios do calculador de frete", max_length=1000, blank=True, default="",
-        validators=[validar_dominios],
-        help_text="Dominios proprios da loja, separados por virgula e sem https://.",
     )
     permissoes = models.JSONField("permissoes", default=permissoes.matriz_vazia, blank=True)
     # Liga/desliga do frete do hub no checkout: desligado, a rota de cotacao responde sem
@@ -99,9 +94,8 @@ class ConfiguracaoIntegracao(BaseModel):
         return matriz.get(direcao, {}).get(recurso, {}).get(operacao, False)
 
     def dominios_permitidos_no_frete(self):
-        return separar_dominios(
-            ",".join([self.dominio_loja, self.dominios_frete_publico])
-        )
+        dominios = [self.dominio_loja, *self.account.dominios_avaliacoes()]
+        return separar_dominios(",".join(dominios))
 
 
 class ExecucaoIntegracao(BaseModel):

@@ -12,9 +12,10 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture
 def configuracao(conta):
+    conta.dominio_avaliacoes = "www.loja.com.br, loja.com.br"
+    conta.save(update_fields=["dominio_avaliacoes"])
     config = ConfiguracaoIntegracao.objects.create(
         account=conta, plataforma="shopify", dominio_loja="loja.myshopify.com",
-        dominios_frete_publico="www.loja.com.br, loja.com.br",
     )
     tabela = TabelaFrete.objects.create(
         nome="Entrega propria", tipo="faixa_cep", prazo_dias=3, no_checkout=True,
