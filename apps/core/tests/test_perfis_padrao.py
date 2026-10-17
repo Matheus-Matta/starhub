@@ -30,6 +30,25 @@ def test_grupos_fixos_existem_com_as_permissoes_de_cada_papel():
     assert not any("historical" in p for p in admin)
 
 
+def test_perfis_operacionais_recebem_as_permissoes_das_tabelas_de_frete():
+    admin = _perms("Administrador")
+    assert {
+        "logistica.add_tabelafrete", "logistica.change_tabelafrete",
+        "logistica.delete_tabelafrete", "logistica.view_tabelafrete",
+        "logistica.add_faixacep", "logistica.change_faixacep",
+        "logistica.delete_faixacep", "logistica.view_faixacep",
+    } <= admin
+    for perfil in ("Gerente", "Estoque"):
+        permissoes = _perms(perfil)
+        assert {"logistica.add_tabelafrete", "logistica.change_tabelafrete",
+                "logistica.view_tabelafrete", "logistica.add_faixacep",
+                "logistica.change_faixacep", "logistica.view_faixacep"} <= permissoes
+        assert "logistica.delete_tabelafrete" not in permissoes
+    leitura = _perms("Somente leitura")
+    assert {"logistica.view_tabelafrete", "logistica.view_faixacep"} <= leitura
+    assert "logistica.change_tabelafrete" not in leitura
+
+
 def test_conta_nova_nasce_com_um_perfil_de_cada_grupo_fixo(conta, outra_conta):
     # outra_conta e criada com a conta ativa sendo `conta`: o perfil vai para a nova.
     for dona in (conta, outra_conta):

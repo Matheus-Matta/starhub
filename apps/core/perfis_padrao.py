@@ -36,6 +36,7 @@ GRUPOS = [
         ("loja", TODOS, TUDO), ("woo_api", TODOS, TUDO), "woo_api.usar_api",
         ("core", ["user", "address", *INTEGRACOES_ANTIGAS], TUDO),
         ("integracoes", TODOS, TUDO), ("core", ["accessprofile"], VER),
+        ("logistica", TODOS, TUDO),
         ("starchats", TODOS, TUDO),
         ("core", ["account"], ["view", "change"]), LOGS,
     ]),
@@ -43,6 +44,7 @@ GRUPOS = [
         ("loja", TODOS, EDITAR), ("woo_api", ["chaveapi"], VER),
         ("core", ["address", *INTEGRACOES_ANTIGAS], EDITAR),
         ("integracoes", TODOS, EDITAR),
+        ("logistica", TODOS, EDITAR),
         ("starchats", TODOS, EDITAR),
         ("core", ["user", "accessprofile", "account"], VER), LOGS,
     ]),
@@ -55,6 +57,7 @@ GRUPOS = [
     ]),
     ("estoque", "Estoque", "Ajusta estoque das variantes e cuida das entregas.", [
         ("loja", ["varianteproduto"], ["view", "change"]), ("loja", ["entregapedido"], EDITAR),
+        ("logistica", TODOS, EDITAR),
         ("loja", ["produto", "itembundle", "midiaproduto", "categoria", "pedido", "itempedido"],
          VER),
     ]),
@@ -72,6 +75,7 @@ GRUPOS = [
     ("leitura", "Somente leitura", "Consulta tudo da loja, sem alterar nada.", [
         ("loja", TODOS, VER), ("core", ["address", *INTEGRACOES_ANTIGAS], VER),
         ("integracoes", TODOS, VER),
+        ("logistica", TODOS, VER),
         ("starchats", TODOS, VER),
     ]),
     ("integracao-api", "Integracao API", "Usuario do ERP (JWT) na API Woo.", [
