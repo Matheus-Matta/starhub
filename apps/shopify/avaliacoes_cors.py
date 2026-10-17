@@ -11,11 +11,17 @@ from django.utils.cache import patch_vary_headers
 from apps.integracoes.models import ConfiguracaoIntegracao
 
 ROTA = re.compile(r"/integracoes/shopify/avaliacoes/([0-9]+)/")
+ROTA_FRETE_PUBLICO = re.compile(
+    r"/integracoes/shopify/frete-publico/[0-9a-fA-F-]{36}/"
+)
 
 
 class CorsPadraoSemAvaliacoes(CorsMiddleware):
     def is_enabled(self, request):
-        return not ROTA.fullmatch(request.path_info) and super().is_enabled(request)
+        rota_propria = ROTA.fullmatch(request.path_info) or ROTA_FRETE_PUBLICO.fullmatch(
+            request.path_info
+        )
+        return not rota_propria and super().is_enabled(request)
 
 
 def _origem_permitida(configuracao_id, origem):

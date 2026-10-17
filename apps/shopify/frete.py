@@ -7,6 +7,7 @@ maximo 3 s. Cada TabelaFrete ativa com "oferecer no checkout" vira uma opcao:
      "currency": "BRL", "description": "Entrega em 2 dias uteis",
      "min_delivery_date": "2026-10-07 18:00:00 -0300", "max_delivery_date": ...}
 
+Quando a loja oculta o prazo, description e as duas datas nao sao enviadas.
 total_price vai em centavos (texto). Tabela que nao atende o CEP (fora das faixas, longe
 demais, CEP que ninguem localiza) simplesmente nao aparece. O codigo HUB_<id> volta no
 pedido (shipping_lines[].code -> linhas_frete[].method_id): da para saber qual tabela.
@@ -43,19 +44,23 @@ def _entrega(prazo):
     return quando.strftime("%Y-%m-%d %H:%M:%S %z")
 
 
-def _opcao(tabela, cotacao):
+def _opcao(tabela, cotacao, exibir_prazo=True):
     prazo = cotacao.prazo_dias
-    texto_prazo = "dia util" if prazo == 1 else "dias uteis"
-    entrega = _entrega(prazo)
-    return {
+    opcao = {
         "service_name": tabela.nome,
         "service_code": f"{PREFIXO}{tabela.pk}",
         "total_price": str(int(cotacao.valor * 100)),
         "currency": "BRL",
-        "description": f"Entrega em {prazo} {texto_prazo}",
-        "min_delivery_date": entrega,
-        "max_delivery_date": entrega,
     }
+    if exibir_prazo:
+        texto_prazo = "dia util" if prazo == 1 else "dias uteis"
+        entrega = _entrega(prazo)
+        opcao.update({
+            "description": f"Entrega em {prazo} {texto_prazo}",
+            "min_delivery_date": entrega,
+            "max_delivery_date": entrega,
+        })
+    return opcao
 
 
 def _destino(corpo):
@@ -66,7 +71,7 @@ def cep_de_destino(corpo):
     return str(_destino(corpo).get("postal_code") or "")
 
 
-def opcoes_de_frete(corpo, relogio=time.monotonic):
+def opcoes_de_frete(corpo, relogio=time.monotonic, exibir_prazo=True):
     """Lista de rates para a resposta; vazia se nenhuma tabela atende o CEP."""
     cep, inicio, opcoes = cep_de_destino(corpo), relogio(), []
     destino = _destino(corpo)
@@ -78,7 +83,7 @@ def opcoes_de_frete(corpo, relogio=time.monotonic):
             break
         try:
             cotacao = cotar(tabela, cep, geo.TIMEOUT_CHECKOUT, cidade, uf)
-            opcoes.append(_opcao(tabela, cotacao))
+            opcoes.append(_opcao(tabela, cotacao, exibir_prazo))
         except FreteIndisponivel:
             continue
     return sorted(opcoes, key=lambda opcao: int(opcao["total_price"]))

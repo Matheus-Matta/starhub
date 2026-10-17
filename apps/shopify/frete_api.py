@@ -41,6 +41,6 @@ def cotar_frete(request, configuracao_uuid):
     except json.JSONDecodeError:
         return JsonResponse({"erro": "JSON invalido"}, status=400)
     with tenant_context(configuracao.account_id):
-        opcoes = opcoes_de_frete(corpo)
+        opcoes = opcoes_de_frete(corpo, exibir_prazo=configuracao.exibir_prazo_frete)
     logger.info("Frete cotado para o CEP %s: %s opcao(oes)", cep_de_destino(corpo), len(opcoes))
     return JsonResponse({"rates": opcoes})

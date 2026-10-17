@@ -81,6 +81,19 @@ def test_rota_assinada_responde_as_opcoes_no_formato_da_shopify(client, conta):
     assert resposta.json()["rates"][0]["service_code"] == f"HUB_{tabela.pk}"
 
 
+def test_configuracao_pode_ocultar_o_prazo_no_checkout(client, conta):
+    """Desligar o prazo remove as duas linhas de dias uteis mostradas pela Shopify."""
+    configuracao = _configuracao(conta)
+    configuracao.exibir_prazo_frete = False
+    configuracao.save(update_fields=["exibir_prazo_frete"])
+    _faixa()
+
+    opcao = _post(client, configuracao, CHECKOUT).json()["rates"][0]
+
+    assert {"description", "min_delivery_date", "max_delivery_date"}.isdisjoint(opcao)
+    assert (opcao["service_name"], opcao["total_price"]) == ("Tabela RJ", "2500")
+
+
 def test_rota_aceita_a_cotacao_sem_hmac_de_webhook(client, conta):
     """CarrierService nao assina a cotacao como webhook; exigir HMAC esconde o frete."""
     configuracao = _configuracao(conta)

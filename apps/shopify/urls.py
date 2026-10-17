@@ -2,6 +2,7 @@ from django.urls import path
 
 from apps.shopify.avaliacoes_api import AvaliacaoView
 from apps.shopify.frete_api import cotar_frete
+from apps.shopify.frete_publico import consultar_frete
 from apps.shopify.views import webhook
 
 urlpatterns = [
@@ -10,6 +11,8 @@ urlpatterns = [
     path("webhook/<uuid:configuracao_uuid>/<str:recurso>/", webhook, name="webhook"),
     # Cotacao de frete do checkout (CarrierService): a Shopify chama a cada CEP digitado.
     path("frete/<uuid:configuracao_uuid>/", cotar_frete, name="shopify_frete"),
+    path("frete-publico/<uuid:configuracao_uuid>/", consultar_frete,
+         name="shopify_frete_publico"),
     # Endereco antigo, com o id: webhooks ja cadastrados na Shopify continuam chegando ate
     # o operador recadastrar (o recadastro troca pelo de uuid).
     path("webhook/<int:configuracao_id>/<str:recurso>/", webhook, name="webhook_legado"),

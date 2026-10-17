@@ -1,5 +1,3 @@
-from urllib.parse import urljoin
-
 from django.contrib import admin, messages
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseRedirect
@@ -11,6 +9,7 @@ from apps.core.models import ExternalReference
 from apps.core.tarefas import enfileirar
 from apps.core.tenant.context import get_current_account_id
 from apps.integracoes import admin_frete, permissoes
+from apps.integracoes.admin_shopify import adicionar_links_publicos
 from apps.integracoes.admin_sincronizacao import (
     listas_do_modal,
     processar_sincronizacao,
@@ -36,7 +35,8 @@ ACOES = {
 }
 Plataforma = ConfiguracaoIntegracao.Plataforma
 CAMPOS_API = ("dominio_loja", "token_acesso", "segredo_app", "segredo_avaliacoes",
-              "url_webhook", "nome_frete", "id_vendedor", "active")
+              "url_webhook", "nome_frete", "exibir_prazo_frete", "dominios_frete_publico",
+              "id_vendedor", "active")
 # O que muda de uma plataforma para outra na mesma tela de configuracao.
 TELAS = {
     Plataforma.SHOPIFY: {"nome": "Shopify", "form": ConfiguracaoShopifyForm, "acoes": ACOES},
@@ -124,11 +124,7 @@ class ConfiguracaoIntegracaoAdmin(TemaModelAdmin):
             initial={"url_webhook": url_webhook},
         )
         if configuracao and plataforma == Plataforma.SHOPIFY:
-            # O tema precisa deste endereco (com o id da loja). Pela URL publica dos
-            # webhooks: o admin aberto em localhost daria um endereco que a loja nao alcanca.
-            caminho = reverse("shopify_avaliacoes", args=[configuracao.pk])
-            url = urljoin(configuracao.url_webhook or request.build_absolute_uri("/"), caminho)
-            form.fields["segredo_avaliacoes"].help_text += f" Endereco para o tema: {url}"
+            adicionar_links_publicos(form, configuracao, request.build_absolute_uri("/"))
         if not request.user.is_superuser:
             # Fora do form, o valor salvo fica como esta (o construct_instance ignora).
             form.fields.pop("encaminhar_pedidos", None)

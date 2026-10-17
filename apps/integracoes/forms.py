@@ -1,5 +1,6 @@
 from django import forms
 
+from apps.core.validators import separar_dominios
 from apps.integracoes import permissoes
 from apps.integracoes.models import ConfiguracaoIntegracao
 
@@ -40,7 +41,8 @@ class ConfiguracaoShopifyForm(forms.ModelForm):
 
     class Meta:
         model = ConfiguracaoIntegracao
-        fields = ["dominio_loja", "url_webhook", "nome_frete", "id_vendedor", "active"]
+        fields = ["dominio_loja", "url_webhook", "nome_frete", "exibir_prazo_frete",
+                  "dominios_frete_publico", "id_vendedor", "active"]
         labels = {"active": "Integracao ativa"}
         widgets = {
             "id_vendedor": forms.NumberInput(attrs={"placeholder": "12", "min": 1}),
@@ -85,6 +87,9 @@ class ConfiguracaoShopifyForm(forms.ModelForm):
         if dominio and ("/" in dominio or not dominio.endswith(".myshopify.com")):
             raise forms.ValidationError("Use o dominio permanente: sua-loja.myshopify.com.")
         return dominio
+
+    def clean_dominios_frete_publico(self):
+        return ", ".join(separar_dominios(self.cleaned_data["dominios_frete_publico"]))
 
     def clean(self):
         dados = super().clean()
