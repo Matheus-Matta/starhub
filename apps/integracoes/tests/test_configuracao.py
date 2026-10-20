@@ -149,8 +149,8 @@ def test_menu_troca_politicas_por_configuracao_e_tarefas(admin_logado):
 
     secoes = {app["app_label"]: [m["name"] for m in app["models"]]
               for app in admin_logado.get("/admin/").context["available_apps"]}
-    # Tarefas (integracoes e importacoes) no Nucleo; Integracoes so com a plataforma.
-    assert secoes["integracoes"] == ["Shopify"]
+    # Tarefas ficam no Nucleo; Integracoes reune cada conexao externa configuravel.
+    assert secoes["integracoes"] == ["Shopify", "StarChats"]
     assert "Tarefas" in secoes["core"]
     assert "Politicas de publicacao" not in html
     assert "Estados de publicacao" not in html

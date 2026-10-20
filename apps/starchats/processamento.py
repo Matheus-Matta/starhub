@@ -6,9 +6,31 @@ from django.utils import timezone
 from apps.loja.models import Cliente, Pedido
 from apps.starchats.contexto import montar
 from apps.starchats.envio import enviar_modelo
-from apps.starchats.models import ConfiguracaoStarChats, ConjuntoEnvio, EnvioStarChats
+from apps.starchats.models import ConjuntoEnvio, EnvioStarChats
+from apps.starchats.provedores import obter, provedores, registrar
 from apps.starchats.regras import conjunto_atende
 from apps.starchats.renderizacao import preparar
+
+
+def _starchats_disponivel(modelo):
+    configuracao = modelo.configuracao
+    return bool(
+        configuracao
+        and configuracao.active
+        and configuracao.caixa_entrada_id == modelo.caixa_entrada_id
+    )
+
+
+def _enviar_starchats(envio, contexto):
+    # A indirecao mantem o cliente StarChats fora do motor e permite troca em testes.
+    return enviar_modelo(envio, contexto)
+
+
+registrar(
+    "starchats",
+    disponivel=_starchats_disponivel,
+    enviar=_enviar_starchats,
+)
 
 
 def _objeto(tipo, objeto_id):
@@ -59,19 +81,21 @@ def processar_evento(conta_id, tipo, objeto_id, evento, evento_id):
     objeto, cliente, pedido = _objeto(tipo, objeto_id)
     if cliente is None:
         return 0
-    configuracao = ConfiguracaoStarChats.objects.filter(active=True).first()
-    if not configuracao or not configuracao.caixa_entrada_id:
+    if not provedores:
         return 0
     conjuntos = ConjuntoEnvio.objects.filter(
         active=True,
         evento=evento,
         modelo__active=True,
-        modelo__configuracao=configuracao,
-    ).select_related("modelo").prefetch_related("regras")
+        modelo__plataforma__in=provedores,
+    ).select_related("modelo", "modelo__configuracao").prefetch_related("regras")
     contexto = montar(cliente, pedido)
     enviados = 0
     erros = []
     for conjunto in conjuntos:
+        provedor = obter(conjunto.modelo.plataforma)
+        if not provedor or not provedor.disponivel(conjunto.modelo):
+            continue
         if not conjunto_atende(conjunto, contexto):
             continue
         envio = _reservar(conjunto, cliente, tipo, objeto.pk, evento, evento_id)
@@ -80,7 +104,7 @@ def processar_evento(conta_id, tipo, objeto_id, evento, evento_id):
         envio.conteudo, envio.parametros = preparar(conjunto, contexto)
         envio.save(update_fields=["conteudo", "parametros", "updated_at"])
         try:
-            resposta = enviar_modelo(envio, contexto)
+            resposta = provedor.enviar(envio, contexto)
             envio.mensagem_externa_id = str(resposta.get("id", ""))
             envio.status = EnvioStarChats.Status.ENVIADO
             envio.enviado_em = timezone.now()

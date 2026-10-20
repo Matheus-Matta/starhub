@@ -29,7 +29,7 @@ def listas_do_modal(configuracao):
 def processar_sincronizacao(request, configuracao, pagina):
     """POST do modal. Sempre devolve um redirect: tarefa criada ou de volta a tela."""
     if configuracao is None or not configuracao.pk:
-        messages.error(request, "Salve a configuracao da Shopify antes de sincronizar.")
+        messages.error(request, "Salve a configuracao da loja antes de sincronizar.")
         return HttpResponseRedirect(pagina)
     try:
         execucao = sincronizacao.iniciar(

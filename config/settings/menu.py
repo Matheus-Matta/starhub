@@ -44,6 +44,9 @@ STARHUB_MENU_AGRUPAR = {
     "integracoes.execucaointegracao": "core",
     # E-mail (SMTP) e Notificacoes sao configuracao da conta: Nucleo.
     "notificacoes": "core",
+    # A conexao e especifica do StarChats; modelos, regras e envios continuam na
+    # secao generica Mensagens para receber outros provedores de WhatsApp depois.
+    "starchats.configuracaostarchats": "integracoes",
 }
 # Fluxo operacional primeiro; auditoria fica no final para nao disputar atencao.
 STARHUB_MENU_ORDEM = ["loja", "logistica", "integracoes", "starchats", "core", "auditlog"]

@@ -24,7 +24,7 @@ class ConfiguracaoStarChats(BaseModel):
 
     class Meta:
         verbose_name = "configuracao do StarChats"
-        verbose_name_plural = "Configuracao"
+        verbose_name_plural = "StarChats"
         constraints = [
             models.UniqueConstraint(
                 fields=["account"], name="starchats_configuracao_unica_por_conta"

@@ -18,6 +18,7 @@ from apps.starchats.models import (
 @admin.register(ConfiguracaoStarChats)
 class ConfiguracaoStarChatsAdmin(TemaModelAdmin):
     form = ConfiguracaoStarChatsForm
+    change_form_template = "admin/starchats/configuracao_change_form.html"
     relatorio = False
     fieldsets = [
         ("Conexao", {"fields": [("url_base", "conta_externa_id"), "token_acesso"]}),
@@ -62,11 +63,12 @@ class ConfiguracaoStarChatsAdmin(TemaModelAdmin):
 
 @admin.register(ModeloMensagem)
 class ModeloMensagemAdmin(TemaModelAdmin):
-    list_display = ["nome", "idioma", "categoria", "situacao", "active"]
-    list_filter = ["idioma", "categoria", "situacao", "active"]
+    list_display = ["nome", "plataforma", "idioma", "categoria", "situacao", "active"]
+    list_filter = ["plataforma", "idioma", "categoria", "situacao", "active"]
     search_fields = ["nome", "conteudo"]
     readonly_fields = [
         "configuracao",
+        "plataforma",
         "caixa_entrada_id",
         "identificador_externo",
         "nome",

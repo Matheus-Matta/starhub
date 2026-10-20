@@ -1,16 +1,16 @@
-{# "Sincronizar loja": direcao, dados e confirmacao. POST em shopify_view (acao=sincronizar). #}
+{# "Sincronizar loja": direcao, dados e confirmacao da plataforma aberta. #}
 {% componente "modal_etapas" id="modal-sincronizar" titulo="Sincronizar loja" titulo_1="Direcao" titulo_2="Dados" titulo_3="Confirmar" concluir="Criar tarefa" %}
   {% slot "campos" %}<input type="hidden" name="acao" value="sincronizar">{% endslot %}
 
   {% slot "etapa_1" %}
     <div class="modal-etapas-opcoes" data-exige-marcado="direcao" data-mensagem-erro="Escolha Importar ou Exportar para continuar.">
       <label class="modal-etapas-opcao">
-        <input type="radio" name="direcao" value="importar" data-rotulo="Importar (Shopify para o StarHub)">
-        <span><strong>Importar</strong><small>Traz os dados da Shopify para o StarHub.</small></span>
+        <input type="radio" name="direcao" value="importar" data-rotulo="Importar ({{ plataforma_nome }} para o StarHub)">
+        <span><strong>Importar</strong><small>Traz os dados da loja {{ plataforma_nome }} para o StarHub.</small></span>
       </label>
       <label class="modal-etapas-opcao">
-        <input type="radio" name="direcao" value="exportar" data-rotulo="Exportar (StarHub para a Shopify)">
-        <span><strong>Exportar</strong><small>Envia os dados do StarHub para a Shopify.</small></span>
+        <input type="radio" name="direcao" value="exportar" data-rotulo="Exportar (StarHub para {{ plataforma_nome }})">
+        <span><strong>Exportar</strong><small>Envia os dados do StarHub para a loja {{ plataforma_nome }}.</small></span>
       </label>
     </div>
   {% endslot %}

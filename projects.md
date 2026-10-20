@@ -1004,9 +1004,15 @@ As duas ficam no Nucleo do menu e abrem direto a da conta ativa.
 - `STARHUB_URL_PUBLICA` (`.env`): endereco do hub para o link no e-mail; vazio, o e-mail
   vai sem link.
 
-### 7.9 StarChats: mensagens pelo WhatsApp oficial (`apps/starchats`)
+### 7.9 Mensagens de WhatsApp e StarChats (`apps/starchats`)
 
-A integracao aparece no sistema somente como **StarChats**. Ela usa a Application API
+A configuracao da integracao aparece em **Integracoes > StarChats**. Modelos de
+mensagem, regras, conjuntos e historico ficam na secao generica **Mensagens**; cada
+modelo registra a plataforma que o sincronizou, preparando o cadastro comum para
+outros provedores de WhatsApp. O motor escolhe o adaptador registrado em
+`apps/starchats/provedores.py`, portanto uma integracao nova reaproveita eventos,
+regras, renderizacao e historico e implementa somente disponibilidade e envio.
+O StarChats usa a Application API
 compativel com Chatwoot para conversar com uma caixa de WhatsApp oficial; `url_base`, ID
 da conta e token ficam na configuracao da conta do StarHub, e o token e criptografado.
 

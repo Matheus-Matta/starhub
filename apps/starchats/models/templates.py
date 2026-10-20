@@ -4,12 +4,22 @@ from apps.core.models import BaseModel
 
 
 class ModeloMensagem(BaseModel):
+    plataforma = models.CharField(
+        "plataforma de mensagens",
+        max_length=50,
+        default="starchats",
+        db_index=True,
+        help_text="Provedor que sincronizou e envia este modelo.",
+    )
     configuracao = models.ForeignKey(
         "starchats.ConfiguracaoStarChats",
         on_delete=models.CASCADE,
         related_name="modelos",
+        null=True,
+        blank=True,
+        verbose_name="configuracao do StarChats",
     )
-    caixa_entrada_id = models.PositiveBigIntegerField("ID da caixa")
+    caixa_entrada_id = models.PositiveBigIntegerField("ID do canal")
     identificador_externo = models.CharField(max_length=150, blank=True)
     nome = models.CharField(max_length=255)
     idioma = models.CharField(max_length=20)
@@ -24,7 +34,13 @@ class ModeloMensagem(BaseModel):
         ordering = ["nome", "idioma"]
         constraints = [
             models.UniqueConstraint(
-                fields=["account", "configuracao", "caixa_entrada_id", "nome", "idioma"],
+                fields=[
+                    "account",
+                    "plataforma",
+                    "caixa_entrada_id",
+                    "nome",
+                    "idioma",
+                ],
                 name="starchats_modelo_unico_por_caixa",
             )
         ]

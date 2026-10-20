@@ -55,12 +55,15 @@ def sincronizar(configuracao):
 
 
 def _sincronizar_modelos(configuracao, modelos):
-    ModeloMensagem.objects.filter(configuracao=configuracao).update(active=False)
+    ModeloMensagem.objects.filter(
+        plataforma="starchats", configuracao=configuracao
+    ).update(active=False)
     for item in modelos:
         componentes = item.get("components") or []
         componentes = componentes if isinstance(componentes, list) else []
         situacao = item.get("status", "")
         ModeloMensagem.objects.update_or_create(
+            plataforma="starchats",
             configuracao=configuracao,
             caixa_entrada_id=configuracao.caixa_entrada_id,
             nome=item.get("name", ""),

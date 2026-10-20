@@ -54,8 +54,8 @@ class EnvioStarChats(BaseModel):
     enviado_em = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        verbose_name = "envio do StarChats"
-        verbose_name_plural = "Historico de envios"
+        verbose_name = "envio de mensagem"
+        verbose_name_plural = "Historico de mensagens"
         ordering = ["-created_at"]
         constraints = [
             models.UniqueConstraint(

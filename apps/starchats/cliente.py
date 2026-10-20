@@ -1,7 +1,9 @@
 import requests
 
+from apps.starchats.provedores import ErroProvedorMensagens
 
-class ErroStarChats(Exception):
+
+class ErroStarChats(ErroProvedorMensagens):
     pass
 
 
