@@ -942,7 +942,9 @@ checkout das lojas" de cada tabela (Shopify, WooCommerce e Suri, abaixo). Menu
   `POST /integracoes/shopify/frete/<uuid>/` a cada CEP do checkout. CarrierService nao
   envia o HMAC de webhook; o UUID aleatorio identifica a configuracao. A Shopify
   espera 3 s: cada tabela que atende vira uma opcao (`service_code` `HUB_<id>`,
-  valor em centavos, prazo em dias uteis). No checkout cada API externa tem 0,8 s e o
+  valor em centavos, prazo em dias uteis). Mesmo com a exibicao do prazo desligada,
+  o callback mantem uma `description` generica, pois a Shopify rejeita a tarifa sem
+  esse campo obrigatorio e usa o backup rate. No checkout cada API externa tem 0,8 s e o
   total 2,2 s; coordenadas e rotas ficam em `CoordenadaCep`/`DistanciaCep` (2a cotacao do
   mesmo CEP ~0,02 s). CEP que as bases nao conhecem e localizado pela cidade que o
   checkout manda (Nominatim). O frete escolhido volta no `orders/create` em

@@ -65,4 +65,8 @@ def consultar_frete(request, configuracao_uuid):
         opcoes = opcoes_de_frete(
             corpo, exibir_prazo=configuracao.exibir_prazo_frete,
         )
+    if not configuracao.exibir_prazo_frete:
+        # No callback da Shopify description e obrigatorio; nesta API do tema nao e.
+        for opcao in opcoes:
+            opcao.pop("description", None)
     return _com_cors(JsonResponse({"rates": opcoes}), origem)

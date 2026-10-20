@@ -7,7 +7,8 @@ maximo 3 s. Cada TabelaFrete ativa com "oferecer no checkout" vira uma opcao:
      "currency": "BRL", "description": "Entrega em 2 dias uteis",
      "min_delivery_date": "2026-10-07 18:00:00 -0300", "max_delivery_date": ...}
 
-Quando a loja oculta o prazo, description e as duas datas nao sao enviadas.
+Quando a loja oculta o prazo, a descricao obrigatoria continua presente, mas sem os
+dias; somente as duas datas de entrega deixam de ser enviadas.
 total_price vai em centavos (texto). Tabela que nao atende o CEP (fora das faixas, longe
 demais, CEP que ninguem localiza) simplesmente nao aparece. O codigo HUB_<id> volta no
 pedido (shipping_lines[].code -> linhas_frete[].method_id): da para saber qual tabela.
@@ -51,6 +52,9 @@ def _opcao(tabela, cotacao, exibir_prazo=True):
         "service_code": f"{PREFIXO}{tabela.pk}",
         "total_price": str(int(cotacao.valor * 100)),
         "currency": "BRL",
+        # A Shopify descarta a tarifa sem description e usa o backup rate, mesmo
+        # quando o endpoint respondeu 200. O switch esconde o prazo, nao este campo.
+        "description": "Frete calculado pelo StarHub",
     }
     if exibir_prazo:
         texto_prazo = "dia util" if prazo == 1 else "dias uteis"

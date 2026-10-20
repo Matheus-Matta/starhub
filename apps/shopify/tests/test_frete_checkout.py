@@ -82,7 +82,7 @@ def test_rota_assinada_responde_as_opcoes_no_formato_da_shopify(client, conta):
 
 
 def test_configuracao_pode_ocultar_o_prazo_no_checkout(client, conta):
-    """Desligar o prazo remove as duas linhas de dias uteis mostradas pela Shopify."""
+    """Ocultar prazo mantem a descricao obrigatoria para a Shopify aceitar a tarifa."""
     configuracao = _configuracao(conta)
     configuracao.exibir_prazo_frete = False
     configuracao.save(update_fields=["exibir_prazo_frete"])
@@ -90,7 +90,8 @@ def test_configuracao_pode_ocultar_o_prazo_no_checkout(client, conta):
 
     opcao = _post(client, configuracao, CHECKOUT).json()["rates"][0]
 
-    assert {"description", "min_delivery_date", "max_delivery_date"}.isdisjoint(opcao)
+    assert opcao["description"] == "Frete calculado pelo StarHub"
+    assert {"min_delivery_date", "max_delivery_date"}.isdisjoint(opcao)
     assert (opcao["service_name"], opcao["total_price"]) == ("Tabela RJ", "2500")
 
 
