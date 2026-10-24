@@ -20,7 +20,7 @@ com o trecho do tema ja montado com os enderecos desta loja.
     <ol>
       <li>Em <a href="{{ url_integracao }}">Integracoes &gt; Shopify</a>, card <strong>Servicos</strong>: ligue <em>enviar servicos</em>, <em>receber servicos dos pedidos</em> e <em>oferecer servicos na pagina do produto</em>. Salve.</li>
       <li>Confira o <strong>dominio da loja</strong> e os dominios proprios da conta: so eles podem consultar os servicos pelo navegador (o mesmo controle do frete do tema).</li>
-      <li>Em <a href="{{ url_servicos }}">Loja &gt; Servicos</a>, cadastre cada servico com o <strong>SKU do ERP</strong> e o preco padrao. Nas regras, diga a quais produtos ele vale (por categoria ou por produto) e o preco de cada um.</li>
+      <li>Em <a href="{{ url_servicos }}">Loja &gt; Servicos</a>, cadastre cada servico com o <strong>SKU do ERP</strong> e o preco padrao (um a um ou por <strong>Importar planilha</strong>; <strong>Exportar planilha</strong> baixa o que ja existe no mesmo formato). Nas regras, diga a quais produtos ele vale (por categoria ou por produto) e o preco de cada um.</li>
       <li>Ainda em Loja &gt; Servicos, clique <strong>Exportar para a Shopify</strong>. Depois disso, mudar servico ou regra reenvia sozinho.</li>
     </ol>
   {% endcomponente %}
@@ -29,7 +29,7 @@ com o trecho do tema ja montado com os enderecos desta loja.
     <ol>
       <li>O app do StarHub precisa dos escopos <code>write_products</code>, <code>read_publications</code> e <code>write_publications</code> (Configuracoes &gt; Apps &gt; Desenvolver apps &gt; StarHub &gt; Configuracao). Sem os de publicacao, o servico nao entra no canal Loja virtual e o carrinho recusa.</li>
       <li>Em Produtos, filtre pela tag <code>starhub-servico</code>: cada servico deve estar <strong>Ativo</strong> e publicado na <strong>Loja virtual</strong>. Nao coloque o servico em colecoes: ele fica fora da busca pelo metafield <code>seo.hidden</code>.</li>
-      <li>Ja tem servicos cadastrados como produtos na loja? Ponha a tag <code>starhub-servico</code> neles e clique <strong>Importar da Shopify</strong> em Loja &gt; Servicos: viram servicos do hub (o SKU iguala os que ja existem).</li>
+      <li>Ja tem servicos cadastrados como produtos na loja? Cadastre-os no hub (ou por <strong>Importar planilha</strong> em Loja &gt; Servicos), exporte, e apague os produtos antigos da loja: o servico que vale e o produto que o hub criou.</li>
     </ol>
   {% endcomponente %}
 

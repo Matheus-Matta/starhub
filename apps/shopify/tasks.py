@@ -60,14 +60,7 @@ def verificar_frete_shopify(execucao_id):
 
 
 @shared_task
-def importar_servicos_shopify(execucao_id):
-    from apps.shopify.servicos_importar import importar_servicos
-
-    return _executar(execucao_id, importar_servicos)
-
-
-@shared_task
 def exportar_servicos_shopify(execucao_id):
-    from apps.shopify.servicos_importar import exportar_servicos
+    from apps.shopify.servicos_exportar import exportar_servicos
 
     return _executar(execucao_id, exportar_servicos)

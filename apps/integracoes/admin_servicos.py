@@ -1,8 +1,8 @@
-"""Botoes "Importar da Shopify" e "Exportar para a Shopify" na lista de Servicos.
+"""Botao "Exportar para a Shopify" na lista de Servicos.
 
-Cada botao cria uma tarefa (ExecucaoIntegracao) e abre a tela dela, com barra,
-falhas por servico e Retomar: a chamada a Shopify nunca roda dentro da requisicao.
-POST com CSRF, porque os dois mudam dados (no hub ou na loja).
+Cria uma tarefa (ExecucaoIntegracao) e abre a tela dela, com barra, falhas por
+servico e Retomar: a chamada a Shopify nunca roda dentro da requisicao. POST com
+CSRF, porque muda dados na loja.
 """
 
 from django.contrib import messages
@@ -16,7 +16,6 @@ from apps.integracoes.retomar import colocar_na_fila
 
 Tipo = ExecucaoIntegracao.Tipo
 ACOES = {
-    "importar": (Tipo.IMPORTAR_SERVICOS, "apps.shopify.tasks.importar_servicos_shopify"),
     "exportar": (Tipo.EXPORTAR_SERVICOS, "apps.shopify.tasks.exportar_servicos_shopify"),
 }
 
@@ -51,7 +50,7 @@ class ServicosShopifyMixin:
             messages.error(request, "Nenhuma loja Shopify ativa nesta conta: configure em "
                                     "Integracoes > Shopify e salve.")
             return HttpResponseRedirect(lista)
-        if acao == "exportar" and not configuracao.enviar_servicos:
+        if not configuracao.enviar_servicos:
             messages.error(request, "Ligue \"enviar servicos\" em Integracoes > Shopify > "
                                     "Servicos e salve antes de exportar.")
             return HttpResponseRedirect(lista)

@@ -53,7 +53,7 @@ def produto(dados, sobrescrever=False):
     Ja vinculado ou achado pelo slug, recebe os dados da loja (produtos_dados.py) e
     as variantes, nao so as imagens: senao SEO, tags e colecoes ficavam desatualizados.
     """
-    from apps.shopify.servicos_importar import eh_servico
+    from apps.shopify.servicos_exportar import eh_servico
 
     if eh_servico(dados):
         # Produto escondido de um servico (servicos_envio.py): e do cadastro de Servicos.

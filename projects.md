@@ -512,6 +512,15 @@ de `regular_price`, `sale_price` e `stock_quantity`. Filtros/corpos aparecem no 
   (`apps/loja/services/servicos_regras.servicos_do_produto`). A pagina do produto
   mostra, so para consulta, os servicos que valem para ele (secao "Servicos"). A API
   Woo continua mandando o preco **pago** no pedido, nao o da regra.
+- **Planilha de servicos** (Loja > Servicos, `apps/loja/services/servicos_planilha.py`):
+  **Exportar planilha** baixa um .xlsx com uma linha por regra (o servico se repete;
+  servico sem regra sai com as colunas da regra vazias). **Importar planilha** le o
+  mesmo formato numa tarefa: servico pelo `sku`, regra pela `regra_ordem` dentro dele,
+  entao exportar, editar e importar de volta atualiza sem duplicar. Categorias por
+  nome e produtos por SKU, separados por `|`.
+  A exportacao tem a aba **Produtos** (so consulta): cada produto que o servico
+  pega, com SKU, preco e categorias do produto, a regra que vale (a primeira ativa
+  pela ordem) e o preco do servico para ele (`servicos_planilha_produtos.py`).
 - **Update de pedido** (PUT/PATCH/lote, v1 e v3) aceita o servico como o GET mostra:
   reconhece pelo `id`, depois `sku`, depois `nome` (`loja.services.servicos.do_erp`,
   antes de salvar o item); id/SKU inexistente e 400 `rest_invalid_param`. Sem `preco`,
@@ -781,8 +790,8 @@ padrao e o de cada regra ativa). Vinculos `servicos` (produto) e `servicos_varia
   mudar servico ou regra, `servicos_sinais.py`; nao passa pela matriz), *receber
   servicos dos pedidos* e *oferecer servicos na pagina do produto*. Botao **Guia dos
   servicos**: passo a passo e o trecho do tema pronto (`admin_servicos_guia.py`).
-- Loja > Servicos: **Importar da Shopify** (produtos com a tag viram Servico; mesmo SKU
-  atualiza) e **Exportar para a Shopify** (tarefas, com Retomar).
+- Loja > Servicos: **Exportar para a Shopify** (tarefa, com Retomar). A Shopify so
+  recebe: o cadastro e do hub.
 - Tema: `GET /integracoes/shopify/servicos-publico/<uuid>/?produto=<product.id>` (CORS
   como o frete do tema) devolve os servicos do produto com a variante do preco da
   regra. `static/starhub/shopify/servicos-tema.js` mostra os checkboxes e troca o envio
@@ -790,7 +799,7 @@ padrao e o de cada regra ativa). Vinculos `servicos` (produto) e `servicos_varia
   `_starhub_vinculo`.
 - Pedido: a linha do servico nao vira item; vira servico do item com o mesmo vinculo
   (sem ele, do primeiro item), com o valor somado no item (`pedidos_servicos_tema.py`).
-  O produto-servico nunca entra no catalogo (`servicos_importar.eh_servico`).
+  O produto-servico nunca entra no catalogo (`servicos_exportar.eh_servico`).
 - Escopos do app: `write_products`, `read_publications`, `write_publications`.
 - **Nao verificado na Shopify real:** `productSet` com `identifier`, a publicacao no
   canal pelo nome ("Online Store"/"Loja virtual") e o metafield `seo.hidden`.

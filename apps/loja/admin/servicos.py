@@ -11,12 +11,13 @@ from django.template.loader import render_to_string
 from apps.core.admin_base import TemaModelAdmin
 from apps.core.admin_lista_modal import url_popup
 from apps.integracoes.admin_servicos import ServicosShopifyMixin
+from apps.loja.admin.servicos_planilha import PlanilhaServicosMixin
 from apps.loja.models import RegraServico, Servico
 from apps.loja.services.servicos_regras import produtos_da_regra
 
 
 @admin.register(Servico)
-class ServicoAdmin(ServicosShopifyMixin, TemaModelAdmin):
+class ServicoAdmin(ServicosShopifyMixin, PlanilhaServicosMixin, TemaModelAdmin):
     # Servico nasce sozinho no pedido (SKU SERV-<NOME>); aqui o operador troca o SKU
     # pelo codigo do ERP, define o preco e as regras. O id e o do hub e nao muda.
     list_display = ["nome", "sku", "preco", "active", "updated_at"]

@@ -15,7 +15,6 @@ from apps.shopify.contexto import usando_configuracao
 from apps.shopify.envio.marketplace import ShopifyMarketplace
 from apps.shopify.pedidos import importar_pedido
 from apps.shopify.servicos_envio import ServicoShopify
-from apps.shopify.servicos_importar import importar_servico
 from apps.shopify.tests.envio_falso import GraphQLFalso
 from apps.shopify.tests.pedido_exemplo import pedido_shopify, produto_shopify_falso  # noqa: F401
 
@@ -147,16 +146,6 @@ def test_linha_do_servico_vira_servico_do_item_com_o_valor_somado(cfg, sofa, mon
 def test_produto_servico_nunca_vira_produto_do_catalogo():
     assert recursos.produto({"id": "gid://shopify/Product/9", "title": "Garantia",
                              "tags": ["starhub-servico"]}) == (None, False)
-
-
-def test_importar_da_shopify_atualiza_o_servico_do_mesmo_sku(montagem):
-    servico, criado = importar_servico({
-        "id": "gid://shopify/Product/55", "title": "Montagem completa", "status": "ACTIVE",
-        "variants": {"nodes": [{"id": "gid://shopify/ProductVariant/1", "sku": "SERV-MONT",
-                                "price": "99.90"}]}})
-
-    assert not criado and servico.pk == montagem.pk
-    assert (servico.nome, servico.preco) == ("Montagem completa", Decimal("99.90"))
 
 
 def test_servico_e_regra_novos_vao_numa_tarefa_so_para_a_shopify(

@@ -1,4 +1,4 @@
-"""Tarefas do Celery da loja: importar a planilha de avaliacoes.
+"""Tarefas do Celery da loja: importar as planilhas de avaliacoes e de servicos.
 
 O motor (arquivo no MEDIA, barra, falhas por linha, Retomar) e o mesmo de toda
 importacao: apps/integracoes/importar_planilha.py. Aqui so a regra da linha.
@@ -8,6 +8,7 @@ from celery import shared_task
 
 from apps.integracoes import importar_planilha
 from apps.integracoes.models import ExecucaoIntegracao
+from apps.loja.services import servicos_planilha
 from apps.loja.services.avaliacoes_importacao import importar_linha
 
 
@@ -24,3 +25,10 @@ def importar_avaliacoes(execucao_id):
     return importar_planilha.executar(
         execucao_id, lambda dados: importar_linha(dados, usuario),
         objeto="avaliacoes", recurso="avaliacoes", quem=_quem)
+
+
+@shared_task
+def importar_servicos(execucao_id):
+    return importar_planilha.executar(
+        execucao_id, servicos_planilha.importar_linha, objeto="servicos", recurso="servicos",
+        quem=lambda dados: str(dados.get("sku") or ""))

@@ -22,11 +22,16 @@ ul.object-tools li {
   height: auto;
 }
 
+/* button: acao que muda dados vai num <form method="post"> com o mesmo visual. */
 ul.object-tools a:link,
-ul.object-tools a:visited {
+ul.object-tools a:visited,
+ul.object-tools button {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   height: 34px;
+  border: 0;
+  cursor: pointer;
   padding: 0 12px;
   border-radius: var(--radius-md);
   background: var(--primary);

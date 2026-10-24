@@ -123,7 +123,7 @@ class ExecucaoIntegracao(BaseModel):
         EXPORTAR = "export", "Exportar dados"
         IMPORTAR_AVALIACOES = "import_reviews", "Importar avaliacoes"
         IMPORTAR_FRETE = "import_freight", "Importar faixas de frete"
-        IMPORTAR_SERVICOS = "import_services", "Importar servicos"
+        IMPORTAR_SERVICOS = "import_services", "Importar servicos (planilha)"
         EXPORTAR_SERVICOS = "export_services", "Exportar servicos"
         FRETE_CHECKOUT = "carrier", "Cadastrar frete no checkout"
         VERIFICAR_FRETE = "carrier_check", "Verificar frete no checkout"

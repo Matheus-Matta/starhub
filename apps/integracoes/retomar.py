@@ -36,7 +36,7 @@ TAREFAS = {
     Tipo.IMPORTAR_FRETE: "apps.logistica.tasks.importar_faixas",
     Tipo.FRETE_CHECKOUT: "apps.shopify.tasks.cadastrar_frete_shopify",
     Tipo.VERIFICAR_FRETE: "apps.shopify.tasks.verificar_frete_shopify",
-    Tipo.IMPORTAR_SERVICOS: "apps.shopify.tasks.importar_servicos_shopify",
+    Tipo.IMPORTAR_SERVICOS: "apps.loja.tasks.importar_servicos",
     Tipo.EXPORTAR_SERVICOS: "apps.shopify.tasks.exportar_servicos_shopify",
 }
 # Tarefa de marketplace que nao e a do Shopify (a de TAREFAS): troca pela da plataforma.
