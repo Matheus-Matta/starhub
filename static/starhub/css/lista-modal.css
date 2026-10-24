@@ -169,11 +169,14 @@
   background: color-mix(in srgb, var(--destructive) 12%, transparent);
 }
 
-/* O "remover" do Django (linha nova) e acionado pela lixeira; a linha salva marcada
-   para remover sai da tela ate salvar. */
-.sh-inline-lista .inline-deletelink,
+/* Linha salva marcada para remover sai da tela ate salvar. O "remover" do Django (linha
+   nova) e da lixeira; !important: o inlines.js o reexibe com .show() a cada linha nova. */
 .sh-inline-lista tr.sh-removida {
   display: none;
+}
+
+.sh-inline-lista .inline-deletelink {
+  display: none !important;
 }
 
 .sh-inline-desfazer {
