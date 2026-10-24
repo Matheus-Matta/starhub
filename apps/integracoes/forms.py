@@ -3,6 +3,11 @@ from django import forms
 from apps.integracoes import permissoes
 from apps.integracoes.models import ConfiguracaoIntegracao
 
+# Campos de todas as plataformas; cada form acrescenta os seus (Woo, Suri, Shopify).
+CAMPOS_COMUNS = ["dominio_loja", "url_webhook", "nome_frete", "exibir_prazo_frete",
+                 "id_vendedor", "active"]
+SERVICOS = ["enviar_servicos", "receber_servicos"]
+
 
 def nome_campo(direcao, recurso, operacao):
     return f"{direcao}__{recurso}__{operacao}"
@@ -40,8 +45,7 @@ class ConfiguracaoShopifyForm(forms.ModelForm):
 
     class Meta:
         model = ConfiguracaoIntegracao
-        fields = ["dominio_loja", "url_webhook", "nome_frete", "exibir_prazo_frete",
-                  "id_vendedor", "active"]
+        fields = [*CAMPOS_COMUNS, *SERVICOS, "servicos_no_tema"]
         labels = {"active": "Integracao ativa"}
         widgets = {
             "id_vendedor": forms.NumberInput(attrs={"placeholder": "12", "min": 1}),

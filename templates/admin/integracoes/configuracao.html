@@ -25,6 +25,15 @@
     </div>
   {% endcomponente %}
 
+  {% if campos_servicos %}
+    {% componente "card" titulo="Servicos" icone="package" %}
+      {% slot "acoes" %}{% if guia_servicos %}<a class="btn btn-sm btn-outline" href="{% url 'admin:integracoes_servicos_guia' %}">{% icone "book-open" "icon-sm" %} Guia dos servicos</a>{% endif %}{% endslot %}
+      <div class="form-grid">
+        {% for campo in campos_servicos %}{% include "components/field.html" with field=campo %}{% endfor %}
+      </div>
+    {% endcomponente %}
+  {% endif %}
+
   {% componente "card" titulo="O que a loja pode receber e enviar" icone="sliders-horizontal" flush=True %}
     {% slot "acoes" %}{% if pode_editar %}
       <div class="integracao-selecao" aria-label="Marcacao rapida da matriz">

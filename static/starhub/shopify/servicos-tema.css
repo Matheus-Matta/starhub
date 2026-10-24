@@ -1,0 +1,28 @@
+/* Bloco de servicos do tema Shopify (servicos-tema.js). Herda fonte e cor do tema:
+   so a estrutura vem daqui, para o bloco parecer parte da loja. */
+.starhub-servicos {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border: 1px solid currentColor;
+  border-color: color-mix(in srgb, currentColor 20%, transparent);
+  border-radius: 8px;
+}
+
+.starhub-servicos legend {
+  padding: 0 4px;
+  font-weight: 600;
+}
+
+.starhub-servico {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.starhub-servicos-erro {
+  margin: 0;
+  font-size: 0.875em;
+}

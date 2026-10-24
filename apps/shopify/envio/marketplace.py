@@ -9,6 +9,7 @@ from apps.shopify.envio.cupons import CupomShopify
 from apps.shopify.envio.estoque import EstoqueShopify
 from apps.shopify.envio.pedidos import PedidoShopify
 from apps.shopify.envio.produtos import ProdutoShopify
+from apps.shopify.servicos_envio import ServicoShopify
 
 
 @registrar
@@ -16,5 +17,11 @@ class ShopifyMarketplace(Marketplace):
     plataforma = "shopify"
     recursos = (
         ProdutoShopify, EstoqueShopify, ClienteShopify,
-        CategoriaShopify, CupomShopify, PedidoShopify, AvaliacaoShopify,
+        CategoriaShopify, CupomShopify, PedidoShopify, AvaliacaoShopify, ServicoShopify,
     )
+
+    def habilitado(self, recurso, operacao):
+        # Servico nao esta na matriz: o switch "enviar servicos" da tela liga as quatro.
+        if recurso == ServicoShopify.recurso:
+            return self.configuracao.enviar_servicos
+        return super().habilitado(recurso, operacao)

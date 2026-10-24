@@ -16,7 +16,7 @@ abrem o form da regra num modal (modal-lista.js).
       <table class="table">
         <thead>
           <tr>
-            <th class="num">Ordem</th><th>Criterios</th><th class="num">Produtos</th>
+            <th class="num">Ordem</th><th>Tipo</th><th>Criterios</th><th class="num">Produtos</th>
             <th class="num">Preco do servico</th><th>Situacao</th>
             <th class="sh-coluna-acoes"><span class="visually-hidden">Acoes</span></th>
           </tr>
@@ -26,6 +26,7 @@ abrem o form da regra num modal (modal-lista.js).
             <tr class="sh-linha-modal" tabindex="0" data-modal-url="{{ linha.url_editar }}"
                 data-modal-titulo="Editar regra {{ r.ordem }}">
               <td class="num font-medium">{{ r.ordem }}</td>
+              <td>{{ r.get_tipo_display }}</td>
               <td>{{ linha.criterios }}</td>
               <td class="num">{{ linha.produtos }} produto{{ linha.produtos|pluralize }}</td>
               <td class="num nowrap">
@@ -45,6 +46,6 @@ abrem o form da regra num modal (modal-lista.js).
       </table>
     </div>
   {% else %}
-    {% include "components/empty_state.html" with icone="sliders-horizontal" texto="Nenhuma regra ainda." detalhe="Sem regra o servico nao vale para nenhum produto. Adicione uma por categoria, faixa de preco ou produto." %}
+    {% include "components/empty_state.html" with icone="sliders-horizontal" texto="Nenhuma regra ainda." detalhe="Sem regra o servico nao vale para nenhum produto. Adicione uma por categoria ou por produto." %}
   {% endif %}
 </div>

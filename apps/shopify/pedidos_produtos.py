@@ -72,4 +72,5 @@ def garantir_produto(linha):
     from apps.shopify.recursos import produto as importar_produto
 
     produto, _criado = importar_produto(node)
-    return _variante_do_produto(produto, variante_gid, sku)
+    # None: o item e de um produto-servico; com "receber servicos" desligado fica solto.
+    return _variante_do_produto(produto, variante_gid, sku) if produto else None

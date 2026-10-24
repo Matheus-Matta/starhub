@@ -59,20 +59,21 @@ def servicos(quantidade):
 
 
 def regras_servicos(servicos_criados, categorias_criadas, produtos):
-    """Uma regra por servico, alternando os tres criterios: categoria, faixa de
-    preco e produto escolhido a mao (a tela ja nasce com exemplo de cada).
+    """Uma regra por servico, alternando os criterios: categoria, categoria com faixa
+    de preco e produto escolhido (a tela ja nasce com exemplo de cada).
     categorias_criadas e o {nome: Categoria} de categorias()."""
     categorias_criadas = list(categorias_criadas.values())
     for i, servico in enumerate(servicos_criados):
-        regra = RegraServico.objects.create(servico=servico, ordem=10, metadados=marca(),
-                                            preco=Decimal(40 + 5 * i) if i % 2 else None)
-        if i % 3 == 0:
-            regra.categorias.set([categorias_criadas[i % len(categorias_criadas)]])
-        elif i % 3 == 1:
-            regra.preco_ate = Decimal("500.00")
-            regra.save()
-        else:
+        por_produto = i % 3 == 2
+        regra = RegraServico.objects.create(
+            servico=servico, ordem=10, metadados=marca(),
+            tipo=RegraServico.Tipo.PRODUTO if por_produto else RegraServico.Tipo.CATEGORIA,
+            preco_ate=Decimal("500.00") if i % 3 == 1 else None,
+            preco=Decimal(40 + 5 * i) if i % 2 else None)
+        if por_produto:
             regra.produtos.set([produtos[i % len(produtos)]])
+        else:
+            regra.categorias.set([categorias_criadas[i % len(categorias_criadas)]])
 
 
 def categorias(conta, quantidade):

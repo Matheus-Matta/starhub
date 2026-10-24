@@ -4,13 +4,20 @@ O item do Suri nao tem id proprio: a chave do vinculo "itens_pedido" e
 "<pedido>:<posicao>:<sku>". O produto que o hub nao conhece e buscado no Suri
 (GET shop/products/<providerId>) e importado inteiro, nunca um cadastro minimo.
 Quantidade fracionada (venda por quilo) nao cabe no hub (inteiro): vira aviso.
+
+Servico que foi como variante (apps/suri/servicos.py) chega como item com o SKU
+do servico. Com "receber servicos" ligado ele nao vira item: vira servico do item
+do mesmo produto, com o valor somado no item (como o EPOFW do Woo faz), e o total
+do pedido continua batendo com o do Suri.
 """
 
 from decimal import Decimal
 
 from apps.loja.dinheiro import ZERO, dinheiro
 from apps.loja.models import ItemPedido, Produto, VarianteProduto
+from apps.loja.services.servicos import vincular
 from apps.loja.totais import valores_do_item
+from apps.suri import servicos as servicos_suri
 from apps.suri import vinculos
 from apps.suri.contexto import avisar, configuracao_atual
 from apps.suri.importar_catalogo import valor
@@ -78,15 +85,54 @@ def _gravar(item, linha, pedido):
     return item
 
 
+def _servico(linha, configuracao):
+    if not getattr(configuracao, "receber_servicos", False):
+        return None
+    return servicos_suri.da_linha(linha)
+
+
+def _somar_servico(item, linha, servico, pedido):
+    quantidade = _quantidade(linha, pedido)
+    subtotal, total = valores_do_item(valor(linha.get("unitPrice")) or ZERO, quantidade,
+                                      valor(linha.get("subTotalAmount")),
+                                      valor(linha.get("totalAmout")))
+    item.subtotal += subtotal
+    item.total += total
+    item.total_desconto = item.subtotal - item.total
+    item.save()
+    return {"item_id": item.pk, "sku": item.sku, "servico": servico.nome,
+            "servico_id": servico.pk, "opcao": "Sim", "preco": f"{total:.2f}"}
+
+
 def gravar_itens(pedido, dados):
-    """Cria ou atualiza os itens; o item que sumiu do pedido no Suri sai do hub."""
+    """Cria ou atualiza os itens; o item que sumiu do pedido no Suri sai do hub.
+
+    Devolve os servicos dos itens, ou None com "receber servicos" desligado: ai os
+    servicos do pedido (os que o ERP gravou, por exemplo) ficam como estao.
+    """
+    configuracao = configuracao_atual()
     atuais = {str(item.pk): item for item in pedido.itens.all()}
-    mantidos = set()
+    mantidos, do_produto, de_servico = set(), {}, []
     for posicao, linha in enumerate(dados.get("items") or []):
+        servico = _servico(linha, configuracao)
+        if servico is not None:
+            de_servico.append((linha, servico))
+            continue
         chave = f"{dados['id']}:{posicao}:{linha.get('sku') or ''}"
         pk = vinculos.objeto_id(ENTIDADE, chave)
         item = _gravar(atuais.get(str(pk)) or ItemPedido(pedido=pedido), linha, pedido)
         vinculos.referenciar(ENTIDADE, chave, item)
         mantidos.add(item.pk)
+        do_produto.setdefault(str(linha.get("providerId") or ""), item)
+    servicos = []
+    for linha, servico in de_servico:
+        item = do_produto.get(str(linha.get("providerId") or ""))
+        if item is None:
+            avisar(f"Servico {servico.nome} ({servico.sku}) sem o produto dele no pedido; "
+                   "confira o pedido no Suri e lance o servico no ERP.", recurso="pedidos",
+                   id=pedido.pk, descricao=pedido.number, id_externo=dados["id"])
+            continue
+        servicos.append(_somar_servico(item, linha, servico, pedido))
     if "items" in dados:
         pedido.itens.exclude(pk__in=mantidos).delete()
+    return vincular(servicos) if getattr(configuracao, "receber_servicos", False) else None

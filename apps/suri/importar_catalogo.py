@@ -6,7 +6,8 @@
 Produto do Suri: preco e estoque ficam em `dimensions` (uma por SKU). Sem `attributes`
 o produto e simples (uma dimensao); com eles, variavel, e cada dimensao vira uma
 variante com as opcoes de `dimensions` ({"Cor": "Azul", "Tamanho": "M"}). Estoque por
-loja do Suri: o hub tem um numero so, a soma das lojas. Peso vem em gramas.
+loja do Suri: o hub tem um numero so, a soma das lojas. Peso vem em gramas. A
+dimensao que e servico do hub (apps/suri/servicos.py) nao vira variante.
 """
 
 from decimal import Decimal
@@ -21,8 +22,9 @@ from apps.loja.models import Categoria, MidiaProduto, Produto, VarianteProduto
 from apps.loja.services.midias import sincronizar_midias
 from apps.loja.services.slugs import slug_livre
 from apps.loja.services.variantes import obter_variante_padrao
+from apps.suri import servicos as servicos_suri
 from apps.suri import vinculos
-from apps.suri.contexto import avisar
+from apps.suri.contexto import avisar, configuracao_atual
 from apps.suri.opcoes import gravar_opcoes
 
 ORIGEM = Origin.SURI
@@ -86,10 +88,25 @@ def _gravar_variante(variante, dimensao, produto_dados, posicao, completa):
     gravar_opcoes(variante, dimensao.get("dimensions"))
 
 
+def _sem_servicos(dados):
+    """(atributos, dimensoes) sem o que o hub mandou como servico; o produto do Suri
+    que so tem o atributo "Servico" continua simples no hub."""
+    atributos = dados.get("attributes") or []
+    dimensoes = dados.get("dimensions") or [{"sku": dados.get("sku")}]
+    configuracao = configuracao_atual()
+    if not (getattr(configuracao, "enviar_servicos", False)
+            or getattr(configuracao, "receber_servicos", False)):
+        return atributos, dimensoes
+    produto = {"providerId": dados["id"]}
+    return ([a for a in atributos if a.get("name") != servicos_suri.ATRIBUTO],
+            [d for d in dimensoes if servicos_suri.da_linha({**produto, **d}) is None])
+
+
 def _variantes(produto, dados, completa):
     externo = str(dados["id"])
-    variavel = bool(dados.get("attributes"))
-    for posicao, dimensao in enumerate(dados.get("dimensions") or [{"sku": dados.get("sku")}]):
+    atributos, dimensoes = _sem_servicos(dados)
+    variavel = bool(atributos)
+    for posicao, dimensao in enumerate(dimensoes):
         chave = vinculos.id_variacao(externo, dimensao.get("sku"))
         variante = vinculos.existente("variantes", VarianteProduto, chave)
         if variante is None and not variavel:
@@ -148,7 +165,7 @@ def importar_produto(dados, sobrescrever=False):
     if criado or sobrescrever:
         obj.nome = (dados.get("name") or "Produto Suri")[:255]
         obj.descricao = dados.get("description") or ""
-        obj.tipo = Produto.Tipo.VARIAVEL if dados.get("attributes") else Produto.Tipo.SIMPLES
+        obj.tipo = Produto.Tipo.VARIAVEL if _sem_servicos(dados)[0] else Produto.Tipo.SIMPLES
         ativo = dados.get("isActive", True)
         obj.status = Produto.Status.PUBLICADO if ativo else Produto.Status.RASCUNHO
         obj.save()

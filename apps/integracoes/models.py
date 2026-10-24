@@ -55,6 +55,22 @@ class ConfiguracaoIntegracao(BaseModel):
                   "resposta dela volta ao ERP; cada uma fica em Tarefas, com a requisicao "
                   "e a resposta.")
 
+    # Servicos do hub (Loja > Servicos) na loja. Suri: cada servico vira variante do
+    # produto (apps/suri/servicos.py). Shopify: cada servico vira um produto escondido,
+    # que o tema poe no carrinho junto do produto (apps/shopify/servicos*.py).
+    enviar_servicos = models.BooleanField(
+        "enviar servicos", default=False,
+        help_text="Leva os servicos para a loja: no Suri como variante do produto, na "
+                  "Shopify como produto escondido com uma variante por preco.")
+    receber_servicos = models.BooleanField(
+        "receber servicos dos pedidos", default=False,
+        help_text="Item do pedido com o SKU de um servico vira servico do item do produto, "
+                  "com o valor somado nele, e nao um item avulso.")
+    servicos_no_tema = models.BooleanField(
+        "oferecer servicos na pagina do produto", default=False,
+        help_text="So Shopify: o bloco de servicos do tema (Guia dos servicos) mostra os "
+                  "servicos do produto. Desligado, a consulta do tema responde vazia.")
+
     class Meta:
         verbose_name = "configuracao de integracao"
         verbose_name_plural = "Shopify"
@@ -107,6 +123,8 @@ class ExecucaoIntegracao(BaseModel):
         EXPORTAR = "export", "Exportar dados"
         IMPORTAR_AVALIACOES = "import_reviews", "Importar avaliacoes"
         IMPORTAR_FRETE = "import_freight", "Importar faixas de frete"
+        IMPORTAR_SERVICOS = "import_services", "Importar servicos"
+        EXPORTAR_SERVICOS = "export_services", "Exportar servicos"
         FRETE_CHECKOUT = "carrier", "Cadastrar frete no checkout"
         VERIFICAR_FRETE = "carrier_check", "Verificar frete no checkout"
         ENCAMINHAR = "forward", "Encaminhar pedido a loja"

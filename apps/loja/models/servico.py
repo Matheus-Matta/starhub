@@ -57,13 +57,19 @@ class Servico(ComDatas):
 class RegraServico(ComDatas):
     """A quais produtos o servico vale e por qual preco (uma regra por linha).
 
-Selecao dinamica (categoria "Sofas" E preco ate 2.000) mais os produtos escolhidos
-    a mao. Para cada produto vale a primeira regra ativa que casa, pela ordem (menor
-    primeiro); e ela que da o preco. Regras em apps/loja/services/servicos_regras.py.
+    A regra e de um tipo so: por categoria (as categorias escolhidas, com faixa de
+    preco opcional) ou por produto (os produtos escolhidos, um por linha). Para cada
+    produto vale a primeira regra ativa que casa, pela ordem (menor primeiro); e ela
+    que da o preco. Regras em apps/loja/services/servicos_regras.py.
     """
+
+    class Tipo(models.TextChoices):
+        CATEGORIA = "categoria", "Por categoria"
+        PRODUTO = "produto", "Por produto"
 
     servico = models.ForeignKey(Servico, verbose_name="servico", on_delete=models.CASCADE,
                                 related_name="regras")
+    tipo = models.CharField("tipo", max_length=20, choices=Tipo, default=Tipo.CATEGORIA)
     ordem = models.PositiveIntegerField(
         "ordem", default=10,
         help_text="Menor primeiro. O produto que cai em duas regras fica com a de menor ordem.")
@@ -77,7 +83,7 @@ Selecao dinamica (categoria "Sofas" E preco ate 2.000) mais os produtos escolhid
     preco_ate = models.DecimalField(
         "preco do produto ate", max_digits=12, decimal_places=2, null=True, blank=True,
         validators=NAO_NEGATIVO,
-        help_text="Faixa pelo preco da variante padrao do produto.")
+        help_text="Faixa pelo preco da variante padrao, dentro das categorias.")
     preco = models.DecimalField(
         "preco do servico", max_digits=12, decimal_places=2, null=True, blank=True,
         validators=NAO_NEGATIVO,
@@ -96,11 +102,11 @@ Selecao dinamica (categoria "Sofas" E preco ate 2.000) mais os produtos escolhid
         if None not in (self.preco_de, self.preco_ate) and self.preco_de > self.preco_ate:
             raise ValidationError({"preco_ate": "O minimo da faixa passa do maximo."})
 
-    def validar_criterios(self, produtos, categorias, preco_de=None, preco_ate=None):
-        """Produtos e categorias so existem no form (M2M): quem salva chama aqui."""
-        faixa = (preco_de, preco_ate) if (preco_de, preco_ate) != (None, None) else (
-            self.preco_de, self.preco_ate)
-        if not (produtos or categorias) and faixa == (None, None):
-            raise ValidationError(
-                "Escolha produtos, categorias ou uma faixa de preco: regra vazia valeria "
-                "para o catalogo inteiro.")
+    def validar_criterios(self, produtos, categorias):
+        """Produtos e categorias vem das linhas do form (inline): quem salva chama aqui."""
+        if self.tipo == self.Tipo.PRODUTO and not produtos:
+            raise ValidationError("Adicione ao menos um produto: regra por produto sem "
+                                  "produto nao vale para nenhum.")
+        if self.tipo == self.Tipo.CATEGORIA and not categorias:
+            raise ValidationError("Adicione ao menos uma categoria: regra por categoria sem "
+                                  "categoria valeria para o catalogo inteiro.")

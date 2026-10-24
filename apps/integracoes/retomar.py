@@ -36,6 +36,8 @@ TAREFAS = {
     Tipo.IMPORTAR_FRETE: "apps.logistica.tasks.importar_faixas",
     Tipo.FRETE_CHECKOUT: "apps.shopify.tasks.cadastrar_frete_shopify",
     Tipo.VERIFICAR_FRETE: "apps.shopify.tasks.verificar_frete_shopify",
+    Tipo.IMPORTAR_SERVICOS: "apps.shopify.tasks.importar_servicos_shopify",
+    Tipo.EXPORTAR_SERVICOS: "apps.shopify.tasks.exportar_servicos_shopify",
 }
 # Tarefa de marketplace que nao e a do Shopify (a de TAREFAS): troca pela da plataforma.
 POR_PLATAFORMA = {
@@ -78,7 +80,8 @@ def argumentos(execucao):
     caminho = POR_PLATAFORMA.get(plataforma, {}).get(execucao.tipo) or TAREFAS[execucao.tipo]
     identificador = str(execucao.pk)
     if execucao.tipo in (Tipo.SINCRONIZAR, Tipo.EXPORTAR, Tipo.WEBHOOKS, Tipo.IMPORTAR_AVALIACOES,
-                         Tipo.IMPORTAR_FRETE, Tipo.FRETE_CHECKOUT, Tipo.VERIFICAR_FRETE):
+                         Tipo.IMPORTAR_FRETE, Tipo.FRETE_CHECKOUT, Tipo.VERIFICAR_FRETE,
+                         Tipo.IMPORTAR_SERVICOS, Tipo.EXPORTAR_SERVICOS):
         return caminho, (identificador,), {}
     reenvio = _reenvio(execucao)
     if reenvio is None:

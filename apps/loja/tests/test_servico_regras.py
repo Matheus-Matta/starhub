@@ -11,6 +11,7 @@ from apps.loja.services.servicos import preencher_precos_dos_pedidos
 from apps.loja.services.servicos_regras import (
     produtos_da_regra,
     proxima_ordem,
+    separar_regras_por_tipo,
     servicos_do_produto,
 )
 from apps.loja.services.variantes import criar_produto
@@ -35,6 +36,8 @@ def montagem():
 
 
 def _regra(servico, ordem, produtos=(), categorias=(), **campos):
+    campos.setdefault("tipo", RegraServico.Tipo.PRODUTO if produtos else
+                      RegraServico.Tipo.CATEGORIA)
     regra = RegraServico.objects.create(servico=servico, ordem=ordem, **campos)
     regra.produtos.set(produtos)
     regra.categorias.set(categorias)
@@ -55,13 +58,41 @@ def test_produto_escolhido_direto_entra_mesmo_fora_das_outras_regras(catalogo, m
     assert list(produtos_da_regra(regra)) == [mesa]
 
 
-def test_produto_escolhido_soma_com_a_selecao_dinamica(catalogo, montagem):
-    """Escolher a mesa a mao inclui a mesa; nao exige que ela seja da categoria."""
+def test_regra_por_produto_ignora_categoria_e_faixa_que_sobraram(catalogo, montagem):
+    """A regra e de um tipo so: categoria esquecida numa regra por produto nao pode
+    estender o servico para a categoria inteira."""
     sofas, barato, caro, mesa = catalogo
     regra = _regra(montagem, 10, produtos=[mesa], categorias=[sofas],
                    preco_ate=Decimal("2000.00"))
 
-    assert list(produtos_da_regra(regra)) == [mesa, barato]
+    assert list(produtos_da_regra(regra)) == [mesa]
+
+
+def test_regra_por_categoria_ignora_produto_que_sobrou(catalogo, montagem):
+    sofas, barato, caro, mesa = catalogo
+    regra = _regra(montagem, 10, produtos=[mesa], categorias=[sofas],
+                   tipo=RegraServico.Tipo.CATEGORIA)
+
+    assert list(produtos_da_regra(regra)) == [barato, caro]
+
+
+def test_regra_mista_antiga_vira_duas_sem_ninguem_perder_o_servico(catalogo, montagem):
+    """Migration 0023: categoria + produto na mesma regra viram uma regra de cada tipo."""
+    sofas, barato, caro, mesa = catalogo
+    mista = _regra(montagem, 10, produtos=[mesa], categorias=[sofas],
+                   tipo=RegraServico.Tipo.CATEGORIA, preco=Decimal("99.00"))
+    so_produto = _regra(montagem, 20, produtos=[caro], tipo=RegraServico.Tipo.CATEGORIA)
+
+    assert separar_regras_por_tipo(RegraServico) == 1
+
+    so_produto.refresh_from_db()
+    assert so_produto.tipo == RegraServico.Tipo.PRODUTO
+    nova = RegraServico.objects.exclude(pk__in=[mista.pk, so_produto.pk]).get()
+    assert (nova.tipo, nova.ordem, nova.preco) == (RegraServico.Tipo.PRODUTO, 10,
+                                                   Decimal("99.00"))
+    assert list(nova.produtos.all()) == [mesa] and not mista.produtos.exists()
+    assert servicos_do_produto(mesa) == [(montagem, Decimal("99.00"))]
+    assert servicos_do_produto(barato) == [(montagem, Decimal("99.00"))]
 
 
 def test_primeira_regra_na_ordem_define_o_preco_do_produto(catalogo, montagem):
@@ -96,9 +127,12 @@ def test_regra_ou_servico_inativo_nao_vale(catalogo, montagem):
 
 def test_regra_sem_nenhum_criterio_e_recusada(montagem):
     """Regra vazia valeria para o catalogo inteiro sem ninguem ter escolhido isso."""
-    regra = RegraServico(servico=montagem, ordem=10)
-    with pytest.raises(ValidationError, match="Escolha produtos, categorias ou uma faixa"):
-        regra.validar_criterios(produtos=[], categorias=[])
+    regra = RegraServico(servico=montagem, ordem=10, tipo=RegraServico.Tipo.CATEGORIA)
+    with pytest.raises(ValidationError, match="ao menos uma categoria"):
+        regra.validar_criterios(produtos=[object()], categorias=[])
+    regra.tipo = RegraServico.Tipo.PRODUTO
+    with pytest.raises(ValidationError, match="ao menos um produto"):
+        regra.validar_criterios(produtos=[], categorias=[object()])
 
 
 def test_faixa_com_minimo_maior_que_maximo_e_recusada(montagem):

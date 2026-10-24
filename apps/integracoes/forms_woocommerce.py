@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 
 from django import forms
 
-from apps.integracoes.forms import ConfiguracaoShopifyForm
+from apps.integracoes.forms import CAMPOS_COMUNS, ConfiguracaoShopifyForm
 
 
 class ConfiguracaoWooCommerceForm(ConfiguracaoShopifyForm):
@@ -26,7 +26,7 @@ class ConfiguracaoWooCommerceForm(ConfiguracaoShopifyForm):
     )
 
     class Meta(ConfiguracaoShopifyForm.Meta):
-        fields = [*ConfiguracaoShopifyForm.Meta.fields, "encaminhar_pedidos"]
+        fields = [*CAMPOS_COMUNS, "encaminhar_pedidos"]
         widgets = {
             "dominio_loja": forms.URLInput(attrs={"placeholder": "https://sualoja.com.br"}),
             "url_webhook": forms.URLInput(attrs={

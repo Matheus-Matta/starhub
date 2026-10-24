@@ -139,11 +139,12 @@ def test_user_errors_do_estoque_viram_shopify_erro(conta):
         enviador.atualizar(variante, VARIANTE_GID)
 
 
-def test_marketplace_shopify_fica_registrado_com_os_sete_recursos():
+def test_marketplace_shopify_fica_registrado_com_os_oito_recursos():
     """Sem o registro no ready() o distribuidor nao acha o Shopify e nada e enviado."""
     assert obter("shopify") is ShopifyMarketplace
     assert {classe.recurso for classe in ShopifyMarketplace.recursos} == {
         "produtos", "estoque", "clientes", "categorias", "cupons", "pedidos", "avaliacoes",
+        "servicos",
     }
 
 

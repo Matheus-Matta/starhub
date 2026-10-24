@@ -10,6 +10,7 @@ from apps.loja.dinheiro import ZERO, dinheiro, somar
 from apps.loja.models import ItemPedido, Produto, VarianteProduto
 from apps.loja.services.servicos import vincular
 from apps.loja.totais import valores_do_item
+from apps.shopify import pedidos_servicos_tema as do_tema
 from apps.shopify.pedidos_base import gid, soma_alocacoes, valor, valor_com_fallback
 from apps.shopify.pedidos_servicos import servicos_do_item
 
@@ -91,13 +92,25 @@ def gravar_itens(pedido, dados):
     """Cria ou atualiza os itens e devolve os servicos contratados de cada um."""
     existentes = _existentes(pedido)
     taxas_inclusas = bool(dados.get("taxes_included"))
-    servicos = []
+    servicos, linhas_servico, por_vinculo, primeiro = [], [], {}, None
     for linha in dados.get("line_items") or []:
+        servico = do_tema.servico_da_linha(linha)
+        if servico is not None:
+            linhas_servico.append((linha, servico))
+            continue
         chave = gid("LineItem", linha.get("id"))
         item = (existentes.get(chave) if chave else None) or ItemPedido(pedido=pedido)
         _gravar(item, linha, taxas_inclusas)
+        primeiro = primeiro or item
+        por_vinculo.setdefault(do_tema.vinculo(linha), item)
         for servico in servicos_do_item(linha.get("properties")):
             servicos.append({"item_id": item.pk, "sku": item.sku, **servico,
                              "preco": f"{servico['preco']:.2f}"})
+    # Depois dos itens: o servico soma no item ja gravado com o valor do produto.
+    for linha, servico in linhas_servico:
+        chave_tema = do_tema.vinculo(linha)
+        item = por_vinculo.get(chave_tema) if chave_tema else None
+        if item or primeiro:
+            servicos.append(do_tema.somar(item or primeiro, linha, servico))
     # Servico sem cadastro nasce aqui: o ERP recebe id e SKU ja no primeiro GET.
     return vincular(servicos)

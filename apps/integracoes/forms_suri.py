@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 
 from django import forms
 
-from apps.integracoes.forms import ConfiguracaoShopifyForm
+from apps.integracoes.forms import CAMPOS_COMUNS, SERVICOS, ConfiguracaoShopifyForm
 
 
 class ConfiguracaoSuriForm(ConfiguracaoShopifyForm):
@@ -22,6 +22,7 @@ class ConfiguracaoSuriForm(ConfiguracaoShopifyForm):
     )
 
     class Meta(ConfiguracaoShopifyForm.Meta):
+        fields = [*CAMPOS_COMUNS, *SERVICOS]
         widgets = {
             "dominio_loja": forms.URLInput(attrs={
                 "placeholder": "https://cbxxxx.azurewebsites.net"}),

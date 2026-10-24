@@ -27,6 +27,20 @@ def _add_url(servico):
     return reverse("admin:loja_regraservico_add") + f"?servico={servico.pk}&_popup=1"
 
 
+def _linhas(prefixo, campo, escolhidos):
+    dados = {f"{prefixo}-TOTAL_FORMS": str(len(escolhidos)), f"{prefixo}-INITIAL_FORMS": "0",
+             f"{prefixo}-MIN_NUM_FORMS": "0", f"{prefixo}-MAX_NUM_FORMS": "1000"}
+    for i, obj in enumerate(escolhidos):
+        dados[f"{prefixo}-{i}-{campo}"] = str(obj.pk)
+    return dados
+
+
+def _post(tipo, produtos=(), categorias=(), **campos):
+    return {"tipo": tipo, "ordem": "10", "active": "on", "_popup": "1",
+            **_linhas("RegraServico_produtos", "produto", produtos),
+            **_linhas("RegraServico_categorias", "categoria", categorias), **campos}
+
+
 def test_pagina_do_servico_lista_as_regras_com_o_add_em_modal(admin_logado, montagem, sofa):
     regra = RegraServico.objects.create(servico=montagem, ordem=10, preco=Decimal("90.00"))
     regra.categorias.set(sofa.categorias.all())
@@ -46,26 +60,56 @@ def test_form_do_modal_grava_a_regra_com_a_ordem_sugerida(admin_logado, montagem
     assert 'name="ordem"' in pagina and 'value="20"' in pagina
     assert 'name="servico"' not in pagina or 'type="hidden" name="servico"' in pagina
 
-    resposta = admin_logado.post(_add_url(montagem), {
-        "servico": montagem.pk, "ordem": "20", "produtos": [sofa.pk], "active": "on",
-        "preco": "150.00", "_popup": "1",
-    })
+    resposta = admin_logado.post(_add_url(montagem), _post(
+        "produto", produtos=[sofa], servico=montagem.pk, ordem="20", preco="150.00"))
 
     assert resposta.status_code == 200  # resposta do popup, que fecha o modal
     nova = RegraServico.objects.get(ordem=20)
     assert list(nova.produtos.all()) == [sofa] and nova.preco == Decimal("150.00")
 
 
-def test_form_recusa_regra_sem_criterio_e_diz_o_que_fazer(admin_logado, montagem):
-    resposta = admin_logado.post(_add_url(montagem), {
-        "servico": montagem.pk, "ordem": "10", "active": "on", "_popup": "1"})
+def test_form_recusa_regra_sem_criterio_e_diz_o_que_fazer(admin_logado, montagem, sofa):
+    """Regra por categoria sem categoria valeria para o catalogo inteiro; as linhas de
+    produto (escondidas no tipo categoria) nao contam como criterio."""
+    resposta = admin_logado.post(_add_url(montagem), _post(
+        "categoria", produtos=[sofa], servico=montagem.pk))
 
-    assert "Escolha produtos, categorias ou uma faixa de preco" in resposta.content.decode()
+    assert "Adicione ao menos uma categoria" in resposta.content.decode()
     assert not RegraServico.objects.exists()
 
 
+def test_modal_da_regra_escolhe_por_linhas_e_nao_por_multiselect(admin_logado, montagem):
+    """O operador pediu o mesmo "Adicionar" das opcoes da variante, uma escolha por
+    linha; o multiselect (tags) nao pode voltar."""
+    pagina = admin_logado.get(_add_url(montagem)).content.decode()
+
+    assert 'id="RegraServico_produtos-group"' in pagina
+    assert 'id="RegraServico_categorias-group"' in pagina
+    assert 'data-inline-adicionar="RegraServico_produtos"' in pagina
+    assert 'name="produtos"' not in pagina and 'name="categorias"' not in pagina
+
+
+def test_salvar_por_categoria_apaga_os_produtos_escondidos(admin_logado, montagem, sofa):
+    """Trocar o tipo esconde as linhas do outro; se ficassem gravadas, a regra
+    continuaria valendo por um criterio que o operador nao ve."""
+    regra = RegraServico.objects.create(servico=montagem, tipo=RegraServico.Tipo.PRODUTO)
+    regra.produtos.set([sofa])
+    url = reverse("admin:loja_regraservico_change", args=[regra.pk]) + "?_popup=1"
+    dados = _post("categoria", categorias=list(sofa.categorias.all()), servico=montagem.pk,
+                  preco_ate="2000.00")
+    dados.update(_linhas("RegraServico_produtos", "produto", []))
+
+    resposta = admin_logado.post(url, dados)
+
+    assert resposta.status_code == 200
+    regra.refresh_from_db()
+    assert regra.tipo == RegraServico.Tipo.CATEGORIA and not regra.produtos.exists()
+    assert list(regra.categorias.all()) == list(sofa.categorias.all())
+
+
 def test_pagina_do_produto_mostra_os_servicos_que_valem_para_ele(admin_logado, montagem, sofa):
-    regra = RegraServico.objects.create(servico=montagem, ordem=10)
+    regra = RegraServico.objects.create(servico=montagem, ordem=10,
+                                        tipo=RegraServico.Tipo.PRODUTO)
     regra.produtos.set([sofa])
 
     html = admin_logado.get(

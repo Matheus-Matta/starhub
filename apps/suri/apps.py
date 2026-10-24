@@ -7,4 +7,7 @@ class SuriConfig(AppConfig):
     verbose_name = "Suri Shop"
 
     def ready(self):
+        from apps.suri import servicos_sinais
         from apps.suri.envio import marketplace  # noqa: F401
+
+        servicos_sinais.conectar()

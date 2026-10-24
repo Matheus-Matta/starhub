@@ -501,9 +501,13 @@ de `regular_price`, `sale_price` e `stock_quantity`. Filtros/corpos aparecem no 
   preco padrao veio do ultimo preco pago em pedido (migration `loja.0021`; nunca
   vendido fica em zero). Na pagina do servico, a secao "Regras" e uma lista com
   modal (mesmo mecanismo das variantes, classe `secao-lista`): uma regra por linha,
-  com `ordem` editavel. A regra pega a **selecao dinamica** (categorias E faixa de
-  preco, pelo preco normal da variante padrao) **mais** os produtos escolhidos a
-  mao; regra sem nenhum criterio e recusada. Para cada produto vale a primeira
+  com `ordem` editavel. A regra e de um **tipo so** (`RegraServico.tipo`): **por
+  categoria** (as categorias E, opcional, a faixa de preco pelo preco normal da
+  variante padrao) ou **por produto** (so os produtos escolhidos). No modal as
+  categorias e os produtos entram um por linha, com "Adicionar" (inline da tabela
+  M2M, igual as opcoes da variante, `apps/loja/admin/servico_regra.py`); as linhas
+  do outro tipo saem ao salvar. Regra sem categoria (ou sem produto) e recusada.
+  Regra antiga que misturava os dois virou duas (migration `loja.0023`). Para cada produto vale a primeira
   regra ativa pela ordem: o preco dela, ou o padrao do servico
   (`apps/loja/services/servicos_regras.servicos_do_produto`). A pagina do produto
   mostra, so para consulta, os servicos que valem para ele (secao "Servicos"). A API
@@ -767,6 +771,30 @@ tema (Liquid assina o token) --POST multipart--> /integracoes/shopify/avaliacoes
   geral do `.env`; o endereco do hub continua em `DJANGO_ALLOWED_HOSTS`.
   No nginx, `client_max_body_size 16m` permite 3 fotos de 5 MB.
 
+**Servicos na pagina do produto (tema Shopify).** A Shopify so cobra item do carrinho:
+cada servico do hub vira um **produto escondido** (tag `starhub-servico`, sem frete e
+sem estoque, `seo.hidden`, publicado na Loja virtual), com uma variante por preco (o
+padrao e o de cada regra ativa). Vinculos `servicos` (produto) e `servicos_variantes`
+(variante, preco no metadata). Codigo: `apps/shopify/servicos_*.py`.
+
+- Card **Servicos** em Integracoes > Shopify: *enviar servicos* (exporta e reenvia ao
+  mudar servico ou regra, `servicos_sinais.py`; nao passa pela matriz), *receber
+  servicos dos pedidos* e *oferecer servicos na pagina do produto*. Botao **Guia dos
+  servicos**: passo a passo e o trecho do tema pronto (`admin_servicos_guia.py`).
+- Loja > Servicos: **Importar da Shopify** (produtos com a tag viram Servico; mesmo SKU
+  atualiza) e **Exportar para a Shopify** (tarefas, com Retomar).
+- Tema: `GET /integracoes/shopify/servicos-publico/<uuid>/?produto=<product.id>` (CORS
+  como o frete do tema) devolve os servicos do produto com a variante do preco da
+  regra. `static/starhub/shopify/servicos-tema.js` mostra os checkboxes e troca o envio
+  do formulario por um `/cart/add.js` com produto e servicos, todos com a propriedade
+  `_starhub_vinculo`.
+- Pedido: a linha do servico nao vira item; vira servico do item com o mesmo vinculo
+  (sem ele, do primeiro item), com o valor somado no item (`pedidos_servicos_tema.py`).
+  O produto-servico nunca entra no catalogo (`servicos_importar.eh_servico`).
+- Escopos do app: `write_products`, `read_publications`, `write_publications`.
+- **Nao verificado na Shopify real:** `productSet` com `identifier`, a publicacao no
+  canal pelo nome ("Online Store"/"Loja virtual") e o metafield `seo.hidden`.
+
 ### 7.4 WooCommerce (`apps/woocommerce`)
 
 Mesmo formato do Shopify: tela em Integracoes > WooCommerce, matriz Receber/Enviar,
@@ -839,10 +867,24 @@ Mesma tela, matriz, Sincronizar, Tarefas e Retomar das outras lojas.
   pedidos (pago, cancelado e logistica "entregue"; o estado do Suri fica no metadata
   do vinculo para nao repetir a chamada). Clientes nao vao: a API do Suri exige o
   canal de WhatsApp do contato.
+- **Servicos** (card "Servicos" da tela, `apps/suri/servicos.py`): o Suri nao tem
+  servico. Com "enviar servicos como variantes", cada servico que vale para o
+  produto (regras acima) vai no PUT do produto como mais uma dimensao, atributo
+  `Servico`, SKU e preco do servico, estoque = soma das variantes do produto. O
+  vinculo `servicos` ("<produto>:<sku>" -> Servico) guarda o que foi. Mudou servico,
+  regra ou as linhas dela (`servicos_sinais.py`): reenvia os produtos que a regra
+  pega e os que levam o servico hoje; o PUT sem a variante a apaga no Suri. Ligar
+  o envio nao reenvia sozinho: exporte os produtos. Com "receber servicos dos
+  pedidos", o item com SKU de servico vira servico do item do mesmo produto
+  (`starhub.servicos`), com o valor somado no item, e o total bate com o do Suri;
+  desligado, os servicos do pedido ficam como estao. O catalogo vindo do Suri nunca
+  cria variante de servico.
 - **Frete:** resposta de orcamento do pedido em montagem (secao 7.7).
 - **Nao verificado contra o Suri real** (sem credencial no desenvolvimento): o corpo
   do webhook de pedidos, a lista de metodos de pagamento alem de cartao (0) e Pix (3)
-  e se `PUT shop/products` sem `images` mantem as fotos. A doc so diz que
+  e se `PUT shop/products` sem `images` mantem as fotos, e como o Suri trata a
+  dimensao de servico sem as opcoes do produto (ex.: `{"Servico": "Montagem"}` num
+  produto com `Cor`). A doc so diz que
   `images: null` apaga; por isso a chave nem vai quando o hub nao tem foto publica.
 
 ### 7.6 Novo marketplace

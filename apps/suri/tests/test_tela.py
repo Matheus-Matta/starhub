@@ -49,3 +49,28 @@ def test_ligar_frete_do_suri_so_marca_no_hub(admin_logado):
 
     assert frete_ligado(ConfiguracaoIntegracao.objects.get())
     assert "Frete ligado" in admin_logado.get(reverse(URL)).content.decode()
+
+
+def test_servicos_ligam_envio_e_recebimento_na_tela_do_suri(admin_logado):
+    """Sem o campo na tela o operador nao tinha como ligar os servicos no Suri."""
+    html = admin_logado.get(reverse(URL)).content.decode()
+    assert 'name="enviar_servicos"' in html and 'name="receber_servicos"' in html
+
+    admin_logado.post(reverse(URL), {
+        "dominio_loja": "https://cb.azurewebsites.net", "token_acesso": "tk",
+        "enviar_servicos": "on", "receber_servicos": "on", "acao": "salvar"})
+
+    cfg = ConfiguracaoIntegracao.objects.get()
+    assert cfg.enviar_servicos and cfg.receber_servicos
+
+
+def test_so_a_tela_da_shopify_oferece_servicos_no_tema(admin_logado):
+    """O bloco da pagina do produto e do tema Shopify; no Suri e no Woo o campo nao existe."""
+    shopify = admin_logado.get(
+        reverse("admin:integracoes_configuracaointegracao_shopify")).content.decode()
+    suri = admin_logado.get(reverse(URL)).content.decode()
+    woo = admin_logado.get(
+        reverse("admin:integracoes_configuracaointegracao_woocommerce")).content.decode()
+
+    assert 'name="servicos_no_tema"' in shopify and 'name="servicos_no_tema"' not in suri
+    assert 'name="enviar_servicos"' not in woo

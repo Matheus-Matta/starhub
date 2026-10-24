@@ -5,7 +5,8 @@
      "dimensions": [{"sku", "dimensions": {"Cor": "Azul"}, "price",
                      "stocks": {"<loja>": {"stock": 3}}, "measurements": {...}}]}
 
-Preco e Decimal ate o JSON (apps/suri/cliente._json escreve o numero exato).
+Preco e Decimal ate o JSON (apps/suri/cliente._json escreve o numero exato). Os
+servicos do produto vao no fim de "dimensions", um por SKU (apps/suri/servicos.py).
 """
 
 from decimal import Decimal
@@ -13,6 +14,7 @@ from decimal import Decimal
 from apps.integracoes.url_publica import url_publica
 from apps.loja.dinheiro import ZERO
 from apps.loja.models import MidiaProduto, Produto
+from apps.suri import servicos as servicos_suri
 from apps.suri.cliente import SuriErro
 from apps.suri.envio.base import id_no_suri
 
@@ -54,7 +56,7 @@ def categorias(enviador_categorias, produto):
     return externo, None
 
 
-def corpo(enviador_categorias, produto, loja, configuracao):
+def corpo(enviador_categorias, produto, loja, configuracao, servicos=()):
     produto_id = id_no_suri("produtos", produto)
     variantes = list(produto.variantes.order_by("posicao", "id"))
     padrao = produto.variante_padrao
@@ -73,6 +75,10 @@ def corpo(enviador_categorias, produto, loja, configuracao):
         "attributes": _atributos(variantes) if produto.tipo == Produto.Tipo.VARIAVEL else [],
         "dimensions": [_dimensao(v, produto_id, loja) for v in variantes],
     }
+    if servicos:
+        skus = {d["sku"] for d in corpo["dimensions"]}
+        corpo["attributes"] += servicos_suri.atributo(servicos, skus)
+        corpo["dimensions"] += servicos_suri.dimensoes(servicos, variantes, loja, skus)
     if imagens:
         # "images": null apaga as fotos no Suri: sem foto publica no hub, a chave nem vai.
         corpo["images"] = imagens

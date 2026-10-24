@@ -75,7 +75,8 @@ def test_id_ou_sku_que_nao_existe_e_recusado_dizendo_o_que_fazer(api, cenario, r
 
 def test_servico_sem_preco_usa_a_regra_do_produto(api, cenario):
     pedido, item, montagem = cenario
-    regra = RegraServico.objects.create(servico=montagem, ordem=10, preco=Decimal("90.00"))
+    regra = RegraServico.objects.create(servico=montagem, ordem=10, preco=Decimal("90.00"),
+                                        tipo=RegraServico.Tipo.PRODUTO)
     regra.produtos.set([item.produto])
 
     resposta = _put(api, V3, pedido, item, [{"id": montagem.pk, "opcao": "Sim"}])

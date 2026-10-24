@@ -125,10 +125,10 @@ def importar_pedido(dados):
         if limpo.get("address_1"):
             gravar_endereco_do_pedido(pedido, tipo, limpo)
     pedido.save()
-    gravar_itens(pedido, dados)
-    mesclar_extras(pedido, {"origem": {"canal": "suri", "id": str(dados["id"]),
-                                       "usuario": dados.get("userId"),
-                                       "loja": (dados.get("logistic") or {}).get("storeName")}})
+    servicos = gravar_itens(pedido, dados)
+    extras = {"origem": {"canal": "suri", "id": str(dados["id"]), "usuario": dados.get("userId"),
+                         "loja": (dados.get("logistic") or {}).get("storeName")}}
+    mesclar_extras(pedido, extras if servicos is None else {**extras, "servicos": servicos})
     pedido.save(update_fields=["metadados", "updated_at"])
     recalcular_totais(pedido)
     _conferir_total(pedido, dados)

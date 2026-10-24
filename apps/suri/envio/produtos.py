@@ -1,7 +1,8 @@
 """Produto, estoque e pedido do hub -> Suri Shop.
 
 - produto: POST shop/products (cria com o id "sh-<pk>"), PUT shop/products (o objeto
-  inteiro), DELETE shop/products/<id>. Cada SKU ganha o vinculo "variantes".
+  inteiro), DELETE shop/products/<id>. Cada SKU ganha o vinculo "variantes"; o servico
+  que vai como variante, o vinculo "servicos" (apps/suri/servicos.py).
 - estoque: PUT shop/products/<id>/stocks so do SKU que mudou, na loja do estoque.
 - pedido: nasce no Suri. O hub manda o que o Suri ainda nao tem: pago, cancelado ou a
   logistica (entregue). O estado do Suri fica no metadata do vinculo do pedido.
@@ -10,6 +11,7 @@
 from apps.integracoes.envio.base import EnvioNaoSuportado
 from apps.loja.models import Pedido, Produto, VarianteProduto
 from apps.loja.services.pedidos import transacao
+from apps.suri import servicos as servicos_suri
 from apps.suri import vinculos
 from apps.suri.envio.base import RecursoSuri
 from apps.suri.envio.produtos_corpo import corpo
@@ -20,10 +22,12 @@ class ProdutoSuri(RecursoSuri):
     modelo = Produto
 
     def _corpo(self, produto):
+        self._servicos = servicos_suri.do_produto(self.configuracao, produto)
         return corpo(self.marketplace.enviador("categorias"), produto, self.loja_do_estoque(),
-                     self.configuracao)
+                     self.configuracao, self._servicos)
 
     def _vincular_variantes(self, produto, dados):
+        servicos_suri.vincular(dados["id"], self._servicos, dados)
         skus = {d["sku"] for d in dados["dimensions"]}
         for variante in produto.variantes.all():
             sku = variante.sku or f"{dados['id']}-{variante.pk}"
@@ -44,6 +48,7 @@ class ProdutoSuri(RecursoSuri):
 
     def excluir(self, external_id):
         self.cliente.delete(f"shop/products/{external_id}")
+        servicos_suri.desvincular(external_id)
 
 
 class EstoqueSuri(RecursoSuri):

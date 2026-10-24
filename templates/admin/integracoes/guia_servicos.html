@@ -1,0 +1,54 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% comment %}
+Guia dos servicos na Shopify (apps/integracoes/admin_servicos_guia.py): passo a passo
+com o trecho do tema ja montado com os enderecos desta loja.
+{% endcomment %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'starhub/css/integracao.css' %}">{% endblock %}
+{% block breadcrumbs %}
+  <div class="breadcrumbs"><a href="{% url 'admin:index' %}">Painel</a> &rsaquo; Integracoes &rsaquo; <a href="{{ url_integracao }}">Shopify</a> &rsaquo; Guia dos servicos</div>
+{% endblock %}
+
+{% block content %}
+<div class="integracao-page">
+  {% componente "card" titulo="Como funciona" icone="info" %}
+    <p>A Shopify so cobra o que esta no carrinho. Cada servico do hub vira um <strong>produto escondido</strong> na loja (tag <code>starhub-servico</code>), com uma variante por preco das regras. Na pagina do produto, o bloco do tema pergunta ao hub quais servicos valem para aquele produto e mostra um checkbox para cada um. Com algum marcado, o botao de comprar poe o produto e o servico juntos no carrinho, ligados pela propriedade <code>_starhub_vinculo</code>. No pedido, a linha do servico vira servico do item do produto, com o valor somado nele.</p>
+    <p>Exemplo: Sofa R$ 1.500,00 + Montagem R$ 80,00. O carrinho tem duas linhas; no hub o pedido tem um item de R$ 1.580,00 com o servico Montagem (SKU do servico) no meta do item.</p>
+  {% endcomponente %}
+
+  {% componente "card" titulo="1. No StarHub" icone="settings-2" %}
+    <ol>
+      <li>Em <a href="{{ url_integracao }}">Integracoes &gt; Shopify</a>, card <strong>Servicos</strong>: ligue <em>enviar servicos</em>, <em>receber servicos dos pedidos</em> e <em>oferecer servicos na pagina do produto</em>. Salve.</li>
+      <li>Confira o <strong>dominio da loja</strong> e os dominios proprios da conta: so eles podem consultar os servicos pelo navegador (o mesmo controle do frete do tema).</li>
+      <li>Em <a href="{{ url_servicos }}">Loja &gt; Servicos</a>, cadastre cada servico com o <strong>SKU do ERP</strong> e o preco padrao. Nas regras, diga a quais produtos ele vale (por categoria ou por produto) e o preco de cada um.</li>
+      <li>Ainda em Loja &gt; Servicos, clique <strong>Exportar para a Shopify</strong>. Depois disso, mudar servico ou regra reenvia sozinho.</li>
+    </ol>
+  {% endcomponente %}
+
+  {% componente "card" titulo="2. Na Shopify" icone="store" %}
+    <ol>
+      <li>O app do StarHub precisa dos escopos <code>write_products</code>, <code>read_publications</code> e <code>write_publications</code> (Configuracoes &gt; Apps &gt; Desenvolver apps &gt; StarHub &gt; Configuracao). Sem os de publicacao, o servico nao entra no canal Loja virtual e o carrinho recusa.</li>
+      <li>Em Produtos, filtre pela tag <code>starhub-servico</code>: cada servico deve estar <strong>Ativo</strong> e publicado na <strong>Loja virtual</strong>. Nao coloque o servico em colecoes: ele fica fora da busca pelo metafield <code>seo.hidden</code>.</li>
+      <li>Ja tem servicos cadastrados como produtos na loja? Ponha a tag <code>starhub-servico</code> neles e clique <strong>Importar da Shopify</strong> em Loja &gt; Servicos: viram servicos do hub (o SKU iguala os que ja existem).</li>
+    </ol>
+  {% endcomponente %}
+
+  {% componente "card" titulo="3. No tema" icone="layout-grid" %}
+    <ol>
+      <li><strong>Jeito mais simples (Dawn e temas 2.0):</strong> Loja virtual &gt; Temas &gt; Personalizar &gt; modelo de Produto &gt; Adicionar bloco &gt; <em>Liquid personalizado</em>, logo acima do botao de comprar. Cole o trecho abaixo e salve.</li>
+      <li><strong>Pelo codigo:</strong> Editar codigo &gt; Snippets &gt; novo <code>starhub-servicos.liquid</code> com o trecho abaixo. No formulario do produto (em Dawn, <code>snippets/buy-buttons.liquid</code>, dentro do <code>{% templatetag openblock %} form 'product' {% templatetag closeblock %}</code>), antes do botao, coloque <code>{% templatetag openblock %} render 'starhub-servicos', product: product {% templatetag closeblock %}</code>.</li>
+      <li>Desligue o botao <strong>Comprar agora</strong> (pagamento dinamico) no bloco de botoes do produto: ele vai direto ao checkout e ignora os servicos marcados.</li>
+    </ol>
+    <pre class="tarefa-json">{{ trecho }}</pre>
+  {% endcomponente %}
+
+  {% componente "card" titulo="4. Teste" icone="circle-check" %}
+    <ol>
+      <li>Abra na loja um produto que tem regra de servico: o bloco <em>Servicos</em> aparece com o preco da regra. Produto sem regra nao mostra nada.</li>
+      <li>Marque um servico e adicione ao carrinho: o carrinho mostra o produto e o servico.</li>
+      <li>Faca um pedido de teste. No hub, o pedido tem o item do produto com o servico e o valor somado; na API Woo o servico sai no meta do item com o SKU do servico.</li>
+    </ol>
+    <p>Limites: o cliente pode tirar o produto do carrinho e deixar o servico (o hub liga o servico ao primeiro item do pedido); tema com carrinho que nao usa o envio do formulario do produto precisa chamar o mesmo <code>/cart/add.js</code> do script.</p>
+  {% endcomponente %}
+</div>
+{% endblock %}

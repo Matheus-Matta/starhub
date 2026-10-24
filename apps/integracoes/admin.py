@@ -9,6 +9,7 @@ from apps.core.models import ExternalReference
 from apps.core.tarefas import enfileirar
 from apps.core.tenant.context import get_current_account_id
 from apps.integracoes import admin_frete, permissoes
+from apps.integracoes.admin_servicos_guia import guia_view
 from apps.integracoes.admin_shopify import adicionar_links_publicos
 from apps.integracoes.admin_sincronizacao import (
     listas_do_modal,
@@ -36,6 +37,7 @@ ACOES = {
 Plataforma = ConfiguracaoIntegracao.Plataforma
 CAMPOS_API = ("dominio_loja", "token_acesso", "segredo_app", "segredo_avaliacoes",
               "url_webhook", "nome_frete", "exibir_prazo_frete", "id_vendedor", "active")
+CAMPOS_SERVICOS = ("enviar_servicos", "receber_servicos", "servicos_no_tema")  # Suri e Shopify
 # O que muda de uma plataforma para outra na mesma tela de configuracao.
 TELAS = {
     Plataforma.SHOPIFY: {"nome": "Shopify", "form": ConfiguracaoShopifyForm, "acoes": ACOES},
@@ -66,6 +68,8 @@ class ConfiguracaoIntegracaoAdmin(TemaModelAdmin):
                 self.admin_site.admin_view(self.shopify_view),
                 name="integracoes_configuracaointegracao_shopify",
             ),
+            path("shopify/servicos-guia/", self.admin_site.admin_view(
+                lambda request: guia_view(self, request)), name="integracoes_servicos_guia"),
             path(
                 "woocommerce/",
                 self.admin_site.admin_view(self.woocommerce_view),
@@ -156,6 +160,8 @@ class ConfiguracaoIntegracaoAdmin(TemaModelAdmin):
             "form": form,
             "plataforma_nome": tela["nome"],
             "campos_api": [form[nome] for nome in CAMPOS_API if nome in form.fields],
+            "campos_servicos": [form[nome] for nome in CAMPOS_SERVICOS if nome in form.fields],
+            "guia_servicos": plataforma == Plataforma.SHOPIFY and configuracao is not None,
             "campo_encaminhar": form["encaminhar_pedidos"]
             if "encaminhar_pedidos" in form.fields else None,
             "matriz": form.matriz_tela(),

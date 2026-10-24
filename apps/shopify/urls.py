@@ -3,6 +3,7 @@ from django.urls import path
 from apps.shopify.avaliacoes_api import AvaliacaoView
 from apps.shopify.frete_api import cotar_frete
 from apps.shopify.frete_publico import consultar_frete
+from apps.shopify.servicos_publico import consultar_servicos
 from apps.shopify.views import webhook
 
 urlpatterns = [
@@ -13,6 +14,9 @@ urlpatterns = [
     path("frete/<uuid:configuracao_uuid>/", cotar_frete, name="shopify_frete"),
     path("frete-publico/<uuid:configuracao_uuid>/", consultar_frete,
          name="shopify_frete_publico"),
+    # Bloco de servicos da pagina do produto no tema (Guia dos servicos).
+    path("servicos-publico/<uuid:configuracao_uuid>/", consultar_servicos,
+         name="shopify_servicos_publico"),
     # Endereco antigo, com o id: webhooks ja cadastrados na Shopify continuam chegando ate
     # o operador recadastrar (o recadastro troca pelo de uuid).
     path("webhook/<int:configuracao_id>/<str:recurso>/", webhook, name="webhook_legado"),
