@@ -516,8 +516,9 @@ de `regular_price`, `sale_price` e `stock_quantity`. Filtros/corpos aparecem no 
   **Exportar planilha** baixa um .xlsx com uma linha por regra (o servico se repete;
   servico sem regra sai com as colunas da regra vazias). **Importar planilha** le o
   mesmo formato numa tarefa: servico pelo `sku`, regra pela `regra_ordem` dentro dele,
-  entao exportar, editar e importar de volta atualiza sem duplicar. Categorias por
-  nome e produtos por SKU, separados por `|`.
+  entao exportar, editar e importar de volta atualiza sem duplicar. Sem `sku`, o
+  servico e achado pelo nome. Categorias por nome; produtos por SKU, handle ou titulo
+  (titulo repetido e recusado), separados por `|`.
   A exportacao tem a aba **Produtos** (so consulta): cada produto que o servico
   pega, com SKU, preco e categorias do produto, a regra que vale (a primeira ativa
   pela ordem) e o preco do servico para ele (`servicos_planilha_produtos.py`).

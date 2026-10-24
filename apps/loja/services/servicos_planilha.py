@@ -7,10 +7,9 @@ sai numa linha com as colunas da regra vazias. Exemplo:
     SERV-MONT  | Montagem | 120,00 | sim   | 10          | categoria  | Sofas      |
     SERV-MONT  | Montagem | 120,00 | sim   | 20          | produto    |            | SOF-1|SOF-2
 
-O servico e achado pelo SKU e a regra pela ordem dentro dele: importar de novo a
-planilha exportada (ou a corrigida) atualiza, nunca duplica. A exportacao traz
-tambem a aba "Produtos" (servicos_planilha_produtos.py): cada produto que a regra
-pega, com SKU, preco e categorias, so para consulta.
+O servico e achado pelo SKU (ou pelo nome, sem SKU) e a regra pela ordem dentro
+dele: importar de novo a planilha exportada (ou a corrigida) atualiza, nunca duplica.
+A exportacao traz a aba "Produtos" (servicos_planilha_produtos.py), so consulta.
 """
 
 from decimal import Decimal
@@ -22,12 +21,12 @@ from openpyxl.styles import Font
 
 from apps.integracoes.importar_planilha import LinhaInvalida
 from apps.loja.dinheiro import ValorInvalido, dinheiro
-from apps.loja.models import Categoria, RegraServico, Servico, VarianteProduto
+from apps.loja.models import Categoria, RegraServico, Servico
 from apps.loja.services import servicos_planilha_produtos
 
 COLUNAS = [
-    ("sku", True, "SKU do servico (o codigo do ERP). E por ele que o servico e achado."),
-    ("nome", False, "Nome do servico; obrigatorio so para servico novo."),
+    ("sku", False, "SKU do servico (o codigo do ERP). Vazio: o servico e achado pelo nome."),
+    ("nome", False, "Nome do servico; obrigatorio para servico novo ou sem sku."),
     ("preco", False, "Preco padrao do servico, por exemplo 120,00."),
     ("ativo", False, "sim ou nao; vazio = sim."),
     ("regra_ordem", False, "Ordem da regra (menor primeiro). Vazio: a linha mexe so no servico."),
@@ -37,7 +36,8 @@ COLUNAS = [
     ("categorias", False, "Regra por categoria: nomes separados por |."),
     ("preco_de", False, "Regra por categoria: preco do produto a partir de."),
     ("preco_ate", False, "Regra por categoria: preco do produto ate."),
-    ("produtos", False, "Regra por produto: SKUs separados por |."),
+    ("produtos", False, "Regra por produto: SKU, handle ou titulo de cada produto, "
+                        "separados por |."),
 ]
 EXEMPLO = ["SERV-MONT", "Montagem", "120,00", "sim", "10", "categoria", "80,00", "sim",
            "Sofas|Poltronas", "", "2000,00", ""]
@@ -83,26 +83,22 @@ def _categorias(nomes):
     return achadas
 
 
-def _produtos(skus):
-    achados = []
-    for sku in skus:
-        variante = VarianteProduto.objects.filter(sku=sku).select_related("produto").first()
-        if variante is None:
-            raise LinhaInvalida(f"produto com SKU '{sku}' nao existe no hub.")
-        achados.append(variante.produto)
-    return achados
-
-
 def _servico(dados):
-    sku = str(dados.get("sku") or "").strip()
-    if not sku:
-        raise LinhaInvalida("sku vazio: e por ele que o servico e achado.")
-    servico = Servico.objects.select_for_update().filter(sku=sku).first()
+    sku, nome = str(dados.get("sku") or "").strip(), str(dados.get("nome") or "").strip()
+    if not (sku or nome):
+        raise LinhaInvalida("sku e nome vazios: preencha um dos dois para achar o servico.")
+    # Pelo SKU; senao pelo nome. Achado pelo nome com outro SKU na planilha, o SKU da
+    # planilha vale (criar outro bateria no nome unico do servico).
+    servicos = Servico.objects.select_for_update()
+    servico = servicos.filter(sku=sku).first() if sku else None
+    if servico is None and nome:
+        servico = servicos.filter(nome_normalizado=nome.casefold()).first()
     criado = servico is None
-    if criado and not str(dados.get("nome") or "").strip():
+    if criado and not nome:
         raise LinhaInvalida(f"servico {sku} nao existe: preencha o nome para criar.")
-    servico = servico or Servico(sku=sku)
-    servico.nome = str(dados.get("nome") or "").strip()[:150] or servico.nome
+    servico = servico or Servico()
+    servico.sku = sku or servico.sku
+    servico.nome = nome[:150] or servico.nome
     preco = _valor(dados, "preco")
     servico.preco = preco if preco is not None else (servico.preco or Decimal("0.00"))
     servico.active = _sim(dados, "ativo")
@@ -119,7 +115,8 @@ def _regra(servico, dados):
     if tipo not in RegraServico.Tipo.values:
         raise LinhaInvalida("regra_tipo deve ser categoria ou produto.")
     por_produto = tipo == RegraServico.Tipo.PRODUTO
-    produtos = _produtos(_lista(dados, "produtos")) if por_produto else []
+    achar = servicos_planilha_produtos.achar
+    produtos = [achar(texto) for texto in _lista(dados, "produtos")] if por_produto else []
     categorias = [] if por_produto else _categorias(_lista(dados, "categorias"))
     regra = (RegraServico.objects.filter(servico=servico, ordem=ordem).first()
              or RegraServico(servico=servico, ordem=ordem))
@@ -158,8 +155,8 @@ def linhas():
         if not regras:
             yield [*base, *[""] * (len(COLUNAS) - len(base))]
         for regra in regras:
-            produtos = regra.produtos.values_list("variantes__sku", flat=True).filter(
-                variantes__is_default=True)
+            produtos = [servicos_planilha_produtos.referencia(p)
+                        for p in regra.produtos.prefetch_related("variantes")]
             yield [*base, regra.ordem, regra.tipo, regra.preco, _sim_nao(regra.active),
                    SEPARADOR.join(regra.categorias.values_list("nome", flat=True)),
                    regra.preco_de, regra.preco_ate, SEPARADOR.join(s for s in produtos if s)]

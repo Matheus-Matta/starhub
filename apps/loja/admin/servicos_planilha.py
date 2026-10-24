@@ -29,8 +29,10 @@ class PlanilhaServicosMixin(ImportarPlanilhaMixin):
     importar_regras = [
         "Uma linha por regra; os dados do servico se repetem. Servico sem regra: deixe "
         "regra_ordem vazia.",
-        "O servico e achado pelo SKU e a regra pela ordem dentro dele: importar de novo a "
-        "planilha exportada (ou corrigida) atualiza, nao duplica.",
+        "O servico e achado pelo SKU e, sem ele, pelo nome; a regra, pela ordem dentro dele: "
+        "importar de novo a planilha exportada (ou corrigida) atualiza, nao duplica.",
+        "Na coluna produtos vale o SKU, o handle (ex.: sofa-retratil-cinza) ou o titulo do "
+        "produto. Titulo repetido em dois produtos e recusado: use o SKU ou o handle.",
         "Regra por categoria usa a coluna categorias (e a faixa de preco, opcional); por "
         "produto, a coluna produtos. A outra coluna e ignorada.",
         "Linha com erro nao para as outras: a tarefa lista cada uma com o motivo.",

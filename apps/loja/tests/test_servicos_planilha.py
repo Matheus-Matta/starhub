@@ -55,11 +55,12 @@ def test_importar_de_novo_atualiza_pelo_sku_e_pela_ordem_sem_duplicar(catalogo):
 
 
 @pytest.mark.parametrize(("campos", "motivo"), [
-    ({"sku": ""}, "sku vazio"),
+    ({"sku": "", "nome": ""}, "sku e nome vazios"),
     ({"sku": "NOVO", "nome": ""}, "preencha o nome"),
     ({"regra_ordem": "10", "regra_tipo": "categoria", "categorias": "Nao existe"},
      "categoria 'Nao existe' nao existe"),
-    ({"regra_ordem": "10", "regra_tipo": "produto", "produtos": "XYZ"}, "SKU 'XYZ'"),
+    ({"regra_ordem": "10", "regra_tipo": "produto", "produtos": "XYZ"},
+     "produto 'XYZ' nao existe"),
     ({"regra_ordem": "10", "regra_tipo": "produto"}, "ao menos um produto"),
     ({"regra_ordem": "10", "regra_tipo": "faixa"}, "categoria ou produto"),
     ({"preco": "abc"}, "preco 'abc' invalido"),
@@ -138,3 +139,44 @@ def test_importar_planilha_vira_tarefa(admin_logado, settings, tmp_path):
     admin_logado.post(reverse("admin:loja_servico_importar"), {"planilha": arquivo})
 
     assert ExecucaoIntegracao.objects.get().tipo == ExecucaoIntegracao.Tipo.IMPORTAR_SERVICOS
+
+
+@pytest.mark.parametrize("referencia", ["MES-1", "mesa-de-centro", "Mesa de Centro",
+                                        "  mesa de centro  "])
+def test_produto_da_regra_e_achado_pelo_sku_pelo_handle_ou_pelo_titulo(referencia):
+    """A planilha vinda da loja traz o handle ou o titulo, nao o SKU do hub."""
+    mesa = criar_produto("Mesa de Centro", sku="MES-1", price=Decimal("800.00"))
+    mesa.slug = "mesa-de-centro"
+    mesa.save()
+
+    servico, _ = importar_linha(_linha(regra_ordem="10", regra_tipo="produto",
+                                       produtos=referencia))
+
+    assert list(servico.regras.get().produtos.all()) == [mesa]
+
+
+def test_titulo_repetido_pede_o_sku_em_vez_de_escolher_um_ao_acaso():
+    criar_produto("Poltrona", sku="POL-1", price=Decimal("1.00"))
+    criar_produto("Poltrona", sku="POL-2", price=Decimal("1.00"))
+
+    with pytest.raises(LinhaInvalida, match="2 produtos com o titulo 'Poltrona'"):
+        importar_linha(_linha(regra_ordem="10", regra_tipo="produto", produtos="Poltrona"))
+
+
+def test_servico_sem_sku_e_achado_pelo_nome():
+    """Planilha com so o nome do servico: acha o cadastro pelo nome e mantem o SKU dele."""
+    montagem = Servico.objects.create(nome="Montagem", sku="SERV-MONT")
+
+    servico, criado = importar_linha({"sku": "", "nome": " montagem ", "preco": "90,00"})
+
+    assert not criado and servico.pk == montagem.pk and servico.sku == "SERV-MONT"
+    assert servico.preco == Decimal("90.00")
+
+
+def test_sku_novo_com_nome_que_ja_existe_atualiza_o_sku_do_servico():
+    """Criar outro bateria no nome unico; a planilha diz o SKU certo do servico."""
+    montagem = Servico.objects.create(nome="Montagem", sku="SERV-MONTAGEM")
+
+    servico, criado = importar_linha({"sku": "SERV-495657", "nome": "Montagem"})
+
+    assert not criado and servico.pk == montagem.pk and servico.sku == "SERV-495657"

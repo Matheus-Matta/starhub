@@ -1,6 +1,8 @@
-"""Aba "Produtos" da planilha de servicos: o que cada regra pega, produto a produto.
+"""Produtos na planilha de servicos: como a coluna `produtos` acha cada um e a aba
+"Produtos" da exportacao.
 
-So consulta (a importacao le a primeira aba). Uma linha por servico e produto, com a
+achar(): SKU de uma variante, handle (slug) ou titulo, nesta ordem. A aba "Produtos"
+e so consulta (a importacao le a primeira aba). Uma linha por servico e produto, com a
 regra que vale para ele (a primeira ativa pela ordem, a mesma de servicos_do_produto)
 e o preco do servico que ele paga:
 
@@ -8,11 +10,37 @@ e o preco do servico que ele paga:
     Montagem | SERV-MONT   | 10          | Sofa    | SOF-1       | 1500,00       | 80,00
 """
 
-from apps.loja.models import Servico
+from apps.integracoes.importar_planilha import LinhaInvalida
+from apps.loja.models import Produto, Servico, VarianteProduto
 from apps.loja.services.servicos_regras import produtos_da_regra
 
 COLUNAS = ["servico", "sku_servico", "servico_ativo", "regra_ordem", "regra_tipo", "produto",
            "sku_produto", "preco_produto", "categorias", "preco_servico"]
+
+
+def achar(texto):
+    variante = VarianteProduto.objects.filter(sku=texto).select_related("produto").first()
+    if variante is not None:
+        return variante.produto
+    produto = Produto.objects.filter(slug=texto).first()
+    if produto is not None:
+        return produto
+    com_titulo = Produto.objects.filter(nome__iexact=texto)
+    quantos = com_titulo.count()
+    if quantos > 1:
+        # Escolher um dos dois daria o servico ao produto errado sem ninguem ver.
+        raise LinhaInvalida(f"{quantos} produtos com o titulo '{texto}'; use o SKU ou o "
+                            "handle para dizer qual.")
+    if not quantos:
+        raise LinhaInvalida(f"produto '{texto}' nao existe no hub (procurado pelo SKU, pelo "
+                            "handle e pelo titulo).")
+    return com_titulo.get()
+
+
+def referencia(produto):
+    """SKU da variante padrao; sem SKU, o handle (achar() le os dois de volta)."""
+    padrao = next((v for v in produto.variantes.all() if v.is_default), None)
+    return (padrao.sku if padrao else "") or produto.slug
 
 
 def linhas():
