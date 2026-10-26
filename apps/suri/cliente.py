@@ -42,8 +42,11 @@ def _marcar(valor):
     return valor
 
 
-def _json(corpo):
+def json_decimal(corpo):
     return _NUMERO_MARCADO.sub(r"\1", json.dumps(_marcar(corpo), ensure_ascii=False)).encode()
+
+
+_json = json_decimal  # nome antigo mantido para quem ja importa o serializador
 
 
 class SuriClient:
@@ -54,7 +57,7 @@ class SuriClient:
         self.token = configuracao.token_acesso
 
     def requisitar(self, metodo, caminho, corpo=None):
-        dados = _json(corpo) if corpo is not None else None
+        dados = json_decimal(corpo) if corpo is not None else None
         requisicao = Request(f"{self.base}{caminho.lstrip('/')}", data=dados, method=metodo,
                              headers={"Content-Type": "application/json",
                                       "Accept": "application/json", "User-Agent": "StarHub/1.0",

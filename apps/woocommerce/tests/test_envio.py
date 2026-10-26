@@ -99,7 +99,7 @@ def test_estoque_da_variacao_vai_na_rota_da_variacao(conta, monkeypatch):
     assert loja.chamadas[-1][:2] == ("PUT", "products/20/variations/21")
 
 
-def test_pedido_so_atualiza_status_e_so_e_criado_com_o_pedido_legado(conta, monkeypatch):
+def test_pedido_atualiza_so_status_e_endereco_e_cria_pela_matriz(conta, monkeypatch):
     marketplace, loja = _marketplace(conta, monkeypatch)
     importar_produto(exemplos.produto_simples())
     pedido, _ = importar_pedido(exemplos.pedido())
@@ -112,5 +112,6 @@ def test_pedido_so_atualiza_status_e_so_e_criado_com_o_pedido_legado(conta, monk
     assert rota == "orders/501" and corpo["status"] == "completed"
     assert set(corpo) == {"status", "shipping"}
     ExternalReference.objects.filter(entity_type="pedidos").delete()
-    # Enviar > Pedidos > Criar da matriz nao cria: so o switch (test_pedido_legado.py).
-    assert marketplace.enviar("pedidos", "create", pedido.pk).startswith("ignorado")
+    # Enviar > Pedidos > Criar (matriz) cria o pedido inteiro (formato: test_pedido_legado.py).
+    assert marketplace.enviar("pedidos", "create", pedido.pk).startswith("criado")
+    assert loja.chamadas[-1][1] == "orders"

@@ -898,16 +898,20 @@ Mesma tela, matriz, Sincronizar, Tarefas e Retomar das outras lojas.
 - **Servicos** (card "Servicos" da tela, `apps/suri/servicos.py`): o Suri nao tem
   servico. Com "enviar servicos como variantes", cada servico que vale para o
   produto (`Produto.servicos`, regras acima) vai no PUT do produto como mais uma
-  dimensao do atributo `Serviços` (a do proprio produto vai como "Sem serviço" e a do
+  dimensao do atributo `Serviço` (a do proprio produto vai como "Sem serviço" e a do
   servico completa os outros atributos com "Qualquer": o Suri recusa com
   `ProductAttributtesAndDimensionsMustMatch` dimension sem todos os atributos;
-  `envio/produtos_atributos.py`): nome, SKU e preco do servico, a foto do servico em
+  `envio/produtos_atributos.py`): o nome do servico vai no SKU e no valor da opcao,
+  com o preco da regra e a foto do servico em
   `image` (a dimension do Suri aceita foto propria, doc Postman "Criar Produto") e
-  estoque = soma das variantes do produto. O
+  estoque infinito (`2147483647`). O
   vinculo `servicos` ("<produto>:<sku>" -> Servico) guarda o que foi. Mudou servico,
   regra ou as linhas dela (`servicos_sinais.py`): reenvia os produtos que a regra
   pega e os que levam o servico hoje; o PUT sem a variante a apaga no Suri. Ligar
-  o envio nao reenvia sozinho: exporte os produtos. Com "receber servicos dos
+  o envio nao reenvia sozinho: exporte os produtos. Servico nunca e enviado sozinho:
+  a exportacao exige **Enviar servicos** e **Enviar > Produtos** ligados; alteracoes de
+  servico so reenviam produtos quando **Produtos > Atualizar** esta ligado. Com
+  "receber servicos dos
   pedidos", o item com SKU de servico vira servico do item do mesmo produto
   (`starhub.servicos`), com o valor somado no item, e o total bate com o do Suri;
   desligado, os servicos do pedido ficam como estao. O catalogo vindo do Suri nunca
@@ -915,10 +919,9 @@ Mesma tela, matriz, Sincronizar, Tarefas e Retomar das outras lojas.
 - **Frete:** resposta de orcamento do pedido em montagem (secao 7.7).
 - **Nao verificado contra o Suri real** (sem credencial no desenvolvimento): o corpo
   do webhook de pedidos, a lista de metodos de pagamento alem de cartao (0) e Pix (3)
-  e se `PUT shop/products` sem `images` mantem as fotos, e como o Suri trata a
-  dimensao de servico sem as opcoes do produto (ex.: `{"Servico": "Montagem"}` num
-  produto com `Cor`). A doc so diz que
-  `images: null` apaga; por isso a chave nem vai quando o hub nao tem foto publica.
+  e como o Suri trata a dimensao de servico sem as opcoes do produto (ex.:
+  `{"Serviço": "Montagem"}` num produto com `Cor`). O envio sempre inclui `images`;
+  quando o hub nao tem foto publica, envia a lista vazia exigida pelo contrato.
 
 ### 7.6 Novo marketplace
 
@@ -1054,12 +1057,15 @@ checkout das lojas" de cada tabela (Shopify, WooCommerce e Suri, abaixo). Menu
   Com o frete ligado, salvar ou apagar tabela/faixa reenvia as zonas (uma tarefa por
   commit); a importacao de planilha reenvia uma vez no fim (`apps/logistica/sinais.py`).
   Zonas criadas a mao na loja nao sao tocadas.
-- **Frete no Suri (orcamento):** card **Frete do hub** em Integracoes > Suri Shop. O Suri
-  nao chama o hub no checkout; com o frete ligado, o pedido em montagem (status 0) que
-  chega pelo webhook com CEP e sem entrega escolhida recebe a cotacao mais barata das
-  tabelas (CEP ou distancia) por `POST shop/orders/budget` (`apps/suri/frete.py`).
-  Mesmo CEP e mesmos itens nao reenviam. Nao verificado no Suri real: como ele avisa
-  que o pedido espera orcamento e o `id` do corpo.
+- **Frete no Suri:** card **Frete do hub** em Integracoes > Suri Shop. A API de logistica
+  (`apps/suri/logistica_api.py`) mostra na tela a URL e o header para copiar no Portal do
+  Suri. O Suri valida por GET e consulta por POST; o StarHub autentica com o mesmo token
+  da API da loja e devolve todas as tabelas (CEP ou distancia) que atendem o endereco no
+  formato `ShopLogistic`. Desligado, responde 204. O fluxo anterior continua como
+  alternativa: pedido em montagem (status 0) que chega pelo webhook com CEP e sem entrega
+  recebe a cotacao mais barata por `POST shop/orders/budget` (`apps/suri/frete.py`). Mesmo
+  CEP e mesmos itens nao reenviam. O endpoint direto esta coberto pelo contrato fornecido,
+  mas ainda precisa ser conferido no checkout de uma loja Suri real.
 - **Usar no codigo:** `apps.logistica.cotacao.cotar(tabela, "20040-020")` devolve
   `Cotacao(valor, prazo_dias, distancia_km, detalhe)` ou levanta `FreteIndisponivel` com
   o motivo. Botao **Simular cotacao** na tabela para conferir um CEP.

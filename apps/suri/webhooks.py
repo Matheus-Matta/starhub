@@ -12,11 +12,22 @@ from apps.suri.cliente import SuriClient
 from apps.suri.frete import frete_ligado, precisa_orcamento, responder_orcamento
 from apps.suri.importar_pedidos import PedidoIgnorado, importar_pedido
 
+# Eventos do chatbot (doc "Webhooks" da Suri): chegam no mesmo endereco e nao tem pedido.
+EVENTOS_DO_CHATBOT = frozenset({
+    "new-contact", "message-received", "change-queue", "finish-attendance", "message-sent",
+    "message-send-error", "message-delivered", "message-read"})
+
 
 def id_do_pedido(corpo):
     """Id do pedido no corpo: {"id"}, {"orderId"}, {"order": {...}} ou {"payload": {...}}."""
     if not isinstance(corpo, dict):
         return ""
+    if "type" in corpo and "payload" in corpo:
+        # Envelope {id, type, timestamp, payload}: o "id" de cima e do evento
+        # ({chatbotId}:{guid}), nunca de um pedido.
+        if corpo["type"] in EVENTOS_DO_CHATBOT:
+            return ""
+        return id_do_pedido(corpo["payload"])
     for chave in ("orderId", "OrderId", "id", "Id"):
         if corpo.get(chave) and isinstance(corpo[chave], str | int):
             return str(corpo[chave])

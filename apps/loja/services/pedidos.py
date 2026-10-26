@@ -16,12 +16,17 @@ def gravar_endereco_do_pedido(pedido, tipo, dados, substituir=False):
     """Mescla `dados` (formato Woo) no snapshot do pedido. Salve o pedido depois."""
     campo = CAMPOS_ENDERECO[tipo]
     atual = getattr(pedido, campo)
+    antes = enderecos.para_woo(atual, {}) if atual else None
     if atual is None:
         endereco = enderecos.snapshot(dados, NOMES[tipo], pedido.account_id)
     else:
         endereco = enderecos.aplicar(atual, dados, substituir)
         endereco.save()
     setattr(pedido, campo, endereco)
+    if antes != enderecos.para_woo(endereco, {}):
+        alterados = set(getattr(pedido, "_envio_campos_relacionados", ()))
+        alterados.add(campo)
+        pedido._envio_campos_relacionados = alterados
     return endereco
 
 

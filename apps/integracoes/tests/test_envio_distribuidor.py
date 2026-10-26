@@ -4,7 +4,8 @@ import pytest
 from django.db import transaction
 
 from apps.core.origem import origem
-from apps.loja.models import Categoria, Produto
+from apps.loja.models import Categoria, Pedido, Produto
+from apps.loja.services.pedidos import gravar_endereco_do_pedido
 
 from .envio_falso import configuracao
 
@@ -78,6 +79,23 @@ def test_save_sem_mudanca_real_nao_envia(falsos, enfileirados, django_capture_on
         variante.save()
 
     assert enfileirados == []
+
+
+@pytest.mark.django_db
+def test_endereco_editado_do_pedido_envia_atualizacao(
+    falsos, enfileirados, django_capture_on_commit_callbacks
+):
+    """O endereco muda no mesmo registro: comparar so a FK do pedido escondia a alteracao."""
+    pedido = Pedido.objects.create()
+    gravar_endereco_do_pedido(pedido, "shipping", {"address_1": "Rua Antiga"})
+    pedido.save()
+    configuracao("falso", recursos=("pedidos",))
+
+    with django_capture_on_commit_callbacks(execute=True):
+        gravar_endereco_do_pedido(pedido, "shipping", {"address_1": "Rua Nova"})
+        pedido.save()
+
+    assert enfileirados == [("falso", "pedidos", "update", str(pedido.pk))]
 
 
 @pytest.mark.django_db

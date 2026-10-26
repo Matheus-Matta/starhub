@@ -1,11 +1,16 @@
-"""Pedido de outra loja (Shopify, Suri) -> POST orders no WooCommerce, formato legado.
+"""Pedido do hub -> POST orders no WooCommerce, no formato padrao ou no legado.
 
-O formato e o de docs/exemplos/pedido-completo.json, o mesmo que a API Woo do hub
-mostra (apps/woo_api/recursos/pedidos_saida.py), mas so com o que o POST aceita:
+O corpo e o do GET da API Woo do hub (apps/woo_api/recursos/pedidos_saida.py), so com o
+que o POST aceita. O switch "pedido no formato legado" da configuracao escolhe:
 
-- cada item com o produto/variacao da loja (vinculo), quantidade e valores; os
-  servicos dele so no meta do item (starhub.servicos + EPOFW), e o valor do servico
-  que o hub somou no item ("somado") sai do subtotal e do total;
+- padrao (desligado): itens com os valores como o hub guarda (servico ja somado no
+  item) e os servicos tambem no meta do item;
+- legado (ligado), como docs/exemplos/pedido-completo.json: o valor do servico que o hub
+  somou no item ("somado") sai do subtotal e do total do item, e o servico fica so no
+  meta (starhub.servicos + EPOFW).
+
+Nos dois:
+- cada item com o produto/variacao da loja (vinculo) e a quantidade;
 - meta do pedido "starhub" (origem, cliente, entrega.agendamento dd-mm-aaaa, cupons,
   idVendedor); frete e taxas como linhas; sem coupon_lines, porque o Woo aplicaria o
   cupom de novo sobre itens que ja vem com o desconto.
@@ -58,9 +63,9 @@ def _item(item, saida, fora):
     return linha
 
 
-def corpo(pedido):
+def corpo(pedido, legado):
     saida = pedido_para_woo(pedido)
-    fora = _somados(pedido)
+    fora = _somados(pedido) if legado else {}
     itens = {item.pk: item for item in pedido.itens.all()}
     cliente = vinculos.externo_id("clientes", pedido.cliente_id) if pedido.cliente_id else None
     corpo = {

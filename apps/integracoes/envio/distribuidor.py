@@ -74,6 +74,7 @@ class Distribuidor:
         )
 
     def depois_de_salvar(self, instance, created, update_fields=None):
+        relacionados = instance.__dict__.pop("_envio_campos_relacionados", set())
         configuracoes = instance.__dict__.pop("_envio_configs", None)
         if configuracoes is None:
             configuracoes = self.candidatos(instance.account_id)
@@ -81,7 +82,7 @@ class Distribuidor:
             return
         mudados = None
         if not created:
-            mudados = self._mudados(instance, update_fields)
+            mudados = self._mudados(instance, update_fields) | relacionados
             if not mudados:
                 return
         recurso, pk, operacao = self._alvo(instance, "create" if created else "update", mudados)
@@ -120,7 +121,7 @@ class Distribuidor:
         if configuracoes is None:
             configuracoes = self.candidatos(conta_id)
         for configuracao in configuracoes:
-            if _habilitado(configuracao, recurso, operacao):
+            if configuracao.habilitado("enviar", recurso, operacao):
                 transacao.agendar(configuracao.pk, recurso, operacao, pk, _enfileirar)
 
     # Comparacao antes x depois.
@@ -144,15 +145,6 @@ class Distribuidor:
             nome for nome, valor in antes.items()
             if _normalizar(campos[nome], getattr(instance, nome)) != valor
         }
-
-
-def _habilitado(configuracao, recurso, operacao):
-    """A mesma pergunta que a tarefa faz (Marketplace.habilitado): o marketplace pode ligar
-    um envio por um switch proprio, fora da matriz (ex.: pedido legado no WooCommerce)."""
-    classe = registro.obter(configuracao.plataforma)
-    if classe is None:
-        return configuracao.habilitado("enviar", recurso, operacao)
-    return classe(configuracao).habilitado(recurso, operacao)
 
 
 def _normalizar(campo, valor):

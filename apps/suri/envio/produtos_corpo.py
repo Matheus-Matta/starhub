@@ -38,7 +38,7 @@ def _dimensao(variante, produto_id, loja):
 
 def categorias(enviador_categorias, produto):
     """(categoryId, subcategoryId): o Suri exige a categoria, e ela vai antes se faltar."""
-    categoria = produto.categorias.order_by("pai_id", "id").first()
+    categoria = produto.categorias.order_by("pai_id", "id").first() or produto.categoria
     if categoria is None:
         raise SuriErro(f"Produto {produto.pk} sem categoria: o Suri exige uma. Ponha o "
                        "produto numa categoria no hub e salve de novo.")
@@ -51,6 +51,9 @@ def categorias(enviador_categorias, produto):
 def corpo(enviador_categorias, produto, loja, configuracao, servicos=()):
     produto_id = id_no_suri("produtos", produto)
     variantes = list(produto.variantes.order_by("posicao", "id"))
+    if not variantes:
+        raise SuriErro(f"Produto {produto.pk} sem variante: o Suri exige ao menos uma. "
+                       "Crie a variacao no hub e salve o produto de novo.")
     padrao = produto.variante_padrao
     categoria, subcategoria = categorias(enviador_categorias, produto)
     imagens = [{"url": url, "description": m.alt_text or None}
@@ -63,7 +66,7 @@ def corpo(enviador_categorias, produto, loja, configuracao, servicos=()):
         "isActive": produto.active and produto.status == Produto.Status.PUBLICADO,
         "name": produto.nome, "description": produto.descricao or "",
         "price": padrao.price if padrao else ZERO, "promotionalPrice": promocional,
-        "hasShippingRestriction": False,
+        "hasShippingRestriction": False, "images": imagens,
         "dimensions": [_dimensao(v, produto_id, loja) for v in variantes],
     }
     produtos_atributos.distinguir(corpo["dimensions"], variantes)
@@ -72,7 +75,4 @@ def corpo(enviador_categorias, produto, loja, configuracao, servicos=()):
         corpo["dimensions"] += servicos_suri.dimensoes(servicos, variantes, loja, skus,
                                                        configuracao)
     corpo["attributes"] = produtos_atributos.alinhar(corpo["dimensions"])
-    if imagens:
-        # "images": null apaga as fotos no Suri: sem foto publica no hub, a chave nem vai.
-        corpo["images"] = imagens
     return corpo

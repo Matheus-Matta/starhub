@@ -19,6 +19,14 @@
     </div>
     <p>{{ frete_loja.texto }}{% if not frete_loja.salvo %} Salve a configuracao antes de ligar.{% endif %}</p>
   </div>
+  {% if frete_loja.api %}
+    <h4 class="frete-ck-grupo">Configuracao da API no Portal do Suri</h4>
+    <ul class="frete-ck">
+      <li class="frete-ck-item frete-ck-manual"><span class="frete-ck-icone">{% icone "link" %}</span><div class="frete-ck-texto"><strong>API URL</strong><span class="frete-ck-como"><code>{{ frete_loja.api.url }}</code></span></div></li>
+      <li class="frete-ck-item frete-ck-manual"><span class="frete-ck-icone">{% icone "key" %}</span><div class="frete-ck-texto"><strong>Header Key</strong><span class="frete-ck-como"><code>{{ frete_loja.api.header_key }}</code></span></div></li>
+      <li class="frete-ck-item frete-ck-manual"><span class="frete-ck-icone">{% icone "shield" %}</span><div class="frete-ck-texto"><strong>Header Value</strong><span class="frete-ck-como"><code>{{ frete_loja.api.header_value }}</code></span><span class="frete-ck-detalhe">Troque SEU_TOKEN_DA_API_DO_SURI pelo mesmo Token da API informado na conexao acima.</span></div></li>
+    </ul>
+  {% endif %}
   <h4 class="frete-ck-grupo">Tabelas marcadas para o checkout</h4>
   <ul class="frete-ck">
     {% for tabela in frete_loja.tabelas %}

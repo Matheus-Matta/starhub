@@ -1,4 +1,4 @@
-"""Pedido de outra loja criado no WooCommerce no formato legado (pedido-completo.json)."""
+"""Pedido de outra loja criado no WooCommerce: criar e da matriz, o switch e o formato."""
 
 from decimal import Decimal
 
@@ -43,18 +43,24 @@ def pedido_shopify():
 
 def _enviar(conta, monkeypatch, pedido, legado=True):
     loja = LojaFalsa().instalar(monkeypatch)
-    cfg = configuracao(conta, enviar=[("pedidos", "update")], pedido_legado=legado)
+    cfg = configuracao(conta, enviar=[("pedidos", "create"), ("pedidos", "update")],
+                       pedido_legado=legado)
     return WooCommerceMarketplace(cfg).enviar("pedidos", "create", pedido.pk), loja
 
 
-def test_pedido_vai_com_o_servico_no_meta_e_fora_do_valor(conta, monkeypatch, pedido_shopify):
-    """Como o pedido-completo.json: o ERP le o servico no meta e soma sozinho; com o
-    valor no item ele cobraria a Montagem duas vezes."""
-    mensagem, loja = _enviar(conta, monkeypatch, pedido_shopify)
+def _item(loja):
+    corpo = loja.chamadas[-1][2]
+    return corpo, corpo["line_items"][0]
 
-    _, rota, corpo = loja.chamadas[-1]
-    item = corpo["line_items"][0]
-    assert rota == "orders" and mensagem.startswith("criado")
+
+def test_formato_legado_leva_o_servico_no_meta_e_fora_do_valor(
+        conta, monkeypatch, pedido_shopify):
+    """Switch ligado, como o pedido-completo.json: o ERP le o servico no meta e soma
+    sozinho; com o valor no item ele cobraria a Montagem duas vezes."""
+    mensagem, loja = _enviar(conta, monkeypatch, pedido_shopify, legado=True)
+
+    corpo, item = _item(loja)
+    assert loja.chamadas[-1][1] == "orders" and mensagem.startswith("criado")
     assert (item["product_id"], item["subtotal"], item["total"]) == (20, "1500.00", "1500.00")
     meta_item = {m["key"]: m["value"] for m in item["meta_data"]}
     assert meta_item["starhub"]["servicos"][0]["preco"] == "80.00"
@@ -67,24 +73,40 @@ def test_pedido_vai_com_o_servico_no_meta_e_fora_do_valor(conta, monkeypatch, pe
                                             entity_type="pedidos").exists()
 
 
-def test_sem_o_switch_o_pedido_nao_e_criado_na_loja(conta, monkeypatch, pedido_shopify):
-    mensagem, loja = _enviar(conta, monkeypatch, pedido_shopify, legado=False)
+def test_formato_padrao_manda_o_valor_do_servico_somado_no_item(
+        conta, monkeypatch, pedido_shopify):
+    """Switch desligado: o pedido vai como o hub guarda, com a Montagem dentro do item."""
+    _, loja = _enviar(conta, monkeypatch, pedido_shopify, legado=False)
 
-    assert mensagem.startswith("ignorado") and not loja.chamadas
+    _, item = _item(loja)
+    assert (item["subtotal"], item["total"]) == ("1580.00", "1580.00")
+    meta_item = {m["key"]: m["value"] for m in item["meta_data"]}
+    assert meta_item["starhub"]["servicos"][0]["nome"] == "Montagem"
 
 
-def test_pedido_novo_de_outra_loja_agenda_a_criacao_so_com_o_switch(
+def test_criar_pedido_depende_so_da_matriz_e_nao_do_switch(conta, monkeypatch, pedido_shopify):
+    """Enviar > Pedidos > Criar desligado: nada vai, mesmo com o formato legado ligado."""
+    loja = LojaFalsa().instalar(monkeypatch)
+    cfg = configuracao(conta, enviar=[("pedidos", "update")], pedido_legado=True)
+
+    mensagem = WooCommerceMarketplace(cfg).enviar("pedidos", "update", pedido_shopify.pk)
+
+    assert mensagem.startswith("ignorado") and "'criar' esta desligado" in mensagem
+    assert not loja.chamadas
+
+
+def test_pedido_novo_de_outra_loja_agenda_a_criacao_so_com_a_matriz(
         conta, monkeypatch, django_capture_on_commit_callbacks):
     agendados = []
     monkeypatch.setattr("apps.integracoes.envio.distribuidor._enfileirar",
                         lambda *args: agendados.append(args))
-    ligada = configuracao(conta, pedido_legado=True)
+    ligada = configuracao(conta, enviar=[("pedidos", "create")])
 
     with django_capture_on_commit_callbacks(execute=True), origem("shopify"):
         pedido = Pedido.objects.create(status="processing")
 
     assert (str(ligada.pk), "pedidos", "create", str(pedido.pk)) in agendados
-    ligada.pedido_legado = False
+    ligada.permissoes["enviar"]["pedidos"]["create"] = False
     ligada.save()
     agendados.clear()
     with django_capture_on_commit_callbacks(execute=True), origem("shopify"):

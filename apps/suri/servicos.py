@@ -1,8 +1,8 @@
 """Servicos do hub no Suri Shop, que nao tem servico: cada um vira variante do produto.
 
     Sofa (Cor: Azul, Cor: Verde) + Montagem (regra em Loja > Servicos)
-    -> attributes: [..., {"name": "Serviços", "options": [{"name": "Montagem"}]}]
-    -> dimensions: [..., {"sku": "SERV-MONTAGEM", "dimensions": {"Serviços": "Montagem"},
+    -> attributes: [..., {"name": "Serviço", "options": [{"name": "Montagem"}]}]
+    -> dimensions: [..., {"sku": "Montagem", "dimensions": {"Serviço": "Montagem"},
                           "price": <preco da regra>, "stocks": {...},
                           "image": {"url": <foto do servico>, "description": "Montagem"}}]
 
@@ -21,10 +21,15 @@ from apps.integracoes.url_publica import url_publica
 from apps.loja.models import Servico
 from apps.suri import vinculos
 
-ATRIBUTO = "Serviços"
-# "Servico" foi o nome ate a 1.3.18: o produto la ainda pode ter, e a importacao o ignora.
-ATRIBUTOS = {ATRIBUTO, "Servico"}
+ATRIBUTO = "Serviço"
+# Nomes usados antes deste contrato continuam reconhecidos ao importar o catalogo.
+ATRIBUTOS = {ATRIBUTO, "Serviços", "Servico"}
 ENTIDADE = "servicos"
+ESTOQUE_INFINITO = 2_147_483_647
+
+
+def sku(servico):
+    return servico.nome.strip()
 
 
 def do_produto(configuracao, produto):
@@ -41,16 +46,14 @@ def _foto(configuracao, servico):
 
 
 def dimensoes(servicos, variantes, loja, skus_do_produto, configuracao=None):
-    """Uma dimensao por servico. SKU igual ao de uma variante do produto fica de fora:
-    o Suri teria dois itens com o mesmo SKU e o estoque iria para o errado."""
-    # O servico nao tem estoque: vende enquanto o produto tiver.
-    estoque = sum(max(v.inventory_quantity, 0) for v in variantes)
+    """Uma dimensao por servico, sem limitar sua venda pelo estoque do produto."""
     saida = []
     for servico, preco in servicos:
-        if servico.sku in skus_do_produto:
+        sku_servico = sku(servico)
+        if sku_servico in skus_do_produto:
             continue
-        dimensao = {"sku": servico.sku, "dimensions": {ATRIBUTO: servico.nome},
-                    "price": preco, "stocks": {loja: {"stock": estoque}}}
+        dimensao = {"sku": sku_servico, "dimensions": {ATRIBUTO: servico.nome},
+                    "price": preco, "stocks": {loja: {"stock": ESTOQUE_INFINITO}}}
         foto = _foto(configuracao, servico) if configuracao else None
         if foto:
             dimensao["image"] = foto
@@ -68,8 +71,9 @@ def vincular(produto_id, servicos, dados):
     enviados = {d["sku"] for d in dados["dimensions"]}
     chaves = []
     for servico, _preco in servicos:
-        if servico.sku in enviados:
-            chave = vinculos.id_variacao(produto_id, servico.sku)
+        sku_servico = sku(servico)
+        if sku_servico in enviados:
+            chave = vinculos.id_variacao(produto_id, sku_servico)
             vinculos.referenciar(ENTIDADE, chave, servico, pai=produto_id)
             chaves.append(chave)
     _do_produto_no_suri(produto_id).exclude(external_id__in=chaves).delete()
@@ -92,4 +96,5 @@ def da_linha(linha):
     if not sku:
         return None
     servico = vinculos.existente(ENTIDADE, Servico, vinculos.id_variacao(produto_id, sku))
-    return servico or Servico.objects.filter(sku=sku).first()
+    return (servico or Servico.objects.filter(nome__iexact=sku).first()
+            or Servico.objects.filter(sku=sku).first())

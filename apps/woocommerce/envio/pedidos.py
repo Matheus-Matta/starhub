@@ -1,7 +1,7 @@
 """Pedido do hub -> pedido do WooCommerce.
 
-- criar: so com o switch "pedido legado" da tela (WooCommerceMarketplace.habilitado);
-  o pedido de outra loja vai inteiro, no formato de pedidos_legado.py.
+- criar: liga em Enviar > Pedidos > Criar (matriz); o pedido vai inteiro, no formato
+  padrao ou, com o switch "pedido no formato legado", no legado (pedidos_legado.py).
 - atualizar: so status e endereco de entrega. Itens e valores nao voltam (mudariam o
   financeiro do pedido la). Status do hub que o Woo nao tem nao e enviado.
 - excluir: nao suportado.
@@ -22,8 +22,8 @@ class PedidoWoo(RecursoWoo):
     rota = "orders"
 
     def criar(self, obj):
-        # Chega aqui so com o switch ligado (Marketplace.enviar confere de novo).
-        return self.cliente.post(self.rota, pedidos_legado.corpo(obj))["id"]
+        corpo = pedidos_legado.corpo(obj, legado=self.configuracao.pedido_legado)
+        return self.cliente.post(self.rota, corpo)["id"]
 
     def excluir(self, external_id):
         raise EnvioNaoSuportado("pedido nao e excluido no WooCommerce pelo hub.")

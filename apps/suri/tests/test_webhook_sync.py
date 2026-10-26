@@ -28,6 +28,31 @@ def test_id_do_pedido_sai_dos_formatos_possiveis(corpo):
     assert id_do_pedido(corpo) == "51807"
 
 
+EVENTOS_DO_CHATBOT = ("new-contact", "message-received", "change-queue", "finish-attendance",
+                      "message-sent", "message-send-error", "message-delivered", "message-read")
+
+
+def _evento(tipo, payload=None):
+    return {"id": "cb1000000:1f3a9cbb-2f5e-4a1a-9b0e-0f7b21d6c4a1", "type": tipo,
+            "timestamp": "2026-10-06T14:21:33.4821247-03:00",
+            "payload": payload or {"user": {"Id": "u-123", "Name": "Maria Silva"}}}
+
+
+@pytest.mark.parametrize("tipo", EVENTOS_DO_CHATBOT)
+def test_evento_do_chatbot_nao_vira_pedido(client, conta, tipo):
+    """O id do envelope ({chatbotId}:{guid}) e do evento: lido como pedido, cada mensagem
+    do chatbot criava uma execucao que falhava no GET shop/orders/cb1000000:..."""
+    resposta = _postar(client, configuracao(conta, receber=PEDIDOS), _evento(tipo))
+
+    assert resposta.status_code == 204
+    assert not ExecucaoIntegracao.objects.exists()
+
+
+def test_envelope_com_pedido_usa_o_id_do_payload_e_nao_o_do_evento():
+    """Num envelope o id de cima e do evento; o do pedido esta no payload."""
+    assert id_do_pedido(_evento("order-updated", {"order": {"id": "51807"}})) == "51807"
+
+
 def test_webhook_rele_o_pedido_na_api_e_ignora_o_corpo(client, conta, monkeypatch):
     """O Suri nao assina: o corpo forjado nao pode virar pedido, so o id e usado."""
     loja = SuriFalso(produtos=[produto()], pedidos=[pedido()]).instalar(monkeypatch)

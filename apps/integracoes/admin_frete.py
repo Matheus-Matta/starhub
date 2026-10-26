@@ -7,7 +7,10 @@ Woo: ligar envia as zonas de entrega (tarefa); desligar tira as zonas do StarHub
 loja. Suri: ligar so marca no hub; o orcamento sai quando o pedido em montagem chega.
 """
 
+from urllib.parse import urljoin
+
 from django.contrib import messages
+from django.urls import reverse
 
 from apps.logistica.models import TabelaFrete
 
@@ -18,10 +21,9 @@ TEXTOS = {
         "uma tabela ou faixa: as zonas sao reenviadas sozinhas. Tabela por distancia "
         "fica de fora (o Woo so compara CEP)."),
     "suri": (
-        "Pedido em montagem no Suri com CEP e sem entrega escolhida recebe, pelo "
-        "orcamento da API, a cotacao mais barata das tabelas marcadas \"oferecer no "
-        "checkout\" (CEP e distancia). Precisa de Receber > Pedidos ligado e do webhook "
-        "cadastrado."),
+        "A API abaixo devolve ao checkout do Suri todas as tabelas que atendem o CEP. "
+        "O fluxo de orcamento do pedido em montagem continua disponivel como alternativa. "
+        "Ambos usam as tabelas marcadas \"oferecer no checkout\"."),
 }
 
 
@@ -43,11 +45,17 @@ def _tabelas(plataforma):
     return saida
 
 
-def contexto(plataforma, configuracao):
+def contexto(plataforma, configuracao, endereco_atual=""):
     if plataforma not in TEXTOS:
         return None
+    api = None
+    if plataforma == "suri" and configuracao is not None:
+        base = configuracao.url_webhook or endereco_atual
+        api = {"url": urljoin(base, reverse("suri_logistica", args=[configuracao.uuid])),
+               "header_key": "Authorization",
+               "header_value": "Bearer SEU_TOKEN_DA_API_DO_SURI"}
     return {"ligado": _estado(plataforma, configuracao), "texto": TEXTOS[plataforma],
-            "tabelas": _tabelas(plataforma), "salvo": configuracao is not None}
+            "tabelas": _tabelas(plataforma), "salvo": configuracao is not None, "api": api}
 
 
 def ligar(request, plataforma, configuracao, ligado):

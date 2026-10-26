@@ -20,14 +20,21 @@ from apps.integracoes.models import ConfiguracaoIntegracao
 from apps.suri import servicos as servicos_suri
 from apps.suri import vinculos
 
-RECURSO = "servicos"
+RECURSO_AGENDAMENTO = "servicos"
+RECURSO_ENVIO = "produtos"
+
+
+def _pode_reenviar(configuracao):
+    return (configuracao.enviar_servicos
+            and configuracao.habilitado("enviar", "produtos", "update"))
 
 
 def servico_mudou(conta_id, servico_id):
     for configuracao in obter().candidatos(conta_id):
         if (configuracao.plataforma == ConfiguracaoIntegracao.Plataforma.SURI
-                and configuracao.enviar_servicos):
-            transacao.agendar(configuracao.pk, RECURSO, "update", servico_id, _reenviar)
+                and _pode_reenviar(configuracao)):
+            transacao.agendar(configuracao.pk, RECURSO_AGENDAMENTO, "update", servico_id,
+                              _reenviar)
 
 
 def produtos_afetados(conta_id, servico_id):
@@ -52,10 +59,10 @@ def _reenviar(configuracao_id, _recurso, _operacao, servico_id):
     from apps.integracoes.envio.distribuidor import _enfileirar
 
     configuracao = ConfiguracaoIntegracao.all_objects.filter(pk=configuracao_id).first()
-    if configuracao is None or not configuracao.habilitado("enviar", "produtos", "update"):
+    if configuracao is None or not _pode_reenviar(configuracao):
         return
     for pk in produtos_afetados(configuracao.account_id, servico_id):
-        _enfileirar(configuracao_id, "produtos", "update", pk)
+        _enfileirar(configuracao_id, RECURSO_ENVIO, "update", pk)
 
 
 def _do_servico(sender, instance, raw=False, **kwargs):

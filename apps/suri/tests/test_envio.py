@@ -55,7 +55,7 @@ def test_produto_novo_leva_a_arvore_da_categoria_antes(conta, monkeypatch):
     azul = next(d for d in corpo["dimensions"] if d["sku"] == "CAM-AZ")
     assert azul["price"] == Decimal("49.90") and azul["dimensions"] == {"Cor": "Azul"}
     assert azul["stocks"] == {"48346": {"stock": 5}}
-    assert "images" not in corpo, "sem foto publica, as fotos do Suri nao sao apagadas"
+    assert corpo["images"] == [], "o Suri exige a lista, mesmo sem foto publica"
 
 
 def test_produto_sem_categoria_explica_o_que_fazer(conta, monkeypatch):
@@ -64,6 +64,29 @@ def test_produto_sem_categoria_explica_o_que_fazer(conta, monkeypatch):
     obj.categorias.clear()
 
     with pytest.raises(SuriErro, match="categoria"):
+        marketplace.enviar("produtos", "create", obj.pk)
+
+
+def test_categoria_principal_e_usada_quando_lista_esta_vazia(conta, monkeypatch):
+    """Produto legado pode ter so a categoria principal; ele nao deve falhar como sem categoria."""
+    marketplace, loja = _marketplace(conta, monkeypatch)
+    obj, roupas, _ = _produto_do_hub()
+    obj.categorias.clear()
+    obj.categoria = roupas
+    obj.save(update_fields=["categoria", "updated_at"])
+
+    marketplace.enviar("produtos", "create", obj.pk)
+
+    assert loja.chamadas[-1][2]["categoryId"] == f"sh-{roupas.pk}"
+
+
+def test_produto_sem_variante_explica_o_que_fazer(conta, monkeypatch):
+    """Mandar dimensions vazio devolvia apenas o 400 generico 'Product must have dimensions'."""
+    marketplace, _ = _marketplace(conta, monkeypatch)
+    obj, _, _ = _produto_do_hub()
+    obj.variantes.all().delete()
+
+    with pytest.raises(SuriErro, match="sem variante"):
         marketplace.enviar("produtos", "create", obj.pk)
 
 

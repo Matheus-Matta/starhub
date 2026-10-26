@@ -51,6 +51,21 @@ def test_ligar_frete_do_suri_so_marca_no_hub(admin_logado):
     assert "Frete ligado" in admin_logado.get(reverse(URL)).content.decode()
 
 
+def test_tela_mostra_os_tres_campos_para_configurar_a_logistica_no_suri(admin_logado):
+    admin_logado.post(reverse(URL), {
+        "dominio_loja": "https://cb.azurewebsites.net", "token_acesso": "tk",
+        "url_webhook": "https://hub.test/integracoes/suri/webhook", "active": "on",
+        "acao": "salvar"})
+    cfg = ConfiguracaoIntegracao.objects.get()
+
+    html = admin_logado.get(reverse(URL)).content.decode()
+
+    assert f"https://hub.test/integracoes/suri/logistica/{cfg.uuid}/" in html
+    assert "API URL" in html and "Header Key" in html and "Header Value" in html
+    assert "Authorization" in html and "Bearer SEU_TOKEN_DA_API_DO_SURI" in html
+    assert "Bearer tk" not in html, "a tela nao deve revelar o token salvo"
+
+
 def test_servicos_ligam_envio_e_recebimento_na_tela_do_suri(admin_logado):
     """Sem o campo na tela o operador nao tinha como ligar os servicos no Suri."""
     html = admin_logado.get(reverse(URL)).content.decode()

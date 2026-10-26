@@ -89,7 +89,7 @@ def _gravar_variante(variante, dimensao, produto_dados, posicao, completa):
 
 
 def _opcoes(dimensao):
-    """Opcoes da variante sem o atributo dos servicos: o envio poe "Serviços": "Sem
+    """Opcoes da variante sem o atributo dos servicos: o envio poe "Serviço": "Sem
     serviço" na variacao do produto (envio/produtos_atributos.py); nao e opcao dela."""
     return {nome: valor for nome, valor in (dimensao.get("dimensions") or {}).items()
             if nome not in servicos_suri.ATRIBUTOS}
@@ -97,7 +97,7 @@ def _opcoes(dimensao):
 
 def _sem_servicos(dados):
     """(atributos, dimensoes) sem o que o hub mandou como servico; o produto do Suri
-    que so tem o atributo "Servico" continua simples no hub."""
+    que so tem o atributo "Serviço" continua simples no hub."""
     atributos = dados.get("attributes") or []
     dimensoes = dados.get("dimensions") or [{"sku": dados.get("sku")}]
     configuracao = configuracao_atual()

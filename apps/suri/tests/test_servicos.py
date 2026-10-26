@@ -58,18 +58,26 @@ def _enviar(conta, monkeypatch, obj, **ligado):
     return loja.chamadas[-1][2]
 
 
-def test_servico_do_produto_vai_como_variante_com_o_sku_e_o_preco_da_regra(
-        conta, monkeypatch, camiseta, montagem):
-    corpo = _enviar(conta, monkeypatch, camiseta)
+@pytest.mark.parametrize("operacao, metodo", [("create", "POST"), ("update", "PUT")])
+def test_exportar_produto_cria_servico_como_variante_com_sku_e_preco_da_regra(
+        conta, monkeypatch, camiseta, montagem, operacao, metodo):
+    if operacao == "create":
+        ExternalReference.objects.filter(
+            entity_type="produtos", object_id=str(camiseta.pk)).delete()
+    loja = SuriFalso().instalar(monkeypatch)
+    SuriMarketplace(_config(conta)).enviar("produtos", operacao, camiseta.pk)
+    chamada = loja.chamadas[-1]
+    assert chamada[:2] == (metodo, "shop/products")
+    corpo = chamada[2]
 
-    servico = next(d for d in corpo["dimensions"] if d["sku"] == "SERV-MONT")
-    assert servico["dimensions"] == {"Cor": "Qualquer", "Serviços": "Montagem"}
+    servico = next(d for d in corpo["dimensions"] if d["sku"] == "Montagem")
+    assert servico["dimensions"] == {"Cor": "Qualquer", "Serviço": "Montagem"}
     assert servico["price"] == Decimal("30.00")
-    assert servico["stocks"] == {"48346": {"stock": 5}}, "vende enquanto o produto tiver"
-    assert {"name": "Serviços", "options": [{"name": "Sem serviço"}, {"name": "Montagem"}]} in (
+    assert servico["stocks"] == {"48346": {"stock": 2_147_483_647}}
+    assert {"name": "Serviço", "options": [{"name": "Sem serviço"}, {"name": "Montagem"}]} in (
         corpo["attributes"])
     assert ExternalReference.objects.get(entity_type="servicos").external_id == (
-        "48349:SERV-MONT")
+        f"{corpo['id']}:Montagem")
 
 
 def test_envio_de_servicos_desligado_manda_so_as_variantes_do_produto(
@@ -92,8 +100,23 @@ def test_tirar_o_produto_da_regra_reenvia_e_a_variante_some(
 
     assert [(r, o, pk) for _c, r, o, pk in enfileirados] == [("produtos", "update", camiseta.pk)]
     corpo = _enviar(conta, monkeypatch, camiseta)
-    assert "SERV-MONT" not in [d["sku"] for d in corpo["dimensions"]]
+    assert "Montagem" not in [d["sku"] for d in corpo["dimensions"]]
     assert not ExternalReference.objects.filter(entity_type="servicos").exists()
+
+
+def test_servico_nao_reenvia_se_produtos_atualizar_esta_desligado(
+        conta, monkeypatch, camiseta, montagem, django_capture_on_commit_callbacks):
+    cfg = configuracao(conta)
+    cfg.enviar_servicos = True
+    cfg.save()
+    enfileirados = []
+    monkeypatch.setattr("apps.integracoes.envio.distribuidor._enfileirar",
+                        lambda *args: enfileirados.append(args))
+
+    with django_capture_on_commit_callbacks(execute=True):
+        montagem.save()
+
+    assert enfileirados == []
 
 
 def test_regra_nova_por_categoria_reenvia_os_produtos_da_categoria(conta, camiseta):
@@ -137,7 +160,7 @@ def test_receber_servicos_desligado_nao_mexe_nos_servicos_do_pedido(
     assert extras(obj)["servicos"] == [{"item_id": 1, "servico": "Montagem"}]
 
 
-@pytest.mark.parametrize("atributo", ["Serviços", "Servico"])  # Servico: envio ate 1.3.18
+@pytest.mark.parametrize("atributo", ["Serviço", "Serviços", "Servico"])
 def test_catalogo_do_suri_nao_transforma_o_servico_em_variante(
         conta, montagem, camiseta, atributo):
     dados = produto()
@@ -161,11 +184,11 @@ def test_variacao_servicos_leva_nome_valor_sku_e_a_foto_do_servico(
 
     corpo = _enviar(conta, monkeypatch, camiseta)
 
-    servico = next(d for d in corpo["dimensions"] if d["sku"] == "SERV-MONT")
-    assert servico["dimensions"] == {"Cor": "Qualquer", "Serviços": "Montagem"}
+    servico = next(d for d in corpo["dimensions"] if d["sku"] == "Montagem")
+    assert servico["dimensions"] == {"Cor": "Qualquer", "Serviço": "Montagem"}
     assert servico["image"] == {"url": "https://hub.test/media/servicos/montagem.png",
                                 "description": "Montagem"}
-    assert {"name": "Serviços", "options": [{"name": "Sem serviço"}, {"name": "Montagem"}]} in (
+    assert {"name": "Serviço", "options": [{"name": "Sem serviço"}, {"name": "Montagem"}]} in (
         corpo["attributes"])
 
 

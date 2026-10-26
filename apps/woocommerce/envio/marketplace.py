@@ -12,11 +12,3 @@ from apps.woocommerce.envio.produtos import ProdutoWoo
 class WooCommerceMarketplace(Marketplace):
     plataforma = "woocommerce"
     recursos = (ProdutoWoo, EstoqueWoo, CategoriaWoo, ClienteWoo, CupomWoo, PedidoWoo)
-
-    def habilitado(self, recurso, operacao):
-        # Criar pedido na loja e o switch "pedido legado", nao a matriz: a matriz ja
-        # tinha Enviar > Pedidos > Criar ligado em lojas onde isso nao fazia nada, e
-        # ligar o envio de verdade por ela criaria pedidos sem ninguem pedir.
-        if (recurso, operacao) == ("pedidos", "create"):
-            return self.configuracao.pedido_legado
-        return super().habilitado(recurso, operacao)

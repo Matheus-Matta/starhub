@@ -6,12 +6,25 @@ dos testes confere a regra.
 
 import pytest
 
+from apps.integracoes import exportar as exportador
 from apps.suri.contexto import usando_configuracao
 from apps.suri.importar_catalogo import importar_produto
-from apps.suri.tests.loja_falsa import produto
+from apps.suri.tests.loja_falsa import SuriFalso, produto
 from apps.suri.tests.test_servicos import _config, _enviar, camiseta, montagem  # noqa: F401
 
 pytestmark = pytest.mark.django_db
+
+
+def test_exportar_produtos_cria_a_variacao_servico(
+        conta, monkeypatch, camiseta, montagem):  # noqa: F811
+    loja = SuriFalso().instalar(monkeypatch)
+    resumo = exportador.exportar_dados(_config(conta), ["produtos"], lambda *_: None)
+
+    corpo = next(c for metodo, rota, c in loja.chamadas
+                 if metodo == "PUT" and rota == "shop/products")
+    assert resumo.enviados == 1
+    assert next(d for d in corpo["dimensions"] if d["sku"] == "Montagem")["dimensions"] == {
+        "Cor": "Qualquer", "Serviço": "Montagem"}
 
 
 def test_produto_simples_com_servico_bate_atributos_e_dimensoes(conta, monkeypatch, montagem):  # noqa: F811
@@ -28,17 +41,17 @@ def test_produto_simples_com_servico_bate_atributos_e_dimensoes(conta, monkeypat
     corpo = _enviar(conta, monkeypatch, simples)
 
     assert [d["dimensions"] for d in corpo["dimensions"]] == [
-        {"Serviços": "Sem serviço"}, {"Serviços": "Montagem"}]
+        {"Serviço": "Sem serviço"}, {"Serviço": "Montagem"}]
 
 
 def test_produto_variavel_com_servico_completa_os_outros_atributos(
         conta, monkeypatch, camiseta, montagem):  # noqa: F811
     corpo = _enviar(conta, monkeypatch, camiseta)
 
-    servico = next(d for d in corpo["dimensions"] if d["sku"] == "SERV-MONT")
-    assert servico["dimensions"] == {"Cor": "Qualquer", "Serviços": "Montagem"}
+    servico = next(d for d in corpo["dimensions"] if d["sku"] == "Montagem")
+    assert servico["dimensions"] == {"Cor": "Qualquer", "Serviço": "Montagem"}
     assert next(d for d in corpo["dimensions"] if d["sku"] == "CAM-AZ")["dimensions"] == {
-        "Cor": "Azul", "Serviços": "Sem serviço"}
+        "Cor": "Azul", "Serviço": "Sem serviço"}
 
 
 def test_variantes_sem_opcao_e_produto_simples_com_opcao_batem_com_o_suri(
@@ -68,7 +81,7 @@ def test_variacao_do_produto_volta_do_suri_sem_virar_opcao_servicos(conta, monta
     dados["attributes"] = [*dados["attributes"], {"name": "Serviços", "options": [
         {"name": "Sem serviço"}, {"name": "Montagem"}]}]
     for dimensao in dados["dimensions"]:
-        dimensao["dimensions"] = {**dimensao["dimensions"], "Serviços": "Sem serviço"}
+        dimensao["dimensions"] = {**dimensao["dimensions"], "Serviço": "Sem serviço"}
 
     with usando_configuracao(_config(conta)):
         obj, _ = importar_produto(dados, sobrescrever=True)
