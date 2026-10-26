@@ -897,8 +897,13 @@ Mesma tela, matriz, Sincronizar, Tarefas e Retomar das outras lojas.
   canal de WhatsApp do contato.
 - **Servicos** (card "Servicos" da tela, `apps/suri/servicos.py`): o Suri nao tem
   servico. Com "enviar servicos como variantes", cada servico que vale para o
-  produto (regras acima) vai no PUT do produto como mais uma dimensao, atributo
-  `Servico`, SKU e preco do servico, estoque = soma das variantes do produto. O
+  produto (`Produto.servicos`, regras acima) vai no PUT do produto como mais uma
+  dimensao do atributo `Serviços` (a do proprio produto vai como "Sem serviço" e a do
+  servico completa os outros atributos com "Qualquer": o Suri recusa com
+  `ProductAttributtesAndDimensionsMustMatch` dimension sem todos os atributos;
+  `envio/produtos_atributos.py`): nome, SKU e preco do servico, a foto do servico em
+  `image` (a dimension do Suri aceita foto propria, doc Postman "Criar Produto") e
+  estoque = soma das variantes do produto. O
   vinculo `servicos` ("<produto>:<sku>" -> Servico) guarda o que foi. Mudou servico,
   regra ou as linhas dela (`servicos_sinais.py`): reenvia os produtos que a regra
   pega e os que levam o servico hoje; o PUT sem a variante a apaga no Suri. Ligar
@@ -1011,13 +1016,29 @@ checkout das lojas" de cada tabela (Shopify, WooCommerce e Suri, abaixo). Menu
   escopo `write_shipping`; loja com calculadora de terceiros liberada). A Shopify chama
   `POST /integracoes/shopify/frete/<uuid>/` a cada CEP do checkout. CarrierService nao
   envia o HMAC de webhook; o UUID aleatorio identifica a configuracao. A Shopify
-  espera 3 s: cada tabela que atende vira uma opcao (`service_code` `HUB_<id>`,
+  espera ate 10 s (menos de 1500 cotacoes/min; 5 s e 3 s acima) e erro ou tempo
+  estourado vira backup rate: cada tabela que atende vira uma opcao (`service_code` `HUB_<id>`,
   valor em centavos, prazo em dias uteis). Mesmo com a exibicao do prazo desligada,
   o callback mantem uma `description` generica, pois a Shopify rejeita a tarifa sem
-  esse campo obrigatorio e usa o backup rate. No checkout cada API externa tem 0,8 s e o
-  total 2,2 s; coordenadas e rotas ficam em `CoordenadaCep`/`DistanciaCep` (2a cotacao do
-  mesmo CEP ~0,02 s). CEP que as bases nao conhecem e localizado pela cidade que o
-  checkout manda (Nominatim). O frete escolhido volta no `orders/create` em
+  esse campo obrigatorio e usa o backup rate. No checkout cada API externa tem ate 3 s e
+  todas juntas 7 s (`geo.limite`); nenhuma tabela nova comeca depois de 6 s. Com 0,8 s
+  por chamada (antes) o CEP novo nao era localizado na primeira consulta e a Shopify
+  usava o backup rate (pedido #3186). Tabela que fica de fora deixa o motivo no log
+  (`apps.shopify.frete`, warning). Erro de rede vira "CEP nao localizado", nunca 500.
+  **Motor de CEP** (`apps/logistica/geo*.py`), do mais preciso ao mais grosso, cada
+  camada com retentativa e as fontes de uma camada em paralelo: banco
+  (`CoordenadaCep`, ~0,02 s) -> AwesomeAPI -> endereco (ViaCEP, OpenCEP, BrasilAPI v1)
+  e a rua geocodificada com o **bairro conferido** (Photon, Nominatim; sem o bairro a
+  Nominatim devolveu outra Rua das Tulipas a 35 km) -> aproximados: BrasilAPI v2 (sem o
+  ponto do CEP ela devolve o centro da cidade), centro do bairro, centro da cidade, o CEP
+  vizinho ja conhecido (sem rede) e a cidade do checkout -> `valor_reserva` da tabela.
+  Ponto aproximado fica marcado (`aproximada`) e a tarefa `refinar_cep` procura o exato
+  depois. Rota: OSRM publico e o da FOSSGIS em paralelo; sem rota, linha reta x fator
+  aprendido das rotas reais da origem (`geo_local.fator`, 1,3 sem amostras), guardada
+  (`DistanciaCep.exata=False`) para o preco nao mudar no meio do checkout, e
+  `refinar_distancia` troca pela rota. `python manage.py aquecer_ceps` pre-consulta os
+  CEPs dos enderecos ja cadastrados (1 por segundo). Erro inesperado numa tabela fica no
+  log e nao tira as outras. O frete escolhido volta no `orders/create` em
   `linhas_frete[].method_id` (`HUB_<id>`). Codigo: `apps/shopify/frete*.py`.
   Card **Frete no checkout** em Integracoes > Shopify: checklist com o que falta
   (escopos, plano, cadastro, zona de envio, CEP dos locais, origem das tabelas, peso,

@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.text import slugify
 
-from .base import NAO_NEGATIVO, ComDatas
+from .base import NAO_NEGATIVO, ComDatas, JSONDecimalField
 
 
 def sku_do_servico(nome):
@@ -32,6 +32,8 @@ class Servico(ComDatas):
         validators=NAO_NEGATIVO,
         help_text="Vale para os produtos das regras que nao tem preco proprio.",
     )
+    # {"src", "alt"}, como a imagem da categoria: vai como foto da variacao no Suri.
+    imagem = JSONDecimalField("imagem", null=True, blank=True)
 
     class Meta:
         verbose_name = "servico"

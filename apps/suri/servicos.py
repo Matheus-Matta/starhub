@@ -1,8 +1,13 @@
 """Servicos do hub no Suri Shop, que nao tem servico: cada um vira variante do produto.
 
     Sofa (Cor: Azul, Cor: Verde) + Montagem (regra em Loja > Servicos)
-    -> dimensions: [..., {"sku": "SERV-MONTAGEM", "dimensions": {"Servico": "Montagem"},
-                          "price": <preco da regra>, "stocks": {...}}]
+    -> attributes: [..., {"name": "Serviços", "options": [{"name": "Montagem"}]}]
+    -> dimensions: [..., {"sku": "SERV-MONTAGEM", "dimensions": {"Serviços": "Montagem"},
+                          "price": <preco da regra>, "stocks": {...},
+                          "image": {"url": <foto do servico>, "description": "Montagem"}}]
+
+A dimension tem "image" propria (doc do Suri, Postman "Criar Produto"); sem foto no
+servico, a chave nem vai.
 
 So com Integracoes > Suri > "enviar servicos como variantes" ligado. O PUT do Suri
 troca o produto inteiro: produto que saiu da regra vai sem a variante e ela some la.
@@ -12,11 +17,13 @@ pedido que chega (importar_itens.py, com "receber servicos" ligado).
 """
 
 from apps.core.models import ExternalReference
+from apps.integracoes.url_publica import url_publica
 from apps.loja.models import Servico
-from apps.loja.services.servicos_regras import servicos_do_produto
 from apps.suri import vinculos
 
-ATRIBUTO = "Servico"
+ATRIBUTO = "Serviços"
+# "Servico" foi o nome ate a 1.3.18: o produto la ainda pode ter, e a importacao o ignora.
+ATRIBUTOS = {ATRIBUTO, "Servico"}
 ENTIDADE = "servicos"
 
 
@@ -24,22 +31,31 @@ def do_produto(configuracao, produto):
     """[(servico, preco)] que vao como variante; vazio com o envio desligado."""
     if not getattr(configuracao, "enviar_servicos", False):
         return []
-    return servicos_do_produto(produto)
+    return produto.servicos
 
 
-def dimensoes(servicos, variantes, loja, skus_do_produto):
+def _foto(configuracao, servico):
+    imagem = servico.imagem if isinstance(servico.imagem, dict) else {}
+    url = url_publica(configuracao, imagem.get("src"))
+    return {"url": url, "description": imagem.get("alt") or servico.nome} if url else None
+
+
+def dimensoes(servicos, variantes, loja, skus_do_produto, configuracao=None):
     """Uma dimensao por servico. SKU igual ao de uma variante do produto fica de fora:
     o Suri teria dois itens com o mesmo SKU e o estoque iria para o errado."""
     # O servico nao tem estoque: vende enquanto o produto tiver.
     estoque = sum(max(v.inventory_quantity, 0) for v in variantes)
-    return [{"sku": servico.sku, "dimensions": {ATRIBUTO: servico.nome}, "price": preco,
-             "stocks": {loja: {"stock": estoque}}}
-            for servico, preco in servicos if servico.sku not in skus_do_produto]
-
-
-def atributo(servicos, skus_do_produto):
-    opcoes = [{"name": s.nome} for s, _ in servicos if s.sku not in skus_do_produto]
-    return [{"name": ATRIBUTO, "options": opcoes}] if opcoes else []
+    saida = []
+    for servico, preco in servicos:
+        if servico.sku in skus_do_produto:
+            continue
+        dimensao = {"sku": servico.sku, "dimensions": {ATRIBUTO: servico.nome},
+                    "price": preco, "stocks": {loja: {"stock": estoque}}}
+        foto = _foto(configuracao, servico) if configuracao else None
+        if foto:
+            dimensao["image"] = foto
+        saida.append(dimensao)
+    return saida
 
 
 def _do_produto_no_suri(produto_id):

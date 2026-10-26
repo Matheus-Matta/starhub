@@ -123,6 +123,18 @@ class Produto(ComDatas):
             self._variante_padrao_cache = cache
         return cache
 
+    @property
+    def servicos(self):
+        """[(servico, preco)] que valem para o produto, pela ordem das regras (Loja >
+        Servicos). Guardado no objeto: o envio pergunta varias vezes no mesmo produto."""
+        cache = getattr(self, "_servicos_cache", None)
+        if cache is None:
+            from apps.loja.services.servicos_regras import servicos_do_produto
+
+            cache = servicos_do_produto(self) if self.pk else []
+            self._servicos_cache = cache
+        return cache
+
     def _valor_variante(self, field, default=None):
         variante = self.variante_padrao
         return getattr(variante, field, default) if variante else default

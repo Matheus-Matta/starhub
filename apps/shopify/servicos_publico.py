@@ -17,7 +17,6 @@ from apps.core.tenant.context import tenant_context
 from apps.core.ui.formatos import moeda
 from apps.integracoes.models import ConfiguracaoIntegracao
 from apps.loja.models import Produto
-from apps.loja.services.servicos_regras import servicos_do_produto
 from apps.shopify.envio.produtos_variantes import dinheiro
 from apps.shopify.frete_publico import _com_cors, _negada, _origem_permitida
 from apps.shopify.servicos_envio import VARIANTES
@@ -43,7 +42,7 @@ def _variantes(servicos):
 
 def servicos_da_pagina(produto_id):
     produto = _produto(produto_id)
-    servicos = servicos_do_produto(produto) if produto else []
+    servicos = produto.servicos if produto else []
     variantes = _variantes(servicos)
     saida = []
     for servico, preco in servicos:

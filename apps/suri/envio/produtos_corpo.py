@@ -6,7 +6,8 @@
                      "stocks": {"<loja>": {"stock": 3}}, "measurements": {...}}]}
 
 Preco e Decimal ate o JSON (apps/suri/cliente._json escreve o numero exato). Os
-servicos do produto vao no fim de "dimensions", um por SKU (apps/suri/servicos.py).
+servicos do produto vao no fim de "dimensions", um por SKU (apps/suri/servicos.py), e
+os attributes saem das dimensions, batendo com elas (produtos_atributos.py).
 """
 
 from decimal import Decimal
@@ -16,22 +17,13 @@ from apps.loja.dinheiro import ZERO
 from apps.loja.models import MidiaProduto, Produto
 from apps.suri import servicos as servicos_suri
 from apps.suri.cliente import SuriErro
+from apps.suri.envio import produtos_atributos
 from apps.suri.envio.base import id_no_suri
 
 
 def _opcoes(variante):
     opcoes = variante.opcoes.select_related("valor__tipo")
     return {o.valor.tipo.nome: o.valor.valor for o in opcoes}
-
-
-def _atributos(variantes):
-    atributos = {}
-    for variante in variantes:
-        for nome, valor in _opcoes(variante).items():
-            opcoes = atributos.setdefault(nome, [])
-            if {"name": valor} not in opcoes:
-                opcoes.append({"name": valor})
-    return [{"name": nome, "options": opcoes} for nome, opcoes in atributos.items()]
 
 
 def _dimensao(variante, produto_id, loja):
@@ -72,13 +64,14 @@ def corpo(enviador_categorias, produto, loja, configuracao, servicos=()):
         "name": produto.nome, "description": produto.descricao or "",
         "price": padrao.price if padrao else ZERO, "promotionalPrice": promocional,
         "hasShippingRestriction": False,
-        "attributes": _atributos(variantes) if produto.tipo == Produto.Tipo.VARIAVEL else [],
         "dimensions": [_dimensao(v, produto_id, loja) for v in variantes],
     }
+    produtos_atributos.distinguir(corpo["dimensions"], variantes)
     if servicos:
         skus = {d["sku"] for d in corpo["dimensions"]}
-        corpo["attributes"] += servicos_suri.atributo(servicos, skus)
-        corpo["dimensions"] += servicos_suri.dimensoes(servicos, variantes, loja, skus)
+        corpo["dimensions"] += servicos_suri.dimensoes(servicos, variantes, loja, skus,
+                                                       configuracao)
+    corpo["attributes"] = produtos_atributos.alinhar(corpo["dimensions"])
     if imagens:
         # "images": null apaga as fotos no Suri: sem foto publica no hub, a chave nem vai.
         corpo["images"] = imagens

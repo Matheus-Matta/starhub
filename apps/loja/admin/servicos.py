@@ -10,6 +10,7 @@ from django.template.loader import render_to_string
 
 from apps.core.admin_base import TemaModelAdmin
 from apps.core.admin_lista_modal import url_popup
+from apps.core.json_widgets import ImagensTema
 from apps.integracoes.admin_servicos import ServicosShopifyMixin
 from apps.loja.admin.servicos_planilha import PlanilhaServicosMixin
 from apps.loja.models import RegraServico, Servico
@@ -23,10 +24,12 @@ class ServicoAdmin(ServicosShopifyMixin, PlanilhaServicosMixin, TemaModelAdmin):
     list_display = ["nome", "sku", "preco", "active", "updated_at"]
     search_fields = ["nome", "sku"]
     list_filter = ["active"]
+    # Foto unica, como a da categoria: vira a foto da variacao "Servicos" no Suri.
+    campos_json = {"imagem": ImagensTema(multiplas=False, pasta="servicos")}
     readonly_fields = ["lista_regras"]
     readonly_largos = ["lista_regras"]
     fieldsets = [
-        ("Servico", {"fields": [("nome", "sku"), ("preco", "active")]}),
+        ("Servico", {"fields": [("nome", "sku"), ("preco", "active"), "imagem"]}),
         ("Regras", {"classes": ["secao-lista"], "fields": ["lista_regras"],
                     "description": "Para cada produto vale a primeira regra que casa, pela "
                                    "ordem: e ela que da o preco."}),

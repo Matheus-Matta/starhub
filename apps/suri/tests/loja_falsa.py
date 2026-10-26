@@ -7,6 +7,7 @@ from decimal import Decimal
 
 from apps.integracoes import permissoes
 from apps.integracoes.models import ConfiguracaoIntegracao
+from apps.suri.cliente import SuriErro
 
 MODULOS = ("apps.suri.cliente", "apps.suri.sincronizar", "apps.suri.webhooks",
            "apps.suri.envio.base", "apps.suri.frete")
@@ -43,15 +44,35 @@ class SuriFalso:
 
     def post(self, caminho, corpo):
         self.chamadas.append(("POST", caminho, corpo))
+        if caminho == "shop/products":
+            conferir_produto(corpo)
         return corpo
 
     def put(self, caminho, corpo=None):
         self.chamadas.append(("PUT", caminho, corpo))
+        if caminho == "shop/products":
+            conferir_produto(corpo)
         return corpo
 
     def delete(self, caminho):
         self.chamadas.append(("DELETE", caminho, None))
         return {}
+
+
+def conferir_produto(corpo):
+    """A regra que o Suri real aplica (HTTP 400 ProductAttributtesAndDimensionsMustMatch):
+    cada dimension tem exatamente os atributos do produto, com valor entre as opcoes, e
+    duas dimensions nao repetem a mesma combinacao."""
+    opcoes = {a["name"]: {o["name"] for o in a["options"]} for a in corpo["attributes"]}
+    vistas = set()
+    for dimensao in corpo["dimensions"]:
+        valores = dimensao["dimensions"]
+        combinacao = tuple(sorted(valores.items()))
+        if (set(valores) != set(opcoes) or combinacao in vistas
+                or any(v not in opcoes[k] for k, v in valores.items())):
+            raise SuriErro("Suri respondeu HTTP 400: ProductAttributtesAndDimensionsMustMatch.",
+                           status=400)
+        vistas.add(combinacao)
 
 
 def configuracao(conta, receber=(), enviar=()):

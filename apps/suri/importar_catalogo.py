@@ -82,10 +82,17 @@ def _gravar_variante(variante, dimensao, produto_dados, posicao, completa):
         variante.weight = Decimal(str(gramas)) / 1000  # o hub guarda em kg
     if completa:
         _sku_livre(variante, str(dimensao.get("sku") or "").strip()[:100], produto_dados)
-        opcoes = dimensao.get("dimensions") or {}
-        variante.titulo = (" / ".join(str(v) for v in opcoes.values()) or "Default")[:255]
+        variante.titulo = (" / ".join(str(v) for v in _opcoes(dimensao).values())
+                           or "Default")[:255]
     variante.save()
-    gravar_opcoes(variante, dimensao.get("dimensions"))
+    gravar_opcoes(variante, _opcoes(dimensao))
+
+
+def _opcoes(dimensao):
+    """Opcoes da variante sem o atributo dos servicos: o envio poe "Serviços": "Sem
+    serviço" na variacao do produto (envio/produtos_atributos.py); nao e opcao dela."""
+    return {nome: valor for nome, valor in (dimensao.get("dimensions") or {}).items()
+            if nome not in servicos_suri.ATRIBUTOS}
 
 
 def _sem_servicos(dados):
@@ -98,7 +105,7 @@ def _sem_servicos(dados):
             or getattr(configuracao, "receber_servicos", False)):
         return atributos, dimensoes
     produto = {"providerId": dados["id"]}
-    return ([a for a in atributos if a.get("name") != servicos_suri.ATRIBUTO],
+    return ([a for a in atributos if a.get("name") not in servicos_suri.ATRIBUTOS],
             [d for d in dimensoes if servicos_suri.da_linha({**produto, **d}) is None])
 
 

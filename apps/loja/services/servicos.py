@@ -138,8 +138,6 @@ def do_erp(servicos, produto):
     Cada um vira o cadastro dele (nome e servico_id). Sem preco, vale o da regra
     que pega o produto do item; sem regra, o preco padrao do servico.
     """
-    from apps.loja.services.servicos_regras import servicos_do_produto
-
     das_regras = None
     saida = []
     for servico in servicos or []:
@@ -148,7 +146,7 @@ def do_erp(servicos, produto):
         limpo.update(servico=cadastro.nome, servico_id=cadastro.pk)
         if not limpo.get("preco"):
             if das_regras is None:
-                das_regras = dict(servicos_do_produto(produto)) if produto else {}
+                das_regras = dict(produto.servicos) if produto else {}
             limpo["preco"] = f"{das_regras.get(cadastro, cadastro.preco):.2f}"
         saida.append(limpo)
     return saida

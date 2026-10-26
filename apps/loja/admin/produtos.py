@@ -17,7 +17,6 @@ from apps.loja.admin.detalhes import variacoes_do_produto
 from apps.loja.admin.variante_unica import VarianteUnicaInline
 from apps.loja.admin.variantes import lista_variantes
 from apps.loja.models import Produto, VarianteProduto
-from apps.loja.services.servicos_regras import servicos_do_produto
 
 # Tres jeitos de mostrar o produto, pelo tipo (condicoes.js troca na hora):
 #   simples/externo/agrupado: a variante unica vira secoes da pagina (Preco, Estoque...);
@@ -105,7 +104,7 @@ class ProdutoAdmin(CodigoExternoMixin, TemaModelAdmin):
     def servicos_do_produto(self, obj):
         # Vem das regras de cada servico (Loja > Servicos); aqui so se consulta.
         return render_to_string("admin/loja/servicos_do_produto.html", {
-            "servicos": servicos_do_produto(obj) if obj and obj.pk else [],
+            "servicos": obj.servicos if obj and obj.pk else [],
         })
 
     @admin.display(description="produto", ordering="nome")

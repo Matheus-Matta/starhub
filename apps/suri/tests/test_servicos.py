@@ -63,10 +63,11 @@ def test_servico_do_produto_vai_como_variante_com_o_sku_e_o_preco_da_regra(
     corpo = _enviar(conta, monkeypatch, camiseta)
 
     servico = next(d for d in corpo["dimensions"] if d["sku"] == "SERV-MONT")
-    assert servico["dimensions"] == {"Servico": "Montagem"}
+    assert servico["dimensions"] == {"Cor": "Qualquer", "Serviços": "Montagem"}
     assert servico["price"] == Decimal("30.00")
     assert servico["stocks"] == {"48346": {"stock": 5}}, "vende enquanto o produto tiver"
-    assert {"name": "Servico", "options": [{"name": "Montagem"}]} in corpo["attributes"]
+    assert {"name": "Serviços", "options": [{"name": "Sem serviço"}, {"name": "Montagem"}]} in (
+        corpo["attributes"])
     assert ExternalReference.objects.get(entity_type="servicos").external_id == (
         "48349:SERV-MONT")
 
@@ -136,15 +137,38 @@ def test_receber_servicos_desligado_nao_mexe_nos_servicos_do_pedido(
     assert extras(obj)["servicos"] == [{"item_id": 1, "servico": "Montagem"}]
 
 
-def test_catalogo_do_suri_nao_transforma_o_servico_em_variante(conta, montagem, camiseta):
+@pytest.mark.parametrize("atributo", ["Serviços", "Servico"])  # Servico: envio ate 1.3.18
+def test_catalogo_do_suri_nao_transforma_o_servico_em_variante(
+        conta, montagem, camiseta, atributo):
     dados = produto()
-    dados["attributes"] = [*dados["attributes"], {"name": "Servico",
+    dados["attributes"] = [*dados["attributes"], {"name": atributo,
                                                   "options": [{"name": "Montagem"}]}]
     dados["dimensions"] = [*dados["dimensions"], {
-        "sku": "SERV-MONT", "dimensions": {"Servico": "Montagem"}, "price": Decimal("30"),
+        "sku": "SERV-MONT", "dimensions": {atributo: "Montagem"}, "price": Decimal("30"),
         "stocks": {"48346": {"stock": 5}}}]
 
     with usando_configuracao(_config(conta)):
         obj, _ = importar_produto(dados, sobrescrever=True)
 
     assert sorted(obj.variantes.values_list("sku", flat=True)) == ["CAM-AZ", "CAM-VD"]
+
+
+def test_variacao_servicos_leva_nome_valor_sku_e_a_foto_do_servico(
+        conta, monkeypatch, camiseta, montagem):
+    """Doc do Suri (Postman, Criar Produto): a dimension tem "image" {url} propria."""
+    montagem.imagem = {"src": "/media/servicos/montagem.png", "alt": "Montagem"}
+    montagem.save()
+
+    corpo = _enviar(conta, monkeypatch, camiseta)
+
+    servico = next(d for d in corpo["dimensions"] if d["sku"] == "SERV-MONT")
+    assert servico["dimensions"] == {"Cor": "Qualquer", "Serviços": "Montagem"}
+    assert servico["image"] == {"url": "https://hub.test/media/servicos/montagem.png",
+                                "description": "Montagem"}
+    assert {"name": "Serviços", "options": [{"name": "Sem serviço"}, {"name": "Montagem"}]} in (
+        corpo["attributes"])
+
+
+def test_produto_diz_os_servicos_que_tem(camiseta, montagem):
+    """Uma propriedade so: Suri, Shopify, ERP e a tela perguntam ao produto."""
+    assert camiseta.servicos == [(montagem, Decimal("30.00"))]
