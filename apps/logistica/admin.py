@@ -84,7 +84,7 @@ class TabelaFreteAdmin(ImportarFaixasMixin, TemaModelAdmin):
         ("Cobranca por distancia", {
             "classes": ["secao-distancia"],
             "fields": ["cep_origem", "preco_por_km", "taxa_fixa", "valor_minimo",
-                       "distancia_maxima_km"],
+                       "distancia_maxima_km", "valor_reserva"],
         }),
     ]
     condicoes = {

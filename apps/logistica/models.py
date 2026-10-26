@@ -47,6 +47,12 @@ class TabelaFrete(BaseModel):
     distancia_maxima_km = models.DecimalField(
         "distancia maxima (km)", max_digits=8, decimal_places=1, null=True, blank=True,
         validators=NAO_NEGATIVO, help_text="Acima disto nao entrega. Vazio = sem limite.")
+    # Ultimo recurso do checkout: sem ele, CEP que nem o motor local localiza fica sem
+    # frete e a Shopify usa o backup rate dela.
+    valor_reserva = _dinheiro(
+        "valor de reserva", null=True, blank=True,
+        help_text="Cobrado quando o CEP nao e localizado de jeito nenhum (APIs fora e sem "
+                  "CEP vizinho conhecido). Vazio = a tabela nao aparece nesse caso.")
 
     class Meta:
         verbose_name = "tabela de frete"
@@ -108,6 +114,9 @@ class CoordenadaCep(models.Model):
     latitude = models.DecimalField(max_digits=10, decimal_places=7)
     longitude = models.DecimalField(max_digits=10, decimal_places=7)
     fonte = models.CharField("fonte", max_length=30)
+    # Centro do bairro/cidade ou CEP vizinho: serve a cotacao, mas o refino
+    # (tasks.refinar_cep) procura o ponto do proprio CEP depois.
+    aproximada = models.BooleanField("aproximada", default=False)
     consultado_em = models.DateTimeField("consultado em", auto_now=True)
 
     class Meta:
@@ -119,15 +128,14 @@ class CoordenadaCep(models.Model):
 
 
 class DistanciaCep(models.Model):
-    """Km por estrada entre dois CEPs, guardado: o checkout da Shopify espera so 3 s.
-
-    So a distancia da rota (OSRM) e guardada; a estimativa em linha reta nao, para a
-    proxima cotacao tentar a rota de novo.
-    """
+    """Km por estrada entre dois CEPs, guardado: o checkout nao espera a rota de novo."""
 
     origem = models.CharField("CEP de origem", max_length=8)
     destino = models.CharField("CEP de destino", max_length=8)
     km = models.DecimalField(max_digits=8, decimal_places=1)
+    # Estimativa (linha reta x fator) tambem fica guardada: o preco nao muda de uma
+    # cotacao para a outra no mesmo checkout. tasks.refinar_distancia troca pela rota.
+    exata = models.BooleanField("rota exata", default=True)
     consultado_em = models.DateTimeField("consultado em", auto_now=True)
 
     class Meta:

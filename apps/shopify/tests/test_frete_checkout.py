@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from apps.logistica import geo
+from apps.logistica import geo, geo_rede
 from apps.logistica.models import FaixaCep, TabelaFrete
 from apps.loja.models import Pedido
 from apps.shopify.frete import ORCAMENTO_SEGUNDOS, dias_uteis, opcoes_de_frete
@@ -140,3 +140,50 @@ def test_cidade_e_uf_do_checkout_vao_para_a_cotacao():
     with patch.object(geo, "km_entre_ceps", km):
         assert opcoes_de_frete(corpo)[0]["total_price"] == "1000"
     assert recebidos == [("24400000", "Sao Goncalo", "RJ")]
+
+
+def test_api_que_demora_mais_de_um_segundo_ainda_da_frete():
+    """Pedido #3186: CEP novo, API lenta no primeiro acesso (BrasilAPI 2,5 s, Nominatim
+    1 s medidos). Com 0,8 s por chamada o CEP nao era localizado, a lista ia vazia e a
+    Shopify usava o backup rate. Ela espera ate 10 s (loja com menos de 1500 RPM)."""
+    TabelaFrete.objects.create(nome="Maxxx", tipo="distancia", cep_origem="01001000",
+                               preco_por_km=Decimal("1"), no_checkout=True)
+    respostas = {"awesomeapi": {"lat": "-22.8694657", "lng": "-43.2177078"},
+                 "osrm": {"code": "Ok", "routes": [{"distance": 25224.9}]}}
+
+    def api_lenta(url, timeout):
+        if timeout < 1.5:  # a API responde em 1,5 s
+            raise geo.GeoErro("timed out")
+        if "project-osrm" in url:
+            return respostas["osrm"]
+        if "awesomeapi" in url:
+            return respostas["awesomeapi"]
+        raise geo.GeoErro("fora do ar")
+
+    corpo = {"rate": {"destination": {"postal_code": "21941-806"}}}
+    with patch.object(geo_rede, "_json", side_effect=api_lenta):
+        geo.CoordenadaCep.objects.create(cep="01001000", latitude=Decimal("-23.55"),
+                                         longitude=Decimal("-46.63"), fonte="teste")
+        assert [o["total_price"] for o in opcoes_de_frete(corpo)] == ["2520"]
+
+
+def test_cep_que_nada_localiza_cobra_o_valor_de_reserva_da_tabela():
+    """Ultimo recurso: com o valor de reserva a opcao aparece; sem ele, a tabela some."""
+    TabelaFrete.objects.create(nome="Com reserva", tipo="distancia", cep_origem="01001000",
+                               preco_por_km=Decimal("1"), no_checkout=True,
+                               valor_reserva=Decimal("150.00"))
+    TabelaFrete.objects.create(nome="Sem reserva", tipo="distancia", cep_origem="01001000",
+                               preco_por_km=Decimal("1"), no_checkout=True)
+    with patch.object(geo_rede, "_json", side_effect=geo.GeoErro("fora do ar")):
+        opcoes = opcoes_de_frete({"rate": {"destination": {"postal_code": "69900-000"}}})
+    assert [(o["service_name"], o["total_price"]) for o in opcoes] == [("Com reserva", "15000")]
+
+
+def test_erro_inesperado_numa_tabela_nao_tira_o_frete_das_outras():
+    """Excecao fora do previsto virava 500 na view: a Shopify usava o backup rate."""
+    _faixa(nome="Faixa boa")
+    TabelaFrete.objects.create(nome="Quebrada", tipo="distancia", cep_origem="01001000",
+                               preco_por_km=Decimal("1"), no_checkout=True)
+    with patch.object(geo, "km_entre_ceps", side_effect=RuntimeError("bug")):
+        opcoes = opcoes_de_frete(CHECKOUT)
+    assert [o["service_name"] for o in opcoes] == ["Faixa boa"]

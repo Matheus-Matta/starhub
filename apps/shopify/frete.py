@@ -1,7 +1,9 @@
 """Cotacao de frete no checkout da Shopify (CarrierService).
 
-A Shopify manda o carrinho e o endereco a cada CEP digitado no checkout e espera no
-maximo 3 s. Cada TabelaFrete ativa com "oferecer no checkout" vira uma opcao:
+A Shopify manda o carrinho e o endereco a cada CEP digitado no checkout e espera ate
+10 s (loja com menos de 1500 pedidos de cotacao por minuto; 5 s ate 3000, 3 s acima:
+doc DeliveryCarrierService). Erro ou tempo estourado = backup rate. Cada TabelaFrete
+ativa com "oferecer no checkout" vira uma opcao:
 
     {"service_name": "Entrega propria", "service_code": "HUB_3", "total_price": "3891",
      "currency": "BRL", "description": "Entrega em 2 dias uteis",
@@ -14,6 +16,7 @@ demais, CEP que ninguem localiza) simplesmente nao aparece. O codigo HUB_<id> vo
 pedido (shipping_lines[].code -> linhas_frete[].method_id): da para saber qual tabela.
 """
 
+import logging
 import time
 from datetime import timedelta
 
@@ -23,10 +26,13 @@ from apps.logistica import geo
 from apps.logistica.cotacao import FreteIndisponivel, cotar
 from apps.logistica.models import TabelaFrete
 
+logger = logging.getLogger(__name__)
 PREFIXO = "HUB_"
-# Folga sobre os 3 s da Shopify: depois disto, as tabelas que faltam ficam de fora
-# (melhor mostrar as que ja sairam do que nenhuma).
-ORCAMENTO_SEGUNDOS = 2.2
+# Tempo total das APIs externas (CEP, rota) na cotacao, com folga sobre os 10 s da
+# Shopify. Depois de ORCAMENTO_SEGUNDOS nenhuma tabela nova comeca (melhor mostrar as
+# que ja sairam do que nenhuma).
+LIMITE_SEGUNDOS = 7.0
+ORCAMENTO_SEGUNDOS = 6.0
 
 
 def dias_uteis(inicio, dias):
@@ -82,12 +88,20 @@ def opcoes_de_frete(corpo, relogio=time.monotonic, exibir_prazo=True):
     cidade, uf = str(destino.get("city") or ""), str(destino.get("province") or "")
     tabelas = TabelaFrete.objects.filter(active=True, no_checkout=True).prefetch_related(
         "faixas").order_by("nome")
-    for tabela in tabelas:
-        if relogio() - inicio > ORCAMENTO_SEGUNDOS:
-            break
-        try:
-            cotacao = cotar(tabela, cep, geo.TIMEOUT_CHECKOUT, cidade, uf)
-            opcoes.append(_opcao(tabela, cotacao, exibir_prazo))
-        except FreteIndisponivel:
-            continue
+    with geo.limite(LIMITE_SEGUNDOS):
+        for tabela in tabelas:
+            if relogio() - inicio > ORCAMENTO_SEGUNDOS:
+                logger.warning("Frete do CEP %s: tempo esgotado antes da tabela %s", cep,
+                               tabela.nome)
+                break
+            try:
+                cotacao = cotar(tabela, cep, geo.TIMEOUT_CHECKOUT, cidade, uf)
+                opcoes.append(_opcao(tabela, cotacao, exibir_prazo))
+            except FreteIndisponivel as motivo:
+                # Rastro do "por que nao saiu frete": sem isto o backup rate na Shopify
+                # nao deixava pista nenhuma no hub.
+                logger.warning("Frete do CEP %s sem a tabela %s: %s", cep, tabela.nome, motivo)
+            except Exception:  # noqa: BLE001 - erro inesperado numa tabela nao pode virar
+                # 500 (backup rate na Shopify) nem tirar o frete das outras tabelas.
+                logger.exception("Frete do CEP %s: erro na tabela %s", cep, tabela.nome)
     return sorted(opcoes, key=lambda opcao: int(opcao["total_price"]))

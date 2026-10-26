@@ -29,6 +29,9 @@ def outra_conta(db):
 def _tarefas_sem_thread(settings):
     # O dev liga a thread; o teste confere o resultado da tarefa logo apos a chamada.
     settings.STARHUB_TAREFAS_EM_THREAD = False
+    # Refino do CEP aproximado (logistica.tasks) e de fundo: no teste, eager, rodaria no
+    # meio da cotacao e gastaria as respostas falsas da API.
+    settings.STARHUB_REFINAR_CEP = False
 
 
 @pytest.fixture(autouse=True)

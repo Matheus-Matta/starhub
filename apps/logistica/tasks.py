@@ -1,4 +1,4 @@
-"""Tarefas do Celery da logistica: importar faixas de CEP por planilha.
+"""Tarefas do Celery da logistica: importar faixas de CEP e refinar o motor de CEP.
 
 O motor (arquivo no MEDIA, barra, falhas por linha, Retomar) e o de toda importacao:
 apps/integracoes/importar_planilha.py. Aqui so a regra da linha e o "substituir".
@@ -39,3 +39,34 @@ def importar_faixas(execucao_id):
     with tenant_context(conta):
         tabelas_alteradas.send(sender=TabelaFrete)
     return resultado
+
+
+@shared_task(ignore_result=True)
+def refinar_cep(cep):
+    """CEP guardado como aproximado: procura o ponto dele com calma, sem o limite do
+    checkout. Achou, troca e apaga as distancias dele (a proxima cotacao recalcula)."""
+    from apps.logistica import geo
+    from apps.logistica.models import CoordenadaCep, DistanciaCep
+
+    try:
+        ponto = geo.localizar(cep, so_exato=True)
+    except geo.GeoErro:
+        ponto = None
+    if ponto is None:
+        return  # fica o aproximado; a proxima cotacao que o usar agenda de novo
+    CoordenadaCep.objects.filter(cep=cep).update(
+        latitude=ponto.latitude, longitude=ponto.longitude, fonte=ponto.fonte[:30],
+        aproximada=False)
+    DistanciaCep.objects.filter(destino=cep).delete()
+
+
+@shared_task(ignore_result=True)
+def refinar_distancia(origem_cep, destino_cep):
+    """Distancia guardada como estimativa: tenta a rota de carro de novo."""
+    from apps.logistica import geo
+    from apps.logistica.models import DistanciaCep
+
+    km, exata = geo.distancia_km(geo.coordenada(origem_cep), geo.coordenada(destino_cep))
+    if exata:
+        DistanciaCep.objects.filter(origem=origem_cep, destino=destino_cep).update(
+            km=km, exata=True)

@@ -49,6 +49,9 @@ def _por_distancia(tabela, cep, timeout, cidade, uf):
     try:
         km, exata = geo.km_entre_ceps(tabela.cep_origem, cep, timeout, cidade, uf)
     except geo.GeoErro as erro:
+        if tabela.valor_reserva is not None:
+            return Cotacao(valor=dinheiro(tabela.valor_reserva), prazo_dias=tabela.prazo_dias,
+                           detalhe=f"Valor de reserva: {erro}")
         raise FreteIndisponivel(str(erro)) from erro
     if tabela.distancia_maxima_km is not None and km > tabela.distancia_maxima_km:
         raise FreteIndisponivel(
