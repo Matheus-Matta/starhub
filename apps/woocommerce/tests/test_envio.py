@@ -3,7 +3,6 @@
 import pytest
 
 from apps.core.models import ExternalReference
-from apps.integracoes.envio.base import EnvioNaoSuportado
 from apps.woocommerce.cliente import WooErro
 from apps.woocommerce.envio.marketplace import WooCommerceMarketplace
 from apps.woocommerce.importar_pedidos import importar_pedido
@@ -100,7 +99,7 @@ def test_estoque_da_variacao_vai_na_rota_da_variacao(conta, monkeypatch):
     assert loja.chamadas[-1][:2] == ("PUT", "products/20/variations/21")
 
 
-def test_pedido_so_atualiza_status_e_nao_e_criado_pelo_hub(conta, monkeypatch):
+def test_pedido_so_atualiza_status_e_so_e_criado_com_o_pedido_legado(conta, monkeypatch):
     marketplace, loja = _marketplace(conta, monkeypatch)
     importar_produto(exemplos.produto_simples())
     pedido, _ = importar_pedido(exemplos.pedido())
@@ -113,5 +112,5 @@ def test_pedido_so_atualiza_status_e_nao_e_criado_pelo_hub(conta, monkeypatch):
     assert rota == "orders/501" and corpo["status"] == "completed"
     assert set(corpo) == {"status", "shipping"}
     ExternalReference.objects.filter(entity_type="pedidos").delete()
-    with pytest.raises(EnvioNaoSuportado):
-        marketplace.enviar("pedidos", "create", pedido.pk)
+    # Enviar > Pedidos > Criar da matriz nao cria: so o switch (test_pedido_legado.py).
+    assert marketplace.enviar("pedidos", "create", pedido.pk).startswith("ignorado")

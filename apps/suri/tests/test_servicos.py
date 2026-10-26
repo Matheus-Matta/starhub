@@ -118,7 +118,7 @@ def test_item_com_sku_de_servico_vira_servico_do_item_com_o_valor_somado(
     assert obj.total == Decimal("134.80") and not avisos
     assert extras(obj)["servicos"] == [{
         "item_id": item.pk, "sku": "CAM-AZ", "servico": "Montagem",
-        "servico_id": montagem.pk, "opcao": "Sim", "preco": "30.00"}]
+        "servico_id": montagem.pk, "opcao": "Sim", "preco": "30.00", "somado": True}]
 
 
 def test_receber_servicos_desligado_nao_mexe_nos_servicos_do_pedido(

@@ -176,3 +176,11 @@ def test_servico_excluido_sai_da_shopify(cfg, montagem):
 
     assert falso.chamadas[0][1] == {"input": {"id": PRODUTO_GID}}
     assert not ExternalReference.objects.filter(entity_type__startswith="servicos").exists()
+
+
+def test_data_do_bloco_do_tema_vira_o_agendamento_do_pedido():
+    """O bloco grava o atributo "agendamento" no carrinho; o pedido traz em note_attributes."""
+    from apps.shopify.pedidos_entrega import entrega_do_pedido
+
+    dados = {"note_attributes": [{"name": "agendamento", "value": "2026-10-30"}]}
+    assert entrega_do_pedido(dados)["agendamento"] == "2026-10-30"

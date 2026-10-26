@@ -120,7 +120,7 @@ class Distribuidor:
         if configuracoes is None:
             configuracoes = self.candidatos(conta_id)
         for configuracao in configuracoes:
-            if configuracao.habilitado("enviar", recurso, operacao):
+            if _habilitado(configuracao, recurso, operacao):
                 transacao.agendar(configuracao.pk, recurso, operacao, pk, _enfileirar)
 
     # Comparacao antes x depois.
@@ -144,6 +144,15 @@ class Distribuidor:
             nome for nome, valor in antes.items()
             if _normalizar(campos[nome], getattr(instance, nome)) != valor
         }
+
+
+def _habilitado(configuracao, recurso, operacao):
+    """A mesma pergunta que a tarefa faz (Marketplace.habilitado): o marketplace pode ligar
+    um envio por um switch proprio, fora da matriz (ex.: pedido legado no WooCommerce)."""
+    classe = registro.obter(configuracao.plataforma)
+    if classe is None:
+        return configuracao.habilitado("enviar", recurso, operacao)
+    return classe(configuracao).habilitado(recurso, operacao)
 
 
 def _normalizar(campo, valor):

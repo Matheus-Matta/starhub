@@ -66,6 +66,13 @@ class ConfiguracaoIntegracao(BaseModel):
         "receber servicos dos pedidos", default=False,
         help_text="Item do pedido com o SKU de um servico vira servico do item do produto, "
                   "com o valor somado nele, e nao um item avulso.")
+    # So WooCommerce: o pedido que chega de outra loja (Shopify, Suri) e criado na loja
+    # Woo como o pedido-completo.json (apps/woocommerce/envio/pedidos_legado.py).
+    pedido_legado = models.BooleanField(
+        "criar na loja os pedidos das outras lojas (formato legado)", default=False,
+        help_text="Cada pedido novo da Shopify ou do Suri e criado nesta loja WooCommerce: "
+                  "servicos no meta do item (starhub e EPOFW), fora do valor do item e do "
+                  "total; agendamento e origem no meta do pedido.")
     servicos_no_tema = models.BooleanField(
         "oferecer servicos na pagina do produto", default=False,
         help_text="So Shopify: o bloco de servicos do tema (Guia dos servicos) mostra os "

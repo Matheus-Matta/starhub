@@ -570,6 +570,21 @@ loja" com a requisicao e a resposta. Codigo: `apps/woo_api/views/encaminhar.py` 
 no `initial` das views de pedido) e `apps/woocommerce/encaminhar.py` (o repasse HTTP).
 Produtos, clientes e categorias nao sao encaminhados.
 
+### 6.4.1 Pedidos das outras lojas criados no WooCommerce (formato legado)
+
+Switch em Integracoes > WooCommerce > Servicos (`ConfiguracaoIntegracao.pedido_legado`,
+padrao desligado). Ligado, cada pedido novo que chega de outra loja (Shopify, Suri) e
+criado na loja Woo (`POST orders`) como `docs/exemplos/pedido-completo.json`: item com o
+produto e a variacao da loja (vinculo), servicos so no meta do item (`starhub.servicos` +
+EPOFW) e o valor do servico que o hub somou no item (`"somado"`) fora do item e do total;
+meta `starhub` do pedido com origem, `entrega.agendamento` (dd-mm-aaaa), cupons e
+`idVendedor`; frete e taxas como linhas; sem `coupon_lines` (o Woo aplicaria o cupom de
+novo). O switch vale no lugar de Enviar > Pedidos > Criar da matriz (o distribuidor
+pergunta ao marketplace, `distribuidor._habilitado`). O pedido leva o meta
+`starhub_pedido` (uuid do hub): o webhook/sincronizacao do Woo o ignora, entao o eco nao
+duplica nem muda o pedido do hub. Atualizar segue so status e endereco. Codigo:
+`apps/woocommerce/envio/pedidos_legado.py`.
+
 ### 6.5 O que ainda nao existe
 
 - variacoes de produto (`products/<id>/variations`): `variations` sai sempre `[]`;
@@ -801,6 +816,9 @@ padrao e o de cada regra ativa). Vinculos `servicos` (produto) e `servicos_varia
 - Pedido: a linha do servico nao vira item; vira servico do item com o mesmo vinculo
   (sem ele, do primeiro item), com o valor somado no item (`pedidos_servicos_tema.py`).
   O produto-servico nunca entra no catalogo (`servicos_exportar.eh_servico`).
+- Agendamento: `data-agendamento` no trecho do tema mostra um campo de data; o script
+  grava o atributo `agendamento` do carrinho (`/cart/update.js`) e o pedido traz em
+  `note_attributes` -> `starhub.entrega.agendamento`.
 - Escopos do app: `write_products`, `read_publications`, `write_publications`.
 - **Nao verificado na Shopify real:** `productSet` com `identifier`, a publicacao no
   canal pelo nome ("Online Store"/"Loja virtual") e o metafield `seo.hidden`.

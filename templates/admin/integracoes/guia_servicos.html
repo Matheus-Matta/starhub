@@ -19,6 +19,7 @@ com o trecho do tema ja montado com os enderecos desta loja.
   {% componente "card" titulo="1. No StarHub" icone="settings-2" %}
     <ol>
       <li>Em <a href="{{ url_integracao }}">Integracoes &gt; Shopify</a>, card <strong>Servicos</strong>: ligue <em>enviar servicos</em>, <em>receber servicos dos pedidos</em> e <em>oferecer servicos na pagina do produto</em>. Salve.</li>
+      <li>Tem uma loja WooCommerce que precisa receber estes pedidos como o <code>docs/exemplos/pedido-completo.json</code> (servico so no meta do item, fora do valor)? Ligue <em>criar na loja os pedidos das outras lojas</em> em Integracoes &gt; WooCommerce &gt; Servicos.</li>
       <li>Confira o <strong>dominio da loja</strong> e os dominios proprios da conta: so eles podem consultar os servicos pelo navegador (o mesmo controle do frete do tema).</li>
       <li>Em <a href="{{ url_servicos }}">Loja &gt; Servicos</a>, cadastre cada servico com o <strong>SKU do ERP</strong> e o preco padrao (um a um ou por <strong>Importar planilha</strong>; <strong>Exportar planilha</strong> baixa o que ja existe no mesmo formato). Nas regras, diga a quais produtos ele vale (por categoria ou por produto) e o preco de cada um.</li>
       <li>Ainda em Loja &gt; Servicos, clique <strong>Exportar para a Shopify</strong>. Depois disso, mudar servico ou regra reenvia sozinho.</li>
@@ -37,6 +38,7 @@ com o trecho do tema ja montado com os enderecos desta loja.
     <ol>
       <li><strong>Jeito mais simples (Dawn e temas 2.0):</strong> Loja virtual &gt; Temas &gt; Personalizar &gt; modelo de Produto &gt; Adicionar bloco &gt; <em>Liquid personalizado</em>, logo acima do botao de comprar. Cole o trecho abaixo e salve.</li>
       <li><strong>Pelo codigo:</strong> Editar codigo &gt; Snippets &gt; novo <code>starhub-servicos.liquid</code> com o trecho abaixo. No formulario do produto (em Dawn, <code>snippets/buy-buttons.liquid</code>, dentro do <code>{% templatetag openblock %} form 'product' {% templatetag closeblock %}</code>), antes do botao, coloque <code>{% templatetag openblock %} render 'starhub-servicos', product: product {% templatetag closeblock %}</code>.</li>
+      <li>O trecho traz <code>data-agendamento="Data de agendamento"</code>: mostra um campo de data; preenchido, vai como atributo <code>agendamento</code> do carrinho e chega no pedido em <code>starhub.entrega.agendamento</code> (dd-mm-aaaa). Tire o atributo para esconder o campo.</li>
       <li>Desligue o botao <strong>Comprar agora</strong> (pagamento dinamico) no bloco de botoes do produto: ele vai direto ao checkout e ignora os servicos marcados.</li>
     </ol>
     <pre class="tarefa-json">{{ trecho }}</pre>

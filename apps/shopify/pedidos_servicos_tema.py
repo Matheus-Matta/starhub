@@ -49,4 +49,7 @@ def somar(item, linha, servico):
     item.total_desconto = item.subtotal - item.total
     item.save()
     return {"item_id": item.pk, "sku": item.sku, "servico": servico.nome,
-            "servico_id": servico.pk, "opcao": "Sim", "preco": f"{total:.2f}"}
+            "servico_id": servico.pk, "opcao": "Sim", "preco": f"{total:.2f}",
+            # Somado no item: quem precisa do item sem o servico (pedido legado no
+            # WooCommerce, apps/woocommerce/envio/pedidos_legado.py) tira por aqui.
+            "somado": True}

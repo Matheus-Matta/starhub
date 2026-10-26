@@ -15,7 +15,7 @@ from django.urls import reverse
 from apps.integracoes.models import ConfiguracaoIntegracao
 
 TRECHO = """{{%- comment -%}} StarHub: servicos do produto (Guia dos servicos) {{%- endcomment -%}}
-<div data-starhub-servicos data-titulo="Servicos"
+<div data-starhub-servicos data-titulo="Servicos" data-agendamento="Data de agendamento"
      data-url="{consulta}"
      data-produto="{{{{ product.id }}}}"></div>
 <link rel="stylesheet" href="{estilo}">

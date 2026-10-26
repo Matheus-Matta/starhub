@@ -22,6 +22,11 @@
   cursor: pointer;
 }
 
+.starhub-agendamento {
+  display: grid;
+  gap: 4px;
+}
+
 .starhub-servicos-erro {
   margin: 0;
   font-size: 0.875em;

@@ -8,13 +8,30 @@
 // vira um /cart/add.js com o produto e os servicos juntos, todos com a mesma
 // propriedade _starhub_vinculo: e por ela que o hub liga o servico ao item no pedido.
 // Nada marcado: o formulario segue o caminho normal do tema.
+//
+// data-agendamento="Data de agendamento" mostra um campo de data (mesmo sem servico):
+// preenchido, vai como atributo "agendamento" do carrinho (/cart/update.js) e chega ao
+// hub em note_attributes, que vira starhub.entrega.agendamento no pedido.
 (() => {
   "use strict";
 
   const raiz = (window.Shopify && window.Shopify.routes && window.Shopify.routes.root) || "/";
 
+  function campoData(rotulo) {
+    const linha = document.createElement("label");
+    linha.className = "starhub-agendamento";
+    const texto = document.createElement("span");
+    texto.textContent = rotulo;
+    const campo = document.createElement("input");
+    campo.type = "date";
+    campo.min = new Date().toISOString().slice(0, 10);
+    campo.dataset.starhubAgendamento = "";
+    linha.append(texto, campo);
+    return linha;
+  }
+
   function montar(bloco, servicos) {
-    if (!servicos.length) {
+    if (!servicos.length && !bloco.dataset.agendamento) {
       bloco.hidden = true;
       return;
     }
@@ -35,6 +52,7 @@
       linha.append(caixa, texto);
       grupo.append(linha);
     });
+    if (bloco.dataset.agendamento) grupo.append(campoData(bloco.dataset.agendamento));
     const aviso = document.createElement("p");
     aviso.className = "starhub-servicos-erro";
     aviso.hidden = true;
@@ -57,7 +75,15 @@
     return saida;
   }
 
-  async function adicionar(form, bloco, marcados) {
+  async function postar(caminho, corpo) {
+    return fetch(`${raiz}${caminho}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(corpo),
+    });
+  }
+
+  async function adicionar(form, bloco, marcados, data) {
     const variante = form.querySelector('[name="id"]');
     const quantidade = Number((form.querySelector('[name="quantity"]') || {}).value) || 1;
     const vinculo = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -65,11 +91,8 @@
       properties: { ...propriedades(form), _starhub_vinculo: vinculo } }];
     marcados.forEach((caixa) => itens.push({ id: Number(caixa.value), quantity: quantidade,
       properties: { _starhub_vinculo: vinculo } }));
-    const resposta = await fetch(`${raiz}cart/add.js`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ items: itens }),
-    });
+    let resposta = await postar("cart/add.js", { items: itens });
+    if (resposta.ok && data) resposta = await postar("cart/update.js", { attributes: { agendamento: data } });
     if (!resposta.ok) {
       const erro = await resposta.json().catch(() => ({}));
       const aviso = bloco.querySelector(".starhub-servicos-erro");
@@ -87,10 +110,11 @@
     document.addEventListener("submit", (evento) => {
       if (evento.target !== form) return;
       const marcados = [...bloco.querySelectorAll("input[data-starhub-servico]:checked")];
-      if (!marcados.length) return;
+      const data = (bloco.querySelector("input[data-starhub-agendamento]") || {}).value || "";
+      if (!marcados.length && !data) return;
       evento.preventDefault();
       evento.stopImmediatePropagation();
-      adicionar(form, bloco, marcados);
+      adicionar(form, bloco, marcados, data);
     }, true);
   }
 
@@ -101,7 +125,7 @@
       .then((resposta) => (resposta.ok ? resposta.json() : { servicos: [] }))
       .then((dados) => {
         montar(bloco, dados.servicos || []);
-        if ((dados.servicos || []).length) ligar(bloco);
+        if (!bloco.hidden) ligar(bloco);
       })
       .catch(() => { bloco.hidden = true; });
   });

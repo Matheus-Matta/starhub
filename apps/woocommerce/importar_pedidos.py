@@ -110,8 +110,18 @@ def _pagamento(pedido, dados):
 
 
 @transaction.atomic
+def criado_pelo_hub(dados):
+    """Uuid do pedido do hub que o envio legado criou na loja (envio/pedidos_legado.py)."""
+    return next((str(m.get("value") or "") for m in dados.get("meta_data") or []
+                 if isinstance(m, dict) and m.get("key") == "starhub_pedido"), "")
+
+
 def importar_pedido(dados, loja=""):
     """`loja`: endereco da loja para o link do pedido no wp-admin."""
+    uuid = criado_pelo_hub(dados)
+    if uuid:
+        # O pedido e de outra loja e o hub e a fonte: o que a loja Woo tem dele e copia.
+        return Pedido.objects.filter(uuid=uuid).first(), False
     pedido, criado = _pedido_da_linha(dados)
     # Lock e releitura: o que foi lido antes do lock pode ser de outro webhook.
     pedido = Pedido.objects.select_for_update().get(pk=pedido.pk)

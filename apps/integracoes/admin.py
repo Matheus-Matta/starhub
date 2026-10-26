@@ -37,7 +37,7 @@ ACOES = {
 Plataforma = ConfiguracaoIntegracao.Plataforma
 CAMPOS_API = ("dominio_loja", "token_acesso", "segredo_app", "segredo_avaliacoes",
               "url_webhook", "nome_frete", "exibir_prazo_frete", "id_vendedor", "active")
-CAMPOS_SERVICOS = ("enviar_servicos", "receber_servicos", "servicos_no_tema")  # Suri e Shopify
+CAMPOS_SERVICOS = ("enviar_servicos", "receber_servicos", "pedido_legado", "servicos_no_tema")
 # O que muda de uma plataforma para outra na mesma tela de configuracao.
 TELAS = {
     Plataforma.SHOPIFY: {"nome": "Shopify", "form": ConfiguracaoShopifyForm, "acoes": ACOES},
