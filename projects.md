@@ -893,7 +893,11 @@ Mesma tela, matriz, Sincronizar, Tarefas e Retomar das outras lojas.
   pedido pela API com o token. Um POST forjado so faria reler um pedido verdadeiro.
 - **Enviar** (`envio/`): categorias (a arvore da raiz, POST ou PUT), produtos (objeto
   inteiro, PUT do Suri e substituicao total; id `sh-<pk>` para o que nasceu no hub;
-  produto sem categoria ganha e fica vinculado a **Sem categoria**, enviada antes;
+  produto sem categoria ganha e fica vinculado a **default** (`get_or_create` pelo slug
+  `default`), enviada antes; categoria sem descricao vai com o nome no lugar; produto
+  sem foto publica vai com `static/starhub/img/logo-600.png` e variante ou servico sem
+  foto propria usam a primeira foto do produto (lista ou url vazia dava HTTP 400
+  `Value cannot be null (source)`);
   produto sem variante ganha uma variante padrao), estoque (`PUT
   shop/products/<id>/stocks`, todo o estoque na primeira loja de `shop/stores`) e
   pedidos (pago, cancelado e logistica "entregue"; o estado do Suri fica no metadata
@@ -1067,7 +1071,12 @@ checkout das lojas" de cada tabela (Shopify, WooCommerce e Suri, abaixo). Menu
   Suri. O Suri valida por GET, que responde a lista vazia `[]` porque algumas versoes
   tentam ler o corpo como `List<ShopLogistic>`, e consulta por POST; o StarHub autentica
   com o mesmo token da API da loja e devolve todas as tabelas (CEP ou distancia) que
-  atendem o endereco no formato `ShopLogistic`. Desligado, responde 204. O fluxo anterior continua como
+  atendem o endereco no formato `ShopLogistic`. Sem cotacao (frete desligado, CEP invalido
+  ou fora das tabelas), responde `200` com `[]`: o cliente real tenta desserializar ate
+  respostas vazias como `List<ShopLogistic>`. Erros (401 token, 400 corpo, 404 URL)
+  tambem respondem `[]` com o status do erro e o motivo no log
+  (`Frete do Suri recusado`): um objeto `{"error"}` na raiz quebrava o checkout com
+  `could not be converted to List<ShopLogisticDTO>`. O fluxo anterior continua como
   alternativa: pedido em montagem (status 0) que chega pelo webhook com CEP e sem entrega
   recebe a cotacao mais barata por `POST shop/orders/budget` (`apps/suri/frete.py`). Mesmo
   CEP e mesmos itens nao reenviam. O endpoint direto esta coberto pelo contrato fornecido,

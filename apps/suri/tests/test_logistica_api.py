@@ -67,16 +67,36 @@ def test_post_devolve_as_tabelas_no_contrato_shop_logistic(client, conta):
     assert b'"Price": 12.50' in resposta.content
 
 
-def test_post_desligado_nao_cota_e_corpo_sem_cep_e_recusado(client, conta):
+def test_post_sem_cotacao_sempre_devolve_lista_para_o_suri(client, conta):
+    """O Suri desserializa ate respostas vazias como List<ShopLogisticDTO>."""
     cfg = configuracao(conta)
     _tabela()
 
     desligada = client.post(_url(cfg), data=json.dumps(_corpo()),
                              content_type="application/json", **_autorizacao())
-    assert desligada.status_code == 204
+    assert desligada.status_code == 200
+    assert desligada.json() == []
 
     ligar_frete(cfg, True)
     invalida = client.post(_url(cfg), data=b"{}", content_type="application/json",
                            **_autorizacao())
-    assert invalida.status_code == 400
-    assert invalida.json()["error"] == "InvalidAddress"
+    assert invalida.status_code == 200
+    assert invalida.json() == []
+
+
+def test_erro_tambem_responde_lista_para_o_suri_nao_quebrar_na_leitura(client, conta):
+    """O Suri le todo corpo como List<ShopLogisticDTO>: um objeto {"error"} na raiz dava
+    "could not be converted ... Path: $ | BytePositionInLine: 1" no checkout."""
+    cfg = configuracao(conta)
+    ligar_frete(cfg, True)
+
+    sem_token = client.post(_url(cfg), data=json.dumps(_corpo()),
+                            content_type="application/json")
+    quebrado = client.post(_url(cfg), data=b"{nao e json", content_type="application/json",
+                           **_autorizacao())
+    lista = client.post(_url(cfg), data=b"[]", content_type="application/json",
+                        **_autorizacao())
+
+    assert (sem_token.status_code, sem_token.json()) == (401, [])
+    assert (quebrado.status_code, quebrado.json()) == (400, [])
+    assert (lista.status_code, lista.json()) == (400, [])

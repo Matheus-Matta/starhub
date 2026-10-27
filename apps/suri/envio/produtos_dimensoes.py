@@ -16,6 +16,13 @@ def imagem(url="", descricao=None):
             "description": (descricao or None) if url else None}
 
 
+def sem_foto_usa(dimensoes, foto):
+    """Variante ou servico sem foto propria mostra a do produto, nunca url vazia."""
+    for dimensao in dimensoes:
+        if not dimensao["image"]["url"]:
+            dimensao["image"] = imagem(foto["url"], foto["description"])
+
+
 def medidas(variante=None):
     dimensoes = variante.dimensions if variante and isinstance(variante.dimensions, dict) else {}
     peso = (_numero(variante.weight) * 1000).to_integral_value() if variante else Decimal("0")

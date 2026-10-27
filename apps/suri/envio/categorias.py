@@ -21,7 +21,8 @@ def raiz(categoria):
 def arvore(categoria, nivel=0):
     filhas = categoria.filhas.all()
     return {"id": id_no_suri("categorias", categoria), "name": categoria.nome,
-            "description": categoria.descricao or "",
+            # O Suri recusa categoria com descricao vazia.
+            "description": categoria.descricao or categoria.nome,
             # Ate 5 niveis: categoria que aponta para ela mesma nao vira laco infinito.
             "children": [arvore(f, nivel + 1) for f in filhas if f.pk != categoria.pk]
             if nivel < 5 else []}

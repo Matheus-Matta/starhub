@@ -21,6 +21,13 @@ def _json(dados, status=200):
     return HttpResponse(json_decimal(dados), status=status, content_type="application/json")
 
 
+def _sem_opcoes(status, motivo):
+    # O Suri le qualquer corpo como List<ShopLogisticDTO>, ate o de erro: um objeto
+    # {"error"} na raiz quebra o checkout. O status diz o erro; o motivo vai pro log.
+    logger.warning("Frete do Suri recusado (%s): %s", status, motivo)
+    return _json([], status=status)
+
+
 def _campo(dados, nome):
     return (dados or {}).get(nome) or (dados or {}).get(nome[:1].lower() + nome[1:])
 
@@ -79,17 +86,20 @@ def consultar_logistica(request, configuracao_uuid):
         uuid=configuracao_uuid, plataforma=ConfiguracaoIntegracao.Plataforma.SURI,
         active=True).first()
     if configuracao is None:
-        return HttpResponse(status=404)
+        return _sem_opcoes(404, "integracao Suri inexistente ou desligada; confira a URL.")
     if not _autorizado(request, configuracao):
-        return _json({"error": "Unauthorized", "message": "Token invalido."}, status=401)
+        return _sem_opcoes(401, "Authorization diferente do token da loja; confira os "
+                                "headers adicionais no Suri.")
     if request.method == "GET":
         # A documentacao diz que o corpo da validacao e ignorado, mas algumas versoes
         # do Suri tentam desserializa-lo como a mesma lista de opcoes usada no POST.
         return _json([])
     if request.method != "POST":
-        return HttpResponse(status=405, headers={"Allow": "GET, POST"})
+        resposta = _sem_opcoes(405, f"metodo {request.method}; use GET ou POST.")
+        resposta["Allow"] = "GET, POST"
+        return resposta
     if not frete_ligado(configuracao):
-        return HttpResponse(status=204)
+        return _json([])
     try:
         corpo = json.loads(request.body or b"null")
         if not isinstance(corpo, dict):
@@ -97,7 +107,8 @@ def consultar_logistica(request, configuracao_uuid):
         with tenant_context(configuracao.account_id):
             opcoes = _opcoes(corpo)
     except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
-        return _json({"error": "InvalidRequest", "message": "JSON invalido."}, status=400)
+        return _sem_opcoes(400, "corpo nao e um objeto JSON com Items e Address.")
     except FreteIndisponivel as erro:
-        return _json({"error": "InvalidAddress", "message": str(erro)}, status=400)
+        logger.info("Frete do Suri indisponivel: %s", erro)
+        return _json([])
     return _json(opcoes)

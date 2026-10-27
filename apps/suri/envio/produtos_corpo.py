@@ -10,6 +10,8 @@ servicos do produto vao no fim de "dimensions", um por SKU (apps/suri/servicos.p
 os attributes saem das dimensions, batendo com elas (produtos_atributos.py).
 """
 
+from django.templatetags.static import static
+
 from apps.integracoes.url_publica import url_publica
 from apps.loja.dinheiro import ZERO
 from apps.loja.models import Categoria, MidiaProduto, Produto
@@ -18,8 +20,10 @@ from apps.suri import servicos as servicos_suri
 from apps.suri.envio import produtos_atributos, produtos_dimensoes
 from apps.suri.envio.base import id_no_suri
 
-CATEGORIA_PADRAO = "Sem categoria"
-CATEGORIA_PADRAO_SLUG = "sem-categoria"
+CATEGORIA_PADRAO = CATEGORIA_PADRAO_SLUG = "default"
+# Foto que o Suri consegue baixar quando o produto nao tem nenhuma: lista ou url vazia
+# derrubavam o PUT com "Value cannot be null. (Parameter 'source')".
+FOTO_PADRAO = "starhub/img/logo-600.png"
 
 
 def _opcoes(variante):
@@ -72,6 +76,8 @@ def corpo(enviador_categorias, produto, loja, configuracao, servicos=()):
     imagens = [{"providerId": None, "url": url, "description": m.alt_text or None}
                for m in produto.midias.filter(tipo=MidiaProduto.Tipo.IMAGEM).order_by("posicao")
                if (url := url_publica(configuracao, m.url))]
+    if not imagens and (url := url_publica(configuracao, static(FOTO_PADRAO))):
+        imagens = [produtos_dimensoes.imagem(url, produto.nome)]
     promocional = padrao.sale_price if padrao and padrao.sale_price else ZERO
     corpo = {
         "id": produto_id, "sku": (padrao.sku if padrao else "") or produto_id,
@@ -88,5 +94,7 @@ def corpo(enviador_categorias, produto, loja, configuracao, servicos=()):
         skus = {d["sku"] for d in corpo["dimensions"]}
         corpo["dimensions"] += servicos_suri.dimensoes(servicos, variantes, loja, skus,
                                                        configuracao)
+    if imagens:
+        produtos_dimensoes.sem_foto_usa(corpo["dimensions"], imagens[0])
     corpo["attributes"] = produtos_atributos.alinhar(corpo["dimensions"])
     return corpo

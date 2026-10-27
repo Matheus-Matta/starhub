@@ -26,7 +26,8 @@ def test_exportar_produtos_cria_a_variacao_servico(
     assert resumo.enviados == 1
     servico = next(d for d in corpo["dimensions"] if d["sku"] == "Montagem")
     assert servico["dimensions"] == {"Cor": "Qualquer", "Serviço": "Montagem"}
-    assert servico["image"] == {"providerId": None, "url": "", "description": None}
+    assert servico["image"] == {"providerId": None, "description": "Camiseta",
+                                "url": "https://hub.test/static/starhub/img/logo-600.png"}
     assert servico["measurements"] == {
         "weightInGrams": 0, "heightInCm": 0, "widthInCm": 0,
         "lengthInCm": 0, "unitsPerPackage": 1}

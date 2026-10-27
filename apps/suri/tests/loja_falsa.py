@@ -64,7 +64,7 @@ def conferir_produto(corpo):
     cada dimension tem exatamente os atributos do produto, com valor entre as opcoes, e
     duas dimensions nao repetem a mesma combinacao."""
     if any(not isinstance(corpo.get(campo), list)
-           for campo in ("images", "attributes", "dimensions")):
+           for campo in ("images", "attributes", "dimensions")) or not corpo["images"]:
         raise SuriErro("Suri respondeu HTTP 400: Value cannot be null. (Parameter 'source').",
                        status=400)
     opcoes = {a["name"]: {o["name"] for o in a["options"]} for a in corpo["attributes"]}
@@ -72,7 +72,7 @@ def conferir_produto(corpo):
     for dimensao in corpo["dimensions"]:
         obrigatorios = {"sku", "dimensions", "image", "measurements", "priceTables",
                         "price", "stocks"}
-        if not obrigatorios <= set(dimensao):
+        if not obrigatorios <= set(dimensao) or not dimensao["image"].get("url"):
             raise SuriErro(
                 "Suri respondeu HTTP 400: Value cannot be null. (Parameter 'source').",
                 status=400)

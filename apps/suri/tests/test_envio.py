@@ -55,12 +55,13 @@ def test_produto_novo_leva_a_arvore_da_categoria_antes(conta, monkeypatch):
     azul = next(d for d in corpo["dimensions"] if d["sku"] == "CAM-AZ")
     assert azul["price"] == Decimal("49.90") and azul["dimensions"] == {"Cor": "Azul"}
     assert azul["stocks"] == {"48346": {"stock": 5}}
-    assert azul["image"] == {"providerId": None, "url": "", "description": None}
+    foto = "https://hub.test/static/starhub/img/logo-600.png"
+    assert azul["image"] == {"providerId": None, "url": foto, "description": "Camiseta"}
     assert azul["priceTables"] == {}
     assert azul["measurements"] == {
         "weightInGrams": Decimal("250"), "heightInCm": 0, "widthInCm": 0,
         "lengthInCm": 0, "unitsPerPackage": 1}
-    assert corpo["images"] == [], "o Suri exige a lista, mesmo sem foto publica"
+    assert [i["url"] for i in corpo["images"]] == [foto], "lista vazia derruba o Suri"
 
 
 def test_produto_sem_categoria_cria_e_vincula_a_categoria_padrao(conta, monkeypatch):
@@ -71,7 +72,7 @@ def test_produto_sem_categoria_cria_e_vincula_a_categoria_padrao(conta, monkeypa
     marketplace.enviar("produtos", "create", obj.pk)
 
     obj.refresh_from_db()
-    padrao = Categoria.objects.get(slug="sem-categoria")
+    padrao = Categoria.objects.get(slug="default")
     assert obj.categoria == padrao and obj.categorias.get() == padrao
     assert [(m, r) for m, r, _ in loja.chamadas if m != "GET"] == [
         ("POST", "shop/categories"), ("POST", "shop/products")]
