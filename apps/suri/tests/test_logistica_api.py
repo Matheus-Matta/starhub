@@ -41,7 +41,7 @@ def test_get_valida_o_endpoint_com_o_token_da_loja(client, conta):
 
     resposta = client.get(_url(cfg), **_autorizacao())
 
-    assert resposta.status_code == 200 and resposta.json() == {"status": "ok"}
+    assert resposta.status_code == 200 and resposta.json() == []
     assert client.get(_url(cfg)).status_code == 401
     assert client.get(_url(cfg), **_autorizacao("errado")).status_code == 401
 

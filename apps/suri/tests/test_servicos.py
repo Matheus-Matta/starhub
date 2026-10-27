@@ -186,8 +186,9 @@ def test_variacao_servicos_leva_nome_valor_sku_e_a_foto_do_servico(
 
     servico = next(d for d in corpo["dimensions"] if d["sku"] == "Montagem")
     assert servico["dimensions"] == {"Cor": "Qualquer", "Serviço": "Montagem"}
-    assert servico["image"] == {"url": "https://hub.test/media/servicos/montagem.png",
-                                "description": "Montagem"}
+    assert servico["image"] == {
+        "providerId": None, "url": "https://hub.test/media/servicos/montagem.png",
+        "description": "Montagem"}
     assert {"name": "Serviço", "options": [{"name": "Sem serviço"}, {"name": "Montagem"}]} in (
         corpo["attributes"])
 

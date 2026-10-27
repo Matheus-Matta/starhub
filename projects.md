@@ -720,6 +720,8 @@ roda dentro do runserver: parar ou reiniciar o servidor marca as abertas como
 Imagens da importacao sao baixadas para o MEDIA. Foto acima de 5 MB vem reduzida
 pela CDN da Shopify (`width=2048`, depois 1600 e 1200); foto que nao baixa vira
 aviso na tarefa e nao derruba o produto nem as outras fotos.
+Os webhooks `products/create` e `products/update` tambem baixam imagens novas para
+o MEDIA e reaproveitam a copia local quando a foto da CDN nao mudou.
 
 No marketplace, `EnviadorRecurso.enviar` (base) trava a linha canonica
 (`select_for_update`) e rele o vinculo (`ExternalReference`) depois do lock: com
@@ -853,7 +855,8 @@ Sincronizar loja, Cadastrar webhooks, Tarefas e Retomar. Nao tem relacao com
   estoque) em `/integracoes/woocommerce/webhook/<uuid>/<recurso>/`, com o segredo `cs_`
   assinando. O receptor confere `X-WC-Webhook-Signature` (HMAC-SHA256 base64),
   responde 200 ao ping do cadastro (`webhook_id=...`) e 202 depois de enfileirar.
-  `delete` desativa o registro no hub.
+  `create` e `update` baixam a galeria do produto para o MEDIA; `delete` desativa o
+  registro no hub.
 - **Frete:** zonas de entrega a partir das tabelas por faixa de CEP (secao 7.7).
 - **Envio** (`envio/`): produtos (variacoes em lote por `variations/batch`; imagens
   ja na loja vao pelo id, novas pela URL publica do hub), estoque (produto simples no
@@ -890,7 +893,8 @@ Mesma tela, matriz, Sincronizar, Tarefas e Retomar das outras lojas.
   pedido pela API com o token. Um POST forjado so faria reler um pedido verdadeiro.
 - **Enviar** (`envio/`): categorias (a arvore da raiz, POST ou PUT), produtos (objeto
   inteiro, PUT do Suri e substituicao total; id `sh-<pk>` para o que nasceu no hub;
-  categoria vai antes se faltar, porque o Suri exige), estoque (`PUT
+  produto sem categoria ganha e fica vinculado a **Sem categoria**, enviada antes;
+  produto sem variante ganha uma variante padrao), estoque (`PUT
   shop/products/<id>/stocks`, todo o estoque na primeira loja de `shop/stores`) e
   pedidos (pago, cancelado e logistica "entregue"; o estado do Suri fica no metadata
   do vinculo para nao repetir a chamada). Clientes nao vao: a API do Suri exige o
@@ -902,9 +906,10 @@ Mesma tela, matriz, Sincronizar, Tarefas e Retomar das outras lojas.
   servico completa os outros atributos com "Qualquer": o Suri recusa com
   `ProductAttributtesAndDimensionsMustMatch` dimension sem todos os atributos;
   `envio/produtos_atributos.py`): o nome do servico vai no SKU e no valor da opcao,
-  com o preco da regra e a foto do servico em
-  `image` (a dimension do Suri aceita foto propria, doc Postman "Criar Produto") e
-  estoque infinito (`2147483647`). O
+  com o preco da regra, foto do servico em `image` e estoque infinito (`2147483647`).
+  Toda dimension, de produto ou servico, leva `image` (objeto vazio sem foto),
+  `measurements`, `priceTables`, `price` e `stocks`, como no contrato do PUT; omitir
+  esses blocos causava HTTP 400 `Value cannot be null (source)`. O
   vinculo `servicos` ("<produto>:<sku>" -> Servico) guarda o que foi. Mudou servico,
   regra ou as linhas dela (`servicos_sinais.py`): reenvia os produtos que a regra
   pega e os que levam o servico hoje; o PUT sem a variante a apaga no Suri. Ligar
@@ -1059,9 +1064,10 @@ checkout das lojas" de cada tabela (Shopify, WooCommerce e Suri, abaixo). Menu
   Zonas criadas a mao na loja nao sao tocadas.
 - **Frete no Suri:** card **Frete do hub** em Integracoes > Suri Shop. A API de logistica
   (`apps/suri/logistica_api.py`) mostra na tela a URL e o header para copiar no Portal do
-  Suri. O Suri valida por GET e consulta por POST; o StarHub autentica com o mesmo token
-  da API da loja e devolve todas as tabelas (CEP ou distancia) que atendem o endereco no
-  formato `ShopLogistic`. Desligado, responde 204. O fluxo anterior continua como
+  Suri. O Suri valida por GET, que responde a lista vazia `[]` porque algumas versoes
+  tentam ler o corpo como `List<ShopLogistic>`, e consulta por POST; o StarHub autentica
+  com o mesmo token da API da loja e devolve todas as tabelas (CEP ou distancia) que
+  atendem o endereco no formato `ShopLogistic`. Desligado, responde 204. O fluxo anterior continua como
   alternativa: pedido em montagem (status 0) que chega pelo webhook com CEP e sem entrega
   recebe a cotacao mais barata por `POST shop/orders/budget` (`apps/suri/frete.py`). Mesmo
   CEP e mesmos itens nao reenviam. O endpoint direto esta coberto pelo contrato fornecido,

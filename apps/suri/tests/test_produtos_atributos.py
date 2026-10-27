@@ -7,6 +7,7 @@ dos testes confere a regra.
 import pytest
 
 from apps.integracoes import exportar as exportador
+from apps.loja.models import RegraServico, Servico
 from apps.suri.contexto import usando_configuracao
 from apps.suri.importar_catalogo import importar_produto
 from apps.suri.tests.loja_falsa import SuriFalso, produto
@@ -23,8 +24,14 @@ def test_exportar_produtos_cria_a_variacao_servico(
     corpo = next(c for metodo, rota, c in loja.chamadas
                  if metodo == "PUT" and rota == "shop/products")
     assert resumo.enviados == 1
-    assert next(d for d in corpo["dimensions"] if d["sku"] == "Montagem")["dimensions"] == {
-        "Cor": "Qualquer", "Serviço": "Montagem"}
+    servico = next(d for d in corpo["dimensions"] if d["sku"] == "Montagem")
+    assert servico["dimensions"] == {"Cor": "Qualquer", "Serviço": "Montagem"}
+    assert servico["image"] == {"providerId": None, "url": "", "description": None}
+    assert servico["measurements"] == {
+        "weightInGrams": 0, "heightInCm": 0, "widthInCm": 0,
+        "lengthInCm": 0, "unitsPerPackage": 1}
+    assert servico["priceTables"] == {}
+    assert servico["stocks"] == {"48346": {"stock": 2_147_483_647}}
 
 
 def test_produto_simples_com_servico_bate_atributos_e_dimensoes(conta, monkeypatch, montagem):  # noqa: F811
@@ -52,6 +59,24 @@ def test_produto_variavel_com_servico_completa_os_outros_atributos(
     assert servico["dimensions"] == {"Cor": "Qualquer", "Serviço": "Montagem"}
     assert next(d for d in corpo["dimensions"] if d["sku"] == "CAM-AZ")["dimensions"] == {
         "Cor": "Azul", "Serviço": "Sem serviço"}
+
+
+def test_tipo_servico_recebe_cada_titulo_como_opcao_e_variante(
+        conta, monkeypatch, camiseta, montagem):  # noqa: F811
+    garantia = Servico.objects.create(nome="Garantia", preco="20.00")
+    regra = RegraServico.objects.create(servico=garantia, tipo=RegraServico.Tipo.PRODUTO)
+    regra.produtos.set([camiseta])
+
+    corpo = _enviar(conta, monkeypatch, camiseta)
+
+    atributo = next(a for a in corpo["attributes"] if a["name"] == "Serviço")
+    assert atributo["options"] == [
+        {"name": "Sem serviço"}, {"name": "Garantia"}, {"name": "Montagem"}]
+    servicos = [d for d in corpo["dimensions"] if d["sku"] in {"Garantia", "Montagem"}]
+    assert [(d["sku"], d["dimensions"]["Serviço"], d["stocks"]["48346"]["stock"])
+            for d in servicos] == [
+                ("Garantia", "Garantia", 2_147_483_647),
+                ("Montagem", "Montagem", 2_147_483_647)]
 
 
 def test_variantes_sem_opcao_e_produto_simples_com_opcao_batem_com_o_suri(

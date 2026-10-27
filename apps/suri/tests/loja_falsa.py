@@ -63,9 +63,19 @@ def conferir_produto(corpo):
     """A regra que o Suri real aplica (HTTP 400 ProductAttributtesAndDimensionsMustMatch):
     cada dimension tem exatamente os atributos do produto, com valor entre as opcoes, e
     duas dimensions nao repetem a mesma combinacao."""
+    if any(not isinstance(corpo.get(campo), list)
+           for campo in ("images", "attributes", "dimensions")):
+        raise SuriErro("Suri respondeu HTTP 400: Value cannot be null. (Parameter 'source').",
+                       status=400)
     opcoes = {a["name"]: {o["name"] for o in a["options"]} for a in corpo["attributes"]}
     vistas = set()
     for dimensao in corpo["dimensions"]:
+        obrigatorios = {"sku", "dimensions", "image", "measurements", "priceTables",
+                        "price", "stocks"}
+        if not obrigatorios <= set(dimensao):
+            raise SuriErro(
+                "Suri respondeu HTTP 400: Value cannot be null. (Parameter 'source').",
+                status=400)
         valores = dimensao["dimensions"]
         combinacao = tuple(sorted(valores.items()))
         if (set(valores) != set(opcoes) or combinacao in vistas

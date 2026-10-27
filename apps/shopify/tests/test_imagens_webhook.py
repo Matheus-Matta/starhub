@@ -73,9 +73,32 @@ def test_update_nao_baixa_novamente_imagem_shopify_inalterada(conta, settings, t
     configuracao = _configuracao(conta)
     dados = _produto_shopify()
 
-    with patch("urllib.request.urlopen", return_value=RespostaImagem(PNG)) as baixar:
+    with patch("urllib.request.urlopen", side_effect=lambda *_a, **_k: RespostaImagem(PNG)) \
+            as baixar:
         processar_webhook(configuracao, "produtos", "create", dados, lambda *_: None)
         processar_webhook(configuracao, "produtos", "update", dados, lambda *_: None)
 
     assert baixar.call_count == 1
     assert MidiaProduto.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_update_baixa_imagem_nova_do_produto(conta, settings, tmp_path):
+    """Uma foto adicionada ou trocada na Shopify precisa entrar no MEDIA pelo webhook."""
+    settings.MEDIA_ROOT = tmp_path
+    configuracao = _configuracao(conta)
+    dados = _produto_shopify()
+    with patch("urllib.request.urlopen", side_effect=lambda *_a, **_k: RespostaImagem(PNG)) \
+            as baixar:
+        processar_webhook(configuracao, "produtos", "create", dados, lambda *_: None)
+        dados["images"] = [{
+            "id": 124,
+            "src": "https://cdn.shopify.com/s/files/1/produto-verso.png?v=2",
+            "alt": "Produto de costas",
+        }]
+        processar_webhook(configuracao, "produtos", "update", dados, lambda *_: None)
+
+    assert baixar.call_count == 2
+    assert MidiaProduto.objects.filter(alt_text="Produto de costas").exists()
+    assert ExternalReference.objects.filter(
+        entity_type="midias", external_id="gid://shopify/ProductImage/124").exists()

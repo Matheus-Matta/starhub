@@ -20,6 +20,7 @@ from apps.core.models import ExternalReference
 from apps.integracoes.url_publica import url_publica
 from apps.loja.models import Servico
 from apps.suri import vinculos
+from apps.suri.envio import produtos_dimensoes
 
 ATRIBUTO = "Serviço"
 # Nomes usados antes deste contrato continuam reconhecidos ao importar o catalogo.
@@ -42,7 +43,7 @@ def do_produto(configuracao, produto):
 def _foto(configuracao, servico):
     imagem = servico.imagem if isinstance(servico.imagem, dict) else {}
     url = url_publica(configuracao, imagem.get("src"))
-    return {"url": url, "description": imagem.get("alt") or servico.nome} if url else None
+    return url, imagem.get("alt") or servico.nome
 
 
 def dimensoes(servicos, variantes, loja, skus_do_produto, configuracao=None):
@@ -52,12 +53,11 @@ def dimensoes(servicos, variantes, loja, skus_do_produto, configuracao=None):
         sku_servico = sku(servico)
         if sku_servico in skus_do_produto:
             continue
-        dimensao = {"sku": sku_servico, "dimensions": {ATRIBUTO: servico.nome},
-                    "price": preco, "stocks": {loja: {"stock": ESTOQUE_INFINITO}}}
-        foto = _foto(configuracao, servico) if configuracao else None
-        if foto:
-            dimensao["image"] = foto
-        saida.append(dimensao)
+        url, descricao = _foto(configuracao, servico) if configuracao else ("", servico.nome)
+        saida.append(produtos_dimensoes.completar({
+            "sku": sku_servico, "dimensions": {ATRIBUTO: servico.nome},
+            "price": preco, "stocks": {loja: {"stock": ESTOQUE_INFINITO}},
+        }, url=url, descricao=descricao))
     return saida
 
 

@@ -83,7 +83,9 @@ def consultar_logistica(request, configuracao_uuid):
     if not _autorizado(request, configuracao):
         return _json({"error": "Unauthorized", "message": "Token invalido."}, status=401)
     if request.method == "GET":
-        return _json({"status": "ok"})
+        # A documentacao diz que o corpo da validacao e ignorado, mas algumas versoes
+        # do Suri tentam desserializa-lo como a mesma lista de opcoes usada no POST.
+        return _json([])
     if request.method != "POST":
         return HttpResponse(status=405, headers={"Allow": "GET, POST"})
     if not frete_ligado(configuracao):

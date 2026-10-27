@@ -7,7 +7,7 @@ import pytest
 
 from apps.core.models import ExternalReference
 from apps.loja.models import Categoria, Pedido
-from apps.suri.cliente import SuriErro, _json
+from apps.suri.cliente import _json
 from apps.suri.envio.marketplace import SuriMarketplace
 from apps.suri.importar_catalogo import importar_produto
 from apps.suri.importar_pedidos import importar_pedido
@@ -55,16 +55,27 @@ def test_produto_novo_leva_a_arvore_da_categoria_antes(conta, monkeypatch):
     azul = next(d for d in corpo["dimensions"] if d["sku"] == "CAM-AZ")
     assert azul["price"] == Decimal("49.90") and azul["dimensions"] == {"Cor": "Azul"}
     assert azul["stocks"] == {"48346": {"stock": 5}}
+    assert azul["image"] == {"providerId": None, "url": "", "description": None}
+    assert azul["priceTables"] == {}
+    assert azul["measurements"] == {
+        "weightInGrams": Decimal("250"), "heightInCm": 0, "widthInCm": 0,
+        "lengthInCm": 0, "unitsPerPackage": 1}
     assert corpo["images"] == [], "o Suri exige a lista, mesmo sem foto publica"
 
 
-def test_produto_sem_categoria_explica_o_que_fazer(conta, monkeypatch):
-    marketplace, _ = _marketplace(conta, monkeypatch)
+def test_produto_sem_categoria_cria_e_vincula_a_categoria_padrao(conta, monkeypatch):
+    marketplace, loja = _marketplace(conta, monkeypatch)
     obj, _, _ = _produto_do_hub()
     obj.categorias.clear()
 
-    with pytest.raises(SuriErro, match="categoria"):
-        marketplace.enviar("produtos", "create", obj.pk)
+    marketplace.enviar("produtos", "create", obj.pk)
+
+    obj.refresh_from_db()
+    padrao = Categoria.objects.get(slug="sem-categoria")
+    assert obj.categoria == padrao and obj.categorias.get() == padrao
+    assert [(m, r) for m, r, _ in loja.chamadas if m != "GET"] == [
+        ("POST", "shop/categories"), ("POST", "shop/products")]
+    assert loja.chamadas[-1][2]["categoryId"] == f"sh-{padrao.pk}"
 
 
 def test_categoria_principal_e_usada_quando_lista_esta_vazia(conta, monkeypatch):
@@ -80,14 +91,16 @@ def test_categoria_principal_e_usada_quando_lista_esta_vazia(conta, monkeypatch)
     assert loja.chamadas[-1][2]["categoryId"] == f"sh-{roupas.pk}"
 
 
-def test_produto_sem_variante_explica_o_que_fazer(conta, monkeypatch):
-    """Mandar dimensions vazio devolvia apenas o 400 generico 'Product must have dimensions'."""
-    marketplace, _ = _marketplace(conta, monkeypatch)
+def test_produto_sem_variante_cria_a_padrao_antes_de_enviar(conta, monkeypatch):
+    marketplace, loja = _marketplace(conta, monkeypatch)
     obj, _, _ = _produto_do_hub()
     obj.variantes.all().delete()
 
-    with pytest.raises(SuriErro, match="sem variante"):
-        marketplace.enviar("produtos", "create", obj.pk)
+    marketplace.enviar("produtos", "create", obj.pk)
+
+    variante = obj.variantes.get()
+    assert variante.is_default
+    assert loja.chamadas[-1][2]["dimensions"][0]["sku"] == f"sh-{obj.pk}-{variante.pk}"
 
 
 def test_estoque_vai_so_do_sku_na_loja_do_estoque(conta, monkeypatch):
