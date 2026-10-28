@@ -16,6 +16,7 @@ from apps.loja.dinheiro import ZERO, texto
 from apps.loja.models import PagamentoPedido, Pedido
 from apps.loja.services.extras_pedido import mesclar_extras
 from apps.loja.services.pedidos import gravar_endereco_do_pedido, gravar_transacao
+from apps.loja.services.servicos_automaticos import completar as servicos_automaticos
 from apps.loja.totais import recalcular_totais
 from apps.suri import vinculos
 from apps.suri.contexto import avisar
@@ -130,6 +131,7 @@ def importar_pedido(dados):
                          "loja": (dados.get("logistic") or {}).get("storeName")}}
     mesclar_extras(pedido, extras if servicos is None else {**extras, "servicos": servicos})
     pedido.save(update_fields=["metadados", "updated_at"])
+    servicos_automaticos(pedido)
     recalcular_totais(pedido)
     _conferir_total(pedido, dados)
     pagamento = gravar_transacao(pedido, str((dados.get("payment") or {}).get("providerId")

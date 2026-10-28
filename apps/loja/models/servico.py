@@ -12,6 +12,29 @@ def sku_do_servico(nome):
     return f"SERV-{slugify(nome).upper()}"[:100]
 
 
+class CategoriaServico(ComDatas):
+    """Grupo de servicos que o cliente escolhe junto, um de cada grupo.
+
+    No Suri cada categoria vira um atributo da variacao, nesta ordem: "Instalação"
+    (Simples ou Completa) e abaixo "Impermeabilização" (Sem serviço ou Imper).
+    """
+
+    nome = models.CharField("nome", max_length=100,
+                            help_text="Vira o nome do atributo no Suri.")
+    ordem = models.PositiveIntegerField(
+        "ordem", default=10, help_text="Menor primeiro: a ordem dos atributos no Suri.")
+
+    class Meta:
+        verbose_name = "categoria de servico"
+        verbose_name_plural = "categorias de servico"
+        ordering = ["ordem", "nome"]
+        constraints = [models.UniqueConstraint(fields=["account", "nome"],
+                                               name="categoria_servico_nome_conta_unico")]
+
+    def __str__(self):
+        return self.nome
+
+
 class Servico(ComDatas):
     """Servico extra vendido junto com o item (montagem, impermeabilizacao, garantia).
 
@@ -32,8 +55,30 @@ class Servico(ComDatas):
         validators=NAO_NEGATIVO,
         help_text="Vale para os produtos das regras que nao tem preco proprio.",
     )
+    categoria = models.ForeignKey(
+        CategoriaServico, verbose_name="categoria", null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="servicos",
+        help_text="Com um servico so na categoria, o Suri oferece \"Sem serviço\"; com "
+                  "dois ou mais, o cliente escolhe um. Sem categoria: atributo Serviço.")
     # {"src", "alt"}, como a imagem da categoria: vai como foto da variacao no Suri.
     imagem = JSONDecimalField("imagem", null=True, blank=True)
+
+    class Inclusao(models.TextChoices):
+        ESCOLHA = "escolha", "So quando o cliente escolhe"
+        REGRA = "regra", "Sempre, nos produtos das regras"
+        TODOS = "todos", "Sempre, em todo item do pedido"
+
+    inclusao = models.CharField(
+        "incluir no pedido", max_length=10, choices=Inclusao, default=Inclusao.ESCOLHA,
+        help_text="Sempre: o pedido que chega das lojas ganha o servico em cada item, com o "
+                  "preco da regra (ou o padrao), sem mudar o total que o cliente pagou.")
+    # So as integracoes que oferecem o servico ao cliente: o WooCommerce nao recebe
+    # servico como produto, so dentro do pedido (pedido legado).
+    INTEGRACOES = [("shopify", "Shopify"), ("suri", "Suri Shop")]
+    fora_das_integracoes = models.JSONField(
+        "ignorar nas integracoes", default=list, blank=True,
+        help_text="Nas escolhidas o servico nao vira variacao (Suri) nem aparece no tema "
+                  "(Shopify). Use com Sempre para o servico que o cliente nao escolhe.")
 
     class Meta:
         verbose_name = "servico"
@@ -54,6 +99,9 @@ class Servico(ComDatas):
 
     def __str__(self):
         return self.nome
+
+    def ignorado_em(self, plataforma):
+        return plataforma in (self.fora_das_integracoes or [])
 
 
 class RegraServico(ComDatas):

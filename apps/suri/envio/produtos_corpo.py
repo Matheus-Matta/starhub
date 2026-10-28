@@ -6,8 +6,9 @@
                      "stocks": {"<loja>": {"stock": 3}}, "measurements": {...}}]}
 
 Preco e Decimal ate o JSON (apps/suri/cliente._json escreve o numero exato). Os
-servicos do produto vao no fim de "dimensions", um por SKU (apps/suri/servicos.py), e
-os attributes saem das dimensions, batendo com elas (produtos_atributos.py).
+servicos do produto vao no fim de "dimensions", um por SKU do servico
+(apps/suri/servicos_dimensoes.py), e os attributes saem das dimensions, batendo com
+elas (produtos_atributos.py).
 """
 
 from django.templatetags.static import static
@@ -16,7 +17,7 @@ from apps.integracoes.url_publica import url_publica
 from apps.loja.dinheiro import ZERO
 from apps.loja.models import Categoria, MidiaProduto, Produto
 from apps.loja.services.variantes import obter_variante_padrao
-from apps.suri import servicos as servicos_suri
+from apps.suri import servicos_dimensoes
 from apps.suri.envio import produtos_atributos, produtos_dimensoes
 from apps.suri.envio.base import id_no_suri
 
@@ -64,7 +65,8 @@ def categorias(enviador_categorias, produto):
     return externo, None
 
 
-def corpo(enviador_categorias, produto, loja, configuracao, servicos=()):
+def corpo(enviador_categorias, produto, loja, configuracao, servicos=(), enviados=None):
+    """`enviados` (dict) recebe as dimensions de servico, para o vinculo."""
     produto_id = id_no_suri("produtos", produto)
     variantes = list(produto.variantes.order_by("posicao", "id"))
     if not variantes:
@@ -91,9 +93,10 @@ def corpo(enviador_categorias, produto, loja, configuracao, servicos=()):
     }
     produtos_atributos.distinguir(corpo["dimensions"], variantes)
     if servicos:
-        skus = {d["sku"] for d in corpo["dimensions"]}
-        corpo["dimensions"] += servicos_suri.dimensoes(servicos, variantes, loja, skus,
-                                                       configuracao)
+        corpo["dimensions"], de_servico = servicos_dimensoes.dimensoes(
+            servicos, corpo["dimensions"], corpo["sku"], configuracao)
+        if enviados is not None:
+            enviados.update(de_servico)
     if imagens:
         produtos_dimensoes.sem_foto_usa(corpo["dimensions"], imagens[0])
     corpo["attributes"] = produtos_atributos.alinhar(corpo["dimensions"])

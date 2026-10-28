@@ -5,10 +5,12 @@ O item do Suri nao tem id proprio: a chave do vinculo "itens_pedido" e
 (GET shop/products/<providerId>) e importado inteiro, nunca um cadastro minimo.
 Quantidade fracionada (venda por quilo) nao cabe no hub (inteiro): vira aviso.
 
-Servico que foi como variante (apps/suri/servicos.py) chega como item com o SKU
-do servico. Com "receber servicos" ligado ele nao vira item: vira servico do item
-do mesmo produto, com o valor somado no item (como o EPOFW do Woo faz), e o total
-do pedido continua batendo com o do Suri.
+Servico que foi como variante (apps/suri/servicos.py) chega com o SKU do servico e
+o preco da variante padrao + servico: vira o item da variante padrao. Com "receber
+servicos" ligado, o valor do servico sai do item e vai para o servico, a parte;
+desligado, o item fica com o valor inteiro da linha, para o dinheiro nao sumir.
+Pedido antigo traz o servico numa linha propria, so com o preco dele: ela soma no
+item do mesmo produto.
 """
 
 from decimal import Decimal
@@ -107,6 +109,19 @@ def _somar_servico(item, linha, servico, pedido):
             "somado": True}
 
 
+def _separar_servico(item, servico, preco):
+    """Tira do item o que a linha cobrou do servico; o servico fica com o valor."""
+    # Desconto que comeu a linha nao deixa o item negativo.
+    total = min(dinheiro(preco * item.quantidade), item.total)
+    item.total -= total
+    item.subtotal -= min(total, item.subtotal)
+    item.preco_unitario = max(item.preco_unitario - preco, ZERO)
+    item.total_desconto = item.subtotal - item.total
+    item.save()
+    return {"item_id": item.pk, "sku": item.sku, "servico": servico.nome,
+            "servico_id": servico.pk, "opcao": "Sim", "preco": f"{total:.2f}"}
+
+
 def gravar_itens(pedido, dados):
     """Cria ou atualiza os itens; o item que sumiu do pedido no Suri sai do hub.
 
@@ -114,20 +129,25 @@ def gravar_itens(pedido, dados):
     servicos do pedido (os que o ERP gravou, por exemplo) ficam como estao.
     """
     configuracao = configuracao_atual()
+    receber = getattr(configuracao, "receber_servicos", False)
     atuais = {str(item.pk): item for item in pedido.itens.all()}
-    mantidos, do_produto, de_servico = set(), {}, []
+    mantidos, do_produto, de_servico, servicos = set(), {}, [], []
     for posicao, linha in enumerate(dados.get("items") or []):
-        servico = _servico(linha, configuracao)
+        dimensao = servicos_suri.da_dimensao(linha)
+        servico = None if dimensao else _servico(linha, configuracao)
         if servico is not None:
             de_servico.append((linha, servico))
             continue
         chave = f"{dados['id']}:{posicao}:{linha.get('sku') or ''}"
+        if dimensao:
+            linha = {**linha, "sku": dimensao[0]}
         pk = vinculos.objeto_id(ENTIDADE, chave)
         item = _gravar(atuais.get(str(pk)) or ItemPedido(pedido=pedido), linha, pedido)
         vinculos.referenciar(ENTIDADE, chave, item)
         mantidos.add(item.pk)
         do_produto.setdefault(str(linha.get("providerId") or ""), item)
-    servicos = []
+        if dimensao and receber:
+            servicos.append(_separar_servico(item, *dimensao[1:]))
     for linha, servico in de_servico:
         item = do_produto.get(str(linha.get("providerId") or ""))
         if item is None:
@@ -138,4 +158,4 @@ def gravar_itens(pedido, dados):
         servicos.append(_somar_servico(item, linha, servico, pedido))
     if "items" in dados:
         pedido.itens.exclude(pk__in=mantidos).delete()
-    return vincular(servicos) if getattr(configuracao, "receber_servicos", False) else None
+    return vincular(servicos) if receber else None

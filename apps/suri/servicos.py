@@ -1,64 +1,38 @@
-"""Servicos do hub no Suri Shop, que nao tem servico: cada um vira variante do produto.
+"""Servicos do hub no Suri Shop, que nao tem servico: cada um vira dimension do produto.
 
-    Sofa (Cor: Azul, Cor: Verde) + Montagem (regra em Loja > Servicos)
-    -> attributes: [..., {"name": "Serviço", "options": [{"name": "Montagem"}]}]
-    -> dimensions: [..., {"sku": "Montagem", "dimensions": {"Serviço": "Montagem"},
-                          "price": <preco da regra>, "stocks": {...},
-                          "image": {"url": <foto do servico>, "description": "Montagem"}}]
-
-A dimension tem "image" propria (doc do Suri, Postman "Criar Produto"); sem foto no
-servico, a chave nem vai.
+A dimension sai de servicos_dimensoes.py, com o SKU do servico. Cada uma ganha o
+vinculo "servicos" ("<produto>:<sku do servico>" -> Servico, pai = produto, metadata
+{"variante", "preco"}): o pedido volta a ser o item da variante padrao com o servico a
+parte (importar_itens.py), o estoque dela vai junto para a dimension do servico, e o
+reenvio acha o produto quando a regra muda (servicos_sinais.py).
 
 So com Integracoes > Suri > "enviar servicos como variantes" ligado. O PUT do Suri
-troca o produto inteiro: produto que saiu da regra vai sem a variante e ela some la.
-O vinculo "servicos" ("<produto>:<sku>" -> Servico, pai = produto) diz o que foi;
-e dele que sai o reenvio quando a regra muda (servicos_sinais.py) e o servico do
-pedido que chega (importar_itens.py, com "receber servicos" ligado).
+troca o produto inteiro: produto que saiu da regra vai sem o servico e ele some la.
 """
 
-from apps.core.models import ExternalReference
-from apps.integracoes.url_publica import url_publica
-from apps.loja.models import Servico
-from apps.suri import vinculos
-from apps.suri.envio import produtos_dimensoes
+from decimal import Decimal, InvalidOperation
 
-ATRIBUTO = "Serviço"
-# Nomes usados antes deste contrato continuam reconhecidos ao importar o catalogo.
+from apps.core.models import ExternalReference
+from apps.loja.models import CategoriaServico, Servico
+from apps.suri import vinculos
+from apps.suri.servicos_dimensoes import ATRIBUTO
+
+# Nomes usados antes das categorias continuam reconhecidos ao importar o catalogo.
 ATRIBUTOS = {ATRIBUTO, "Serviços", "Servico"}
 ENTIDADE = "servicos"
-ESTOQUE_INFINITO = 2_147_483_647
 
 
-def sku(servico):
-    return servico.nome.strip()
+def atributos():
+    """Nomes de atributo do Suri que sao servico, nunca opcao da variante."""
+    return ATRIBUTOS | set(CategoriaServico.objects.values_list("nome", flat=True))
 
 
 def do_produto(configuracao, produto):
     """[(servico, preco)] que vao como variante; vazio com o envio desligado."""
     if not getattr(configuracao, "enviar_servicos", False):
         return []
-    return produto.servicos
-
-
-def _foto(configuracao, servico):
-    imagem = servico.imagem if isinstance(servico.imagem, dict) else {}
-    url = url_publica(configuracao, imagem.get("src"))
-    return url, imagem.get("alt") or servico.nome
-
-
-def dimensoes(servicos, variantes, loja, skus_do_produto, configuracao=None):
-    """Uma dimensao por servico, sem limitar sua venda pelo estoque do produto."""
-    saida = []
-    for servico, preco in servicos:
-        sku_servico = sku(servico)
-        if sku_servico in skus_do_produto:
-            continue
-        url, descricao = _foto(configuracao, servico) if configuracao else ("", servico.nome)
-        saida.append(produtos_dimensoes.completar({
-            "sku": sku_servico, "dimensions": {ATRIBUTO: servico.nome},
-            "price": preco, "stocks": {loja: {"stock": ESTOQUE_INFINITO}},
-        }, url=url, descricao=descricao))
-    return saida
+    return [(servico, preco) for servico, preco in produto.servicos
+            if not servico.ignorado_em("suri")]
 
 
 def _do_produto_no_suri(produto_id):
@@ -66,17 +40,43 @@ def _do_produto_no_suri(produto_id):
         platform=vinculos.PLATAFORMA, entity_type=ENTIDADE, external_parent_id=str(produto_id))
 
 
-def vincular(produto_id, servicos, dados):
-    """Grava o que foi como variante e apaga o vinculo do que saiu do produto."""
-    enviados = {d["sku"] for d in dados["dimensions"]}
+def vincular(produto_id, enviados):
+    """Grava cada servico que foi e apaga o vinculo do que saiu do produto."""
     chaves = []
-    for servico, _preco in servicos:
-        sku_servico = sku(servico)
-        if sku_servico in enviados:
-            chave = vinculos.id_variacao(produto_id, sku_servico)
-            vinculos.referenciar(ENTIDADE, chave, servico, pai=produto_id)
-            chaves.append(chave)
+    for sku, enviado in enviados.items():
+        chave = vinculos.id_variacao(produto_id, sku)
+        vinculos.referenciar(ENTIDADE, chave, enviado["servico"], pai=produto_id, metadata={
+            "variante": enviado["variante"], "preco": f"{enviado['preco']:.2f}"})
+        chaves.append(chave)
     _do_produto_no_suri(produto_id).exclude(external_id__in=chaves).delete()
+
+
+def da_dimensao(linha):
+    """(SKU da variante, servico, preco) da linha que e a dimension de um servico."""
+    chave = vinculos.id_variacao(str(linha.get("providerId") or ""),
+                                 str(linha.get("sku") or "").strip())
+    referencia = ExternalReference.objects.filter(
+        platform=vinculos.PLATAFORMA, entity_type=ENTIDADE, external_id=chave).values(
+        "object_id", "metadata").first()
+    if referencia is None:
+        return None
+    metadata = referencia["metadata"] or {}
+    servico = Servico.objects.filter(pk=referencia["object_id"]).first()
+    try:
+        preco = Decimal(str(metadata["preco"]))
+    except (KeyError, InvalidOperation):
+        return None  # vinculo de antes, sem preco: a linha segue como servico avulso
+    if servico is None or not metadata.get("variante"):
+        return None
+    return metadata["variante"], servico, preco
+
+
+def skus_do_estoque(produto_id, sku_variante):
+    """SKUs no Suri que vendem a peca da variante: ela e os servicos que a levam."""
+    servicos = _do_produto_no_suri(produto_id).filter(
+        metadata__variante=sku_variante).order_by("external_id").values_list(
+        "external_id", flat=True)
+    return [sku_variante, *(chave.partition(":")[2] for chave in servicos)]
 
 
 def desvincular(produto_id):

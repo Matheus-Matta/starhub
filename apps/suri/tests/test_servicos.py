@@ -20,6 +20,7 @@ LINHA_SERVICO = {"providerId": "48349", "sku": "SERV-MONT", "name": "Camiseta (M
                  "quantity": Decimal("1.0"), "unitPrice": Decimal("30.0"),
                  "totalAmout": Decimal("30.0"), "discountAmout": Decimal("0.0"),
                  "subTotalAmount": Decimal("30.0")}
+OPCOES = [{"name": "Sem serviço"}, {"name": "Montagem (R$ 30,00)"}]
 
 
 def _config(conta, enviar=True, receber=True):
@@ -70,14 +71,14 @@ def test_exportar_produto_cria_servico_como_variante_com_sku_e_preco_da_regra(
     assert chamada[:2] == (metodo, "shop/products")
     corpo = chamada[2]
 
-    servico = next(d for d in corpo["dimensions"] if d["sku"] == "Montagem")
-    assert servico["dimensions"] == {"Cor": "Qualquer", "Serviço": "Montagem"}
-    assert servico["price"] == Decimal("30.00")
-    assert servico["stocks"] == {"48346": {"stock": 2_147_483_647}}
-    assert {"name": "Serviço", "options": [{"name": "Sem serviço"}, {"name": "Montagem"}]} in (
-        corpo["attributes"])
-    assert ExternalReference.objects.get(entity_type="servicos").external_id == (
-        f"{corpo['id']}:Montagem")
+    servico = next(d for d in corpo["dimensions"] if d["sku"] == "SERV-MONT")
+    assert servico["dimensions"] == {"Cor": "Azul", "Serviço": "Montagem (R$ 30,00)"}
+    assert servico["price"] == Decimal("49.90") + Decimal("30.00"), "o produto + a regra"
+    assert servico["stocks"] == {"48346": {"stock": 5}}
+    assert {"name": "Serviço", "options": OPCOES} in corpo["attributes"]
+    vinculos = ExternalReference.objects.filter(entity_type="servicos").order_by("external_id")
+    assert [(v.external_id, v.metadata) for v in vinculos] == [
+        (f"{corpo['id']}:SERV-MONT", {"variante": "CAM-AZ", "preco": "30.00"})]
 
 
 def test_envio_de_servicos_desligado_manda_so_as_variantes_do_produto(
@@ -100,7 +101,7 @@ def test_tirar_o_produto_da_regra_reenvia_e_a_variante_some(
 
     assert [(r, o, pk) for _c, r, o, pk in enfileirados] == [("produtos", "update", camiseta.pk)]
     corpo = _enviar(conta, monkeypatch, camiseta)
-    assert "Montagem" not in [d["sku"] for d in corpo["dimensions"]]
+    assert [d["sku"] for d in corpo["dimensions"]] == ["CAM-AZ", "CAM-VD"]
     assert not ExternalReference.objects.filter(entity_type="servicos").exists()
 
 
@@ -184,13 +185,12 @@ def test_variacao_servicos_leva_nome_valor_sku_e_a_foto_do_servico(
 
     corpo = _enviar(conta, monkeypatch, camiseta)
 
-    servico = next(d for d in corpo["dimensions"] if d["sku"] == "Montagem")
-    assert servico["dimensions"] == {"Cor": "Qualquer", "Serviço": "Montagem"}
+    servico = next(d for d in corpo["dimensions"] if d["sku"] == "SERV-MONT")
+    assert servico["dimensions"] == {"Cor": "Azul", "Serviço": "Montagem (R$ 30,00)"}
     assert servico["image"] == {
         "providerId": None, "url": "https://hub.test/media/servicos/montagem.png",
         "description": "Montagem"}
-    assert {"name": "Serviço", "options": [{"name": "Sem serviço"}, {"name": "Montagem"}]} in (
-        corpo["attributes"])
+    assert {"name": "Serviço", "options": OPCOES} in corpo["attributes"]
 
 
 def test_produto_diz_os_servicos_que_tem(camiseta, montagem):

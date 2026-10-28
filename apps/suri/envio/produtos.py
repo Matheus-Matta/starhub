@@ -22,12 +22,13 @@ class ProdutoSuri(RecursoSuri):
     modelo = Produto
 
     def _corpo(self, produto):
-        self._servicos = servicos_suri.do_produto(self.configuracao, produto)
+        self._servicos = {}
         return corpo(self.marketplace.enviador("categorias"), produto, self.loja_do_estoque(),
-                     self.configuracao, self._servicos)
+                     self.configuracao, servicos_suri.do_produto(self.configuracao, produto),
+                     self._servicos)
 
     def _vincular_variantes(self, produto, dados):
-        servicos_suri.vincular(dados["id"], self._servicos, dados)
+        servicos_suri.vincular(dados["id"], self._servicos)
         skus = {d["sku"] for d in dados["dimensions"]}
         for variante in produto.variantes.all():
             sku = variante.sku or f"{dados['id']}-{variante.pk}"
@@ -64,9 +65,12 @@ class EstoqueSuri(RecursoSuri):
 
     def atualizar(self, obj, external_id):
         produto_id, _, sku = external_id.partition(":")
+        estoque = {self.loja_do_estoque(): {"stock": max(obj.inventory_quantity, 0)}}
+        # A dimension do servico vende a mesma peca: leva o estoque da variante.
+        skus = servicos_suri.skus_do_estoque(produto_id, sku)
         self.cliente.put(f"shop/products/{produto_id}/stocks", {"skus": [
-            {"sku": sku, "stocks": {self.loja_do_estoque():
-                                    {"stock": max(obj.inventory_quantity, 0)}}}]})
+            {"sku": s, "stocks": {loja: dict(v) for loja, v in estoque.items()}}
+            for s in skus]})
 
 
 ENTREGUE = 4

@@ -1,4 +1,4 @@
-"""Servico ou regra mudou: reenvia ao Suri os produtos que ganham ou perdem a variante.
+"""Servico, regra ou categoria mudou: reenvia ao Suri os produtos que mudam de variante.
 
 O envio do produto (envio/produtos.py) ja monta os servicos na hora; aqui so se
 descobre QUAIS produtos reenviar quando a mudanca nao passou pelo produto:
@@ -75,6 +75,14 @@ def _da_regra(sender, instance, raw=False, **kwargs):
         servico_mudou(instance.account_id, instance.servico_id)
 
 
+def _da_categoria(sender, instance, raw=False, **kwargs):
+    # O nome e a ordem da categoria sao o atributo no Suri: os produtos dos servicos
+    # dela vao de novo.
+    if not raw:
+        for servico_id in instance.servicos.values_list("pk", flat=True):
+            servico_mudou(instance.account_id, servico_id)
+
+
 def _da_linha(sender, instance, raw=False, **kwargs):
     # Linha do inline (tabela M2M automatica): a regra diz a conta e o servico.
     from apps.loja.models import RegraServico
@@ -92,12 +100,14 @@ def _m2m(sender, instance, action, reverse, **kwargs):
 
 
 def conectar():
-    from apps.loja.models import RegraServico, Servico
+    from apps.loja.models import CategoriaServico, RegraServico, Servico
 
     for modelo, receptor in ((Servico, _do_servico), (RegraServico, _da_regra)):
         rotulo = modelo._meta.label
         post_save.connect(receptor, sender=modelo, dispatch_uid=f"suri-servico-{rotulo}")
         post_delete.connect(receptor, sender=modelo, dispatch_uid=f"suri-servico-del-{rotulo}")
+    post_save.connect(_da_categoria, sender=CategoriaServico,
+                      dispatch_uid="suri-servico-categoria")
     for campo in ("produtos", "categorias"):
         through = getattr(RegraServico, campo).through
         post_save.connect(_da_linha, sender=through, dispatch_uid=f"suri-regra-{campo}")

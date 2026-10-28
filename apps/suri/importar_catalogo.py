@@ -26,6 +26,7 @@ from apps.suri import servicos as servicos_suri
 from apps.suri import vinculos
 from apps.suri.contexto import avisar, configuracao_atual
 from apps.suri.opcoes import gravar_opcoes
+from apps.suri.servicos_dimensoes import SEM_SERVICO
 
 ORIGEM = Origin.SURI
 
@@ -92,7 +93,7 @@ def _opcoes(dimensao):
     """Opcoes da variante sem o atributo dos servicos: o envio poe "Serviço": "Sem
     serviço" na variacao do produto (envio/produtos_atributos.py); nao e opcao dela."""
     return {nome: valor for nome, valor in (dimensao.get("dimensions") or {}).items()
-            if nome not in servicos_suri.ATRIBUTOS}
+            if nome not in servicos_suri.atributos()}
 
 
 def _sem_servicos(dados):
@@ -104,9 +105,17 @@ def _sem_servicos(dados):
     if not (getattr(configuracao, "enviar_servicos", False)
             or getattr(configuracao, "receber_servicos", False)):
         return atributos, dimensoes
-    produto = {"providerId": dados["id"]}
-    return ([a for a in atributos if a.get("name") not in servicos_suri.ATRIBUTOS],
-            [d for d in dimensoes if servicos_suri.da_linha({**produto, **d}) is None])
+    produto, de_servico = {"providerId": dados["id"]}, servicos_suri.atributos()
+    return ([a for a in atributos if a.get("name") not in de_servico],
+            [d for d in dimensoes if servicos_suri.da_linha({**produto, **d}) is None
+             and not _com_servico(d, de_servico)])
+
+
+def _com_servico(dimensao, de_servico):
+    # Combinacao cor x servico sem vinculo no hub (banco novo): o valor de um atributo
+    # de servico diferente de "Sem serviço" ja diz que nao e variante do produto.
+    valores = dimensao.get("dimensions") or {}
+    return any(valores.get(nome) not in (None, "", SEM_SERVICO) for nome in de_servico)
 
 
 def _variantes(produto, dados, completa):

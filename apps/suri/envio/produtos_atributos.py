@@ -8,22 +8,20 @@ quando duas repetem a mesma combinacao. Casos que o hub tinha e o Suri recusava:
     simples cuja variante tem Cor: attributes []          dimension {"Cor": "Azul"}
     variavel sem opcoes:           dimensions {} e {} (iguais)
 
-Aqui: os atributos saem de todas as dimensions; a que nao tem um deles recebe um valor
-de preenchimento ("Sem serviço" no atributo do servico, "Qualquer" nos outros); variavel
-sem opcoes diferencia as variantes pelo titulo, no atributo "Variação".
+Aqui: os atributos saem de todas as dimensions. Variantes que o Suri veria iguais, ou
+que nao tem as mesmas opcoes (uma com Cor, outra sem), vao pelo titulo, no atributo
+"Variação": preencher a que falta com "Qualquer" punha uma opcao falsa a venda. Os
+servicos (servicos_dimensoes.py) ja chegam com todos os atributos deles.
 """
 
-from apps.suri.servicos import ATRIBUTO as SERVICOS
-
 VARIACAO = "Variação"
-SEM_SERVICO = "Sem serviço"
-QUALQUER = "Qualquer"
 
 
 def distinguir(dimensoes, variantes):
-    """Variantes que o Suri veria iguais ganham o titulo como opcao "Variação"."""
+    """Variantes iguais ou com opcoes diferentes ganham o titulo como "Variação"."""
     combinacoes = [tuple(sorted(d["dimensions"].items())) for d in dimensoes]
-    if len(dimensoes) < 2 or len(set(combinacoes)) == len(combinacoes):
+    mesmas_opcoes = len({frozenset(d["dimensions"]) for d in dimensoes}) == 1
+    if len(dimensoes) < 2 or (mesmas_opcoes and len(set(combinacoes)) == len(combinacoes)):
         return
     vistos = set()
     for dimensao, variante in zip(dimensoes, variantes, strict=True):
@@ -35,7 +33,7 @@ def distinguir(dimensoes, variantes):
 
 
 def alinhar(dimensoes):
-    """Completa as dimensions e devolve os attributes que batem com elas."""
+    """Attributes que batem com as dimensions, na ordem em que as opcoes aparecem."""
     nomes = []
     for dimensao in dimensoes:
         nomes += [nome for nome in dimensao["dimensions"] if nome not in nomes]
@@ -43,8 +41,6 @@ def alinhar(dimensoes):
     for dimensao in dimensoes:
         valores = dimensao["dimensions"]
         for nome in nomes:
-            if nome not in valores:
-                valores[nome] = SEM_SERVICO if nome == SERVICOS else QUALQUER
             if {"name": valores[nome]} not in opcoes[nome]:
                 opcoes[nome].append({"name": valores[nome]})
         dimensao["dimensions"] = {nome: valores[nome] for nome in nomes}

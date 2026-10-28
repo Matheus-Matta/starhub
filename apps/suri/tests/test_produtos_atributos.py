@@ -24,15 +24,14 @@ def test_exportar_produtos_cria_a_variacao_servico(
     corpo = next(c for metodo, rota, c in loja.chamadas
                  if metodo == "PUT" and rota == "shop/products")
     assert resumo.enviados == 1
-    servico = next(d for d in corpo["dimensions"] if d["sku"] == "Montagem")
-    assert servico["dimensions"] == {"Cor": "Qualquer", "Serviço": "Montagem"}
+    por_sku = {d["sku"]: d for d in corpo["dimensions"]}
+    servico, azul = por_sku["SERV-MONT"], por_sku["CAM-AZ"]
+    assert servico["dimensions"] == {"Cor": "Azul", "Serviço": "Montagem (R$ 30,00)"}
     assert servico["image"] == {"providerId": None, "description": "Camiseta",
                                 "url": "https://hub.test/static/starhub/img/logo-600.png"}
-    assert servico["measurements"] == {
-        "weightInGrams": 0, "heightInCm": 0, "widthInCm": 0,
-        "lengthInCm": 0, "unitsPerPackage": 1}
+    assert servico["measurements"] == azul["measurements"]
     assert servico["priceTables"] == {}
-    assert servico["stocks"] == {"48346": {"stock": 2_147_483_647}}
+    assert servico["stocks"] == azul["stocks"]
 
 
 def test_produto_simples_com_servico_bate_atributos_e_dimensoes(conta, monkeypatch, montagem):  # noqa: F811
@@ -49,22 +48,24 @@ def test_produto_simples_com_servico_bate_atributos_e_dimensoes(conta, monkeypat
     corpo = _enviar(conta, monkeypatch, simples)
 
     assert [d["dimensions"] for d in corpo["dimensions"]] == [
-        {"Serviço": "Sem serviço"}, {"Serviço": "Montagem"}]
+        {"Serviço": "Sem serviço"}, {"Serviço": "Montagem (R$ 30,00)"}]
 
 
-def test_produto_variavel_com_servico_completa_os_outros_atributos(
+def test_produto_variavel_com_servico_leva_a_cor_da_variante_padrao_no_servico(
         conta, monkeypatch, camiseta, montagem):  # noqa: F811
+    """O Suri exige valor em todo atributo; "Cor: Qualquer" era uma opcao falsa a venda."""
     corpo = _enviar(conta, monkeypatch, camiseta)
 
-    servico = next(d for d in corpo["dimensions"] if d["sku"] == "Montagem")
-    assert servico["dimensions"] == {"Cor": "Qualquer", "Serviço": "Montagem"}
+    servico = next(d for d in corpo["dimensions"] if d["sku"] == "SERV-MONT")
+    assert servico["dimensions"] == {"Cor": "Azul", "Serviço": "Montagem (R$ 30,00)"}
+    assert not any("Qualquer" in d["dimensions"].values() for d in corpo["dimensions"])
     assert next(d for d in corpo["dimensions"] if d["sku"] == "CAM-AZ")["dimensions"] == {
         "Cor": "Azul", "Serviço": "Sem serviço"}
 
 
 def test_tipo_servico_recebe_cada_titulo_como_opcao_e_variante(
         conta, monkeypatch, camiseta, montagem):  # noqa: F811
-    garantia = Servico.objects.create(nome="Garantia", preco="20.00")
+    garantia = Servico.objects.create(nome="Garantia", sku="GAR", preco="20.00")
     regra = RegraServico.objects.create(servico=garantia, tipo=RegraServico.Tipo.PRODUTO)
     regra.produtos.set([camiseta])
 
@@ -72,12 +73,12 @@ def test_tipo_servico_recebe_cada_titulo_como_opcao_e_variante(
 
     atributo = next(a for a in corpo["attributes"] if a["name"] == "Serviço")
     assert atributo["options"] == [
-        {"name": "Sem serviço"}, {"name": "Garantia"}, {"name": "Montagem"}]
-    servicos = [d for d in corpo["dimensions"] if d["sku"] in {"Garantia", "Montagem"}]
+        {"name": "Sem serviço"}, {"name": "Garantia (R$ 20,00)"},
+        {"name": "Montagem (R$ 30,00)"}]
+    servicos = [d for d in corpo["dimensions"] if d["dimensions"]["Serviço"] != "Sem serviço"]
     assert [(d["sku"], d["dimensions"]["Serviço"], d["stocks"]["48346"]["stock"])
             for d in servicos] == [
-                ("Garantia", "Garantia", 2_147_483_647),
-                ("Montagem", "Montagem", 2_147_483_647)]
+                ("GAR", "Garantia (R$ 20,00)", 5), ("SERV-MONT", "Montagem (R$ 30,00)", 5)]
 
 
 def test_variantes_sem_opcao_e_produto_simples_com_opcao_batem_com_o_suri(
@@ -115,3 +116,14 @@ def test_variacao_do_produto_volta_do_suri_sem_virar_opcao_servicos(conta, monta
     azul = obj.variantes.get(sku="CAM-AZ")
     assert azul.titulo == "Azul"
     assert [o.valor.tipo.nome for o in azul.opcoes.all()] == ["Cor"]
+
+
+def test_variante_sem_a_opcao_das_outras_vai_pelo_titulo_e_nunca_como_qualquer(
+        conta, monkeypatch, camiseta):  # noqa: F811
+    """"Cor: Qualquer" aparecia como opcao a venda na pagina do produto no Suri."""
+    camiseta.variantes.get(sku="CAM-VD").opcoes.all().delete()
+
+    corpo = _enviar(conta, monkeypatch, camiseta, enviar=False)
+
+    titulos = list(camiseta.variantes.order_by("posicao", "id").values_list("titulo", flat=True))
+    assert [d["dimensions"] for d in corpo["dimensions"]] == [{"Variação": t} for t in titulos]

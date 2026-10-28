@@ -42,7 +42,8 @@ def _variantes(servicos):
 
 def servicos_da_pagina(produto_id):
     produto = _produto(produto_id)
-    servicos = produto.servicos if produto else []
+    servicos = [(servico, preco) for servico, preco in (produto.servicos if produto else [])
+                if not servico.ignorado_em("shopify")]
     variantes = _variantes(servicos)
     saida = []
     for servico, preco in servicos:

@@ -6,5 +6,6 @@ from . import (  # noqa: F401  (registra os ModelAdmin)
     produtos,
     servico_regra,
     servicos,
+    servicos_categorias,
     variantes,
 )

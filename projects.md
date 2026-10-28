@@ -512,6 +512,22 @@ de `regular_price`, `sale_price` e `stock_quantity`. Filtros/corpos aparecem no 
   (`apps/loja/services/servicos_regras.servicos_do_produto`). A pagina do produto
   mostra, so para consulta, os servicos que valem para ele (secao "Servicos"). A API
   Woo continua mandando o preco **pago** no pedido, nao o da regra.
+- **Servico automatico e ignorado nas integracoes** (`Servico.inclusao`,
+  `Servico.fora_das_integracoes`, `apps/loja/services/servicos_automaticos.py`).
+  *Incluir no pedido*: "So quando o cliente escolhe" (padrao), "Sempre, nos produtos
+  das regras" ou "Sempre, em todo item do pedido". Com "Sempre", o pedido que chega da
+  Shopify, do Suri ou da loja WooCommerce ganha o servico em cada item que ainda nao o
+  tem, com `"automatico": true` e o preco da regra que pega o produto (ou o padrao)
+  vezes a quantidade. O valor **nao soma no item**: o cliente nao pagou o servico na
+  loja e o total do pedido continua o dela (por isso sem `"somado"`, e o pedido legado
+  nao desconta nada). A parte automatica e refeita a cada importacao (reimportar nao
+  duplica; item que saiu perde o servico). *Ignorar nas integracoes* (multi-select,
+  lista de plataformas no JSON): no Suri o servico nao vira variacao (o reenvio a
+  remove); na Shopify some do bloco do tema e o produto escondido dele vai como
+  rascunho. O WooCommerce nao esta na lista: a loja Woo nao recebe servico como
+  produto. Exemplo: montagem gratis "em todo item" e ignorada no Suri e na Shopify
+  chega em todo pedido sem o cliente precisar marcar. O ERP recebe o automatico como
+  qualquer servico do item (id, nome, SKU, preco).
 - **Planilha de servicos** (Loja > Servicos, `apps/loja/services/servicos_planilha.py`):
   **Exportar planilha** baixa um .xlsx com uma linha por regra (o servico se repete;
   servico sem regra sai com as colunas da regra vazias). **Importar planilha** le o
@@ -903,34 +919,54 @@ Mesma tela, matriz, Sincronizar, Tarefas e Retomar das outras lojas.
   pedidos (pago, cancelado e logistica "entregue"; o estado do Suri fica no metadata
   do vinculo para nao repetir a chamada). Clientes nao vao: a API do Suri exige o
   canal de WhatsApp do contato.
-- **Servicos** (card "Servicos" da tela, `apps/suri/servicos.py`): o Suri nao tem
-  servico. Com "enviar servicos como variantes", cada servico que vale para o
-  produto (`Produto.servicos`, regras acima) vai no PUT do produto como mais uma
-  dimensao do atributo `Serviço` (a do proprio produto vai como "Sem serviço" e a do
-  servico completa os outros atributos com "Qualquer": o Suri recusa com
-  `ProductAttributtesAndDimensionsMustMatch` dimension sem todos os atributos;
-  `envio/produtos_atributos.py`): o nome do servico vai no SKU e no valor da opcao,
-  com o preco da regra, foto do servico em `image` e estoque infinito (`2147483647`).
-  Toda dimension, de produto ou servico, leva `image` (objeto vazio sem foto),
-  `measurements`, `priceTables`, `price` e `stocks`, como no contrato do PUT; omitir
-  esses blocos causava HTTP 400 `Value cannot be null (source)`. O
-  vinculo `servicos` ("<produto>:<sku>" -> Servico) guarda o que foi. Mudou servico,
-  regra ou as linhas dela (`servicos_sinais.py`): reenvia os produtos que a regra
-  pega e os que levam o servico hoje; o PUT sem a variante a apaga no Suri. Ligar
-  o envio nao reenvia sozinho: exporte os produtos. Servico nunca e enviado sozinho:
-  a exportacao exige **Enviar servicos** e **Enviar > Produtos** ligados; alteracoes de
-  servico so reenviam produtos quando **Produtos > Atualizar** esta ligado. Com
-  "receber servicos dos
-  pedidos", o item com SKU de servico vira servico do item do mesmo produto
-  (`starhub.servicos`), com o valor somado no item, e o total bate com o do Suri;
-  desligado, os servicos do pedido ficam como estao. O catalogo vindo do Suri nunca
-  cria variante de servico.
+- **Servicos** (card "Servicos" da tela, `apps/suri/servicos.py` e
+  `apps/suri/servicos_dimensoes.py`): o Suri nao tem servico. Com "enviar servicos
+  como variantes", cada servico que vale para o produto (`Produto.servicos`, regras
+  acima, menos os ignorados no Suri) vai no PUT do produto como **uma dimension
+  propria, com o SKU do servico exatamente como esta no cadastro**, sem combinar com
+  as cores. Cada **categoria de servico** (Loja > Categorias de servico,
+  `CategoriaServico`, pela `ordem`) e um atributo; servico sem categoria vai no
+  atributo `Serviço`. Exemplo: Cor | Instalação: Sem serviço, Completa (R$ 40,00),
+  Simples (R$ 20,00) | Impermeabilização: Sem serviço, Imper (R$ 30,00). Regras:
+  - o nome da opcao leva o preco ("Imper (R$ 30,00)"): o Suri nao mostra quanto a
+    opcao soma;
+  - "Sem serviço" e a primeira opcao (o Suri abre marcado nela) e existe em **toda**
+    categoria: o Suri exige valor em todo atributo, e a dimension das cores e a dos
+    servicos das outras categorias usam esse valor;
+  - nunca "Qualquer": a dimension do servico leva as opcoes da variante padrao
+    (Cor: Azul), e variantes com opcoes diferentes vao pelo titulo, no atributo
+    `Variação` (`envio/produtos_atributos.py`). Consequencia: no Suri o servico so
+    aparece junto da cor da variante padrao.
+
+  A dimension do servico vende a variante padrao com o servico: preco = variante
+  padrao + servico, com o estoque, as medidas e a foto dela (a do servico, se tiver).
+  SKU do servico igual ao de uma variante do produto nao vai (derrubaria o PUT). Os
+  attributes saem das dimensions: o Suri recusa com
+  `ProductAttributtesAndDimensionsMustMatch` dimension sem todos os atributos. Toda
+  dimension leva `image`, `measurements`, `priceTables`, `price` e `stocks`; omitir
+  esses blocos causava HTTP 400 `Value cannot be null (source)`. O vinculo `servicos`
+  ("<produto>:<sku do servico>" -> Servico, metadata `{"variante", "preco"}`) guarda
+  o que foi; o estoque da variante padrao (`EstoqueSuri`) vai no mesmo PUT de stocks
+  para os servicos. Mudou servico, regra, as linhas dela ou a categoria
+  (`servicos_sinais.py`): reenvia os produtos que a regra pega e os que levam o
+  servico hoje; o PUT sem o servico o apaga no Suri. Ligar o envio nao reenvia
+  sozinho: exporte os produtos. Servico nunca e enviado sozinho: a exportacao exige
+  **Enviar servicos** e **Enviar > Produtos** ligados; alteracoes de servico so
+  reenviam produtos quando **Produtos > Atualizar** esta ligado.
+
+  No pedido, a linha com o SKU do servico vira o item da variante padrao. Com
+  "receber servicos dos pedidos", o valor do servico **sai do item** (preco unitario,
+  subtotal e total) e vai para `starhub.servicos`, sem `somado`: o item fica com o
+  preco do produto. Desligado, o item fica com o valor inteiro da linha. Linha de
+  servico sem esse vinculo (envio antigo, so com o preco do servico) continua
+  somando no item do mesmo produto (`"somado": true`). O catalogo vindo do Suri nunca
+  cria variante de servico (pelo vinculo ou, em banco novo, pelo valor de um
+  atributo de servico diferente de "Sem serviço").
 - **Frete:** resposta de orcamento do pedido em montagem (secao 7.7).
 - **Nao verificado contra o Suri real** (sem credencial no desenvolvimento): o corpo
   do webhook de pedidos, a lista de metodos de pagamento alem de cartao (0) e Pix (3)
-  e como o Suri trata a dimensao de servico sem as opcoes do produto (ex.:
-  `{"Serviço": "Montagem"}` num produto com `Cor`). O envio sempre inclui `images`;
-  quando o hub nao tem foto publica, envia a lista vazia exigida pelo contrato.
+  e se o Suri aceita o SKU do servico repetido em varios produtos. O envio sempre
+  inclui `images`; sem foto publica vai a foto padrao do hub.
 
 ### 7.6 Novo marketplace
 

@@ -86,7 +86,9 @@ class ServicoShopify(RecursoShopify):
             variantes.append(variante)
         return {
             "title": servico.nome, "productType": "Servico", "tags": [TAG],
-            "status": "ACTIVE" if servico.active else "DRAFT",
+            # Ignorado na Shopify: rascunho, para o carrinho nao aceitar a variante antiga.
+            "status": ("ACTIVE" if servico.active and not servico.ignorado_em("shopify")
+                       else "DRAFT"),
             "productOptions": [{"name": OPCAO,
                                 "values": [{"name": moeda(p)} for p in lista]}],
             "variants": variantes,

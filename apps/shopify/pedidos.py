@@ -13,6 +13,7 @@ from apps.core.models import ExternalReference, Origin
 from apps.integracoes.models import ConfiguracaoIntegracao
 from apps.loja.models import Pedido
 from apps.loja.services.extras_pedido import mesclar_extras
+from apps.loja.services.servicos_automaticos import completar as servicos_automaticos
 from apps.loja.totais import recalcular_totais
 from apps.shopify.pedidos_base import data, ids_do_pedido
 from apps.shopify.pedidos_cliente import cliente_do_pedido
@@ -114,6 +115,7 @@ def importar_pedido(dados, loja=None):
     servicos = gravar_itens(pedido, dados)
     mesclar_extras(pedido, _extras(dados, numero_externo, loja, cupons, servicos))
     pedido.save(update_fields=["metadados", "updated_at"])
+    servicos_automaticos(pedido)
     recalcular_totais(pedido)
     gravar_pagamento(pedido, dados, numero_externo)
     return pedido, criado

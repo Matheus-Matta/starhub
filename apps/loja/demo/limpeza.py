@@ -25,6 +25,7 @@ from apps.loja.demo import PREFIXO_CONTA, eh_demo, prefixo_usuario
 from apps.loja.models import (
     Avaliacao,
     Categoria,
+    CategoriaServico,
     Cliente,
     Cupom,
     ItemBundle,
@@ -43,7 +44,7 @@ def _modelos():
     # Avaliacao primeiro: PROTECT em produto e cliente (as fotos vao junto, CASCADE).
     return [Avaliacao, Pedido, ItemBundle, Cupom, PublicationState, ExternalReference,
             PublicationPolicy, SalesChannel, Produto, ValorVariante, TipoVariante, Categoria, Tag,
-            Servico, Cliente, Address, ChaveApi]
+            Servico, CategoriaServico, Cliente, Address, ChaveApi]
 
 
 def _demo(modelo, conta):

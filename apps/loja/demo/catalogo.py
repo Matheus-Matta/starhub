@@ -6,6 +6,7 @@ from decimal import Decimal
 from apps.loja.demo import imagem, marca, nome_n
 from apps.loja.models import (
     Categoria,
+    CategoriaServico,
     RegraServico,
     Servico,
     Tag,
@@ -21,6 +22,8 @@ TAGS = ["Promocao", "Lancamento", "Mais vendido", "Frete gratis", "Sustentavel",
 SERVICOS = ["Montagem", "Impermeabilização da poltrona", "Garantia estendida", "Instalação",
             "Frete expresso", "Embalagem para presente", "Higienização", "Desmontagem",
             "Retirada do móvel antigo", "Personalização"]
+CATEGORIAS_SERVICO = ["Montagem", "Proteção", "Garantia", "Instalação", "Entrega",
+                      "Presente", "Limpeza", "Retirada", "Personalização", "Acabamento"]
 # (nome, pai): as filhas apontam para o pai pelo nome.
 CATEGORIAS = [("Moda", None), ("Casa", None), ("Eletronicos", None),
               ("Camisetas", "Moda"), ("Calcados", "Moda"), ("Acessorios", "Moda"),
@@ -53,8 +56,12 @@ def tags(quantidade):
 
 
 def servicos(quantidade):
+    """Dois servicos por categoria nas primeiras: no Suri o cliente escolhe um deles."""
+    grupos = [CategoriaServico.objects.create(nome=nome_n(CATEGORIAS_SERVICO, i), ordem=i,
+                                              metadados=marca())
+              for i in range(quantidade)]
     return [Servico.objects.create(nome=nome_n(SERVICOS, i), metadados=marca(),
-                                   preco=Decimal(50 + 10 * i))
+                                   preco=Decimal(50 + 10 * i), categoria=grupos[i // 2])
             for i in range(quantidade)]
 
 

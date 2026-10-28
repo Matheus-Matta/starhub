@@ -5,6 +5,7 @@ Na pagina do servico as regras aparecem numa lista (uma por linha, pela ordem);
 modal, igual as variantes na pagina do produto (apps/core/admin_lista_modal.py).
 """
 
+from django import forms
 from django.contrib import admin
 from django.template.loader import render_to_string
 
@@ -21,19 +22,28 @@ from apps.loja.services.servicos_regras import produtos_da_regra
 class ServicoAdmin(ServicosShopifyMixin, PlanilhaServicosMixin, TemaModelAdmin):
     # Servico nasce sozinho no pedido (SKU SERV-<NOME>); aqui o operador troca o SKU
     # pelo codigo do ERP, define o preco e as regras. O id e o do hub e nao muda.
-    list_display = ["nome", "sku", "preco", "active", "updated_at"]
+    list_display = ["nome", "sku", "categoria", "preco", "active", "updated_at"]
     search_fields = ["nome", "sku"]
-    list_filter = ["active"]
+    list_filter = ["active", "categoria"]
     # Foto unica, como a da categoria: vira a foto da variacao "Servicos" no Suri.
     campos_json = {"imagem": ImagensTema(multiplas=False, pasta="servicos")}
     readonly_fields = ["lista_regras"]
     readonly_largos = ["lista_regras"]
     fieldsets = [
-        ("Servico", {"fields": [("nome", "sku"), ("preco", "active"), "imagem"]}),
+        ("Servico", {"fields": [("nome", "sku"), ("categoria", "preco"), "active",
+                                ("inclusao", "fora_das_integracoes"), "imagem"]}),
         ("Regras", {"classes": ["secao-lista"], "fields": ["lista_regras"],
                     "description": "Para cada produto vale a primeira regra que casa, pela "
                                    "ordem: e ela que da o preco."}),
     ]
+
+    def formfield_for_dbfield(self, db_field, request, **kwargs):
+        if db_field.name == "fora_das_integracoes":
+            # Lista de plataformas: multi-select (o tema troca pelo widget dele), nao JSON.
+            return forms.MultipleChoiceField(
+                choices=Servico.INTEGRACOES, required=False, label=db_field.verbose_name,
+                help_text=db_field.help_text, widget=forms.SelectMultiple)
+        return super().formfield_for_dbfield(db_field, request, **kwargs)
 
     @admin.display(description="Regras")
     def lista_regras(self, obj):

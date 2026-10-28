@@ -52,7 +52,7 @@ PLACEHOLDERS = {
     "ChaveApi.descricao": "ERP da loja",
     # catalogo
     "Produto.nome": "Camiseta basica azul", "Categoria.nome": "Camisetas", "Tag.nome": "Promocao",
-    "Servico.nome": "Montagem",
+    "Servico.nome": "Montagem", "CategoriaServico.nome": "Instalação",
     "TipoVariante.nome": "Cor", "valor": "Preto", "titulo": "Preto / M", "sku": "CAM-AZUL-M",
     "barcode": "7891234567895", "fornecedor": "Nome do fornecedor", "marca": "Marca",
     "descricao": "Texto exibido na loja", "descricao_curta": "Resumo perto do preco",

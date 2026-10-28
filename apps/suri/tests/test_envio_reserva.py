@@ -81,7 +81,20 @@ def test_variante_e_servico_sem_foto_usam_a_primeira_foto_do_produto(conta, monk
     foto = "https://hub.test/media/produtos/sofa.png"
     assert [i["url"] for i in corpo["images"]] == [foto]
     assert {d["sku"]: d["image"]["url"] for d in corpo["dimensions"]} == {
-        "CAM-AZ": foto, "CAM-VD": foto, "Montagem": foto}
+        "CAM-AZ": foto, "CAM-VD": foto, "8875": foto}
+
+
+def test_servico_ignorado_no_suri_nao_vira_variante(conta, monkeypatch):
+    """Montagem gratis que entra sozinha no pedido nao precisa ser escolhida na loja."""
+    obj = _produto_sem_categoria()
+    servico = Servico.objects.create(nome="Montagem", sku="8875", preco=Decimal("0.00"),
+                                     fora_das_integracoes=["suri"])
+    RegraServico.objects.create(servico=servico, tipo=RegraServico.Tipo.PRODUTO).produtos.set(
+        [obj])
+
+    corpo = _enviar(conta, monkeypatch, obj, servicos=True).chamadas[-1][2]
+
+    assert [d["sku"] for d in corpo["dimensions"]] == ["CAM-AZ", "CAM-VD"]
 
 
 def test_regra_inativa_nao_manda_o_servico_como_variante(conta, monkeypatch):
@@ -94,3 +107,15 @@ def test_regra_inativa_nao_manda_o_servico_como_variante(conta, monkeypatch):
     corpo = _enviar(conta, monkeypatch, obj, servicos=True).chamadas[-1][2]
 
     assert [d["sku"] for d in corpo["dimensions"]] == ["CAM-AZ", "CAM-VD"]
+
+
+def test_servico_ignorado_so_na_shopify_continua_indo_ao_suri(conta, monkeypatch):
+    obj = _produto_sem_categoria()
+    servico = Servico.objects.create(nome="Montagem", sku="8875", preco=Decimal("0.00"),
+                                     fora_das_integracoes=["shopify"])
+    RegraServico.objects.create(servico=servico, tipo=RegraServico.Tipo.PRODUTO).produtos.set(
+        [obj])
+
+    corpo = _enviar(conta, monkeypatch, obj, servicos=True).chamadas[-1][2]
+
+    assert "8875" in [d["sku"] for d in corpo["dimensions"]]

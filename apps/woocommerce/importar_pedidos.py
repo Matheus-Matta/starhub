@@ -16,6 +16,7 @@ from apps.core.models import ExternalReference, Origin
 from apps.loja.models import Cliente, PagamentoPedido, Pedido
 from apps.loja.services.extras_pedido import mesclar_extras
 from apps.loja.services.pedidos import gravar_endereco_do_pedido, gravar_transacao
+from apps.loja.services.servicos_automaticos import completar as servicos_automaticos
 from apps.loja.totais import recalcular_totais
 from apps.woocommerce import vinculos
 from apps.woocommerce.importar_clientes import endereco, importar_cliente
@@ -137,6 +138,7 @@ def importar_pedido(dados, loja=""):
                                        "numero": str(dados.get("number") or ""), "url": url,
                                        "atualizado_em": dados.get("date_modified_gmt")}})
     pedido.save(update_fields=["metadados", "updated_at"])
+    servicos_automaticos(pedido)
     recalcular_totais(pedido)
     _pagamento(pedido, dados)
     return pedido, criado

@@ -13,6 +13,7 @@ STARHUB_MENU_ICONES = {
     "loja.pedido": "clipboard-list",
     "loja.tag": "star",
     "loja.servico": "sliders-horizontal",
+    "loja.categoriaservico": "layout-grid",
     "loja.cupom": "wallet",
     "loja.avaliacao": "message-square-text",
     "logistica.tabelafrete": "truck",
