@@ -62,24 +62,18 @@ class ConfiguracaoIntegracaoAdmin(TemaModelAdmin):
     relatorio = False  # a lista redireciona para a tela de cada plataforma
 
     def get_urls(self):
+        visao = self.admin_site.admin_view
         urls = [
-            path(
-                "shopify/",
-                self.admin_site.admin_view(self.shopify_view),
-                name="integracoes_configuracaointegracao_shopify",
-            ),
-            path("shopify/servicos-guia/", self.admin_site.admin_view(
-                lambda request: guia_view(self, request)), name="integracoes_servicos_guia"),
-            path(
-                "woocommerce/",
-                self.admin_site.admin_view(self.woocommerce_view),
-                name="integracoes_configuracaointegracao_woocommerce",
-            ),
-            path(
-                "suri/",
-                self.admin_site.admin_view(self.suri_view),
-                name="integracoes_configuracaointegracao_suri",
-            ),
+            path("shopify/", visao(self.shopify_view),
+                 name="integracoes_configuracaointegracao_shopify"),
+            path("shopify/servicos-guia/", visao(lambda request: guia_view(self, request)),
+                 name="integracoes_servicos_guia"),
+            path("woocommerce/", visao(self.woocommerce_view),
+                 name="integracoes_configuracaointegracao_woocommerce"),
+            path("suri/", visao(self.suri_view), name="integracoes_configuracaointegracao_suri"),
+            path("suri/frete-planilha/", visao(
+                lambda request: admin_frete.planilha_suri_view(self, request)),
+                name="integracoes_suri_frete_planilha"),
         ]
         return [*urls, *super().get_urls()]
 

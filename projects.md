@@ -1120,6 +1120,13 @@ checkout das lojas" de cada tabela (Shopify, WooCommerce e Suri, abaixo). Menu
   recebe a cotacao mais barata por `POST shop/orders/budget` (`apps/suri/frete.py`). Mesmo
   CEP e mesmos itens nao reenviam. O endpoint direto esta coberto pelo contrato fornecido,
   mas ainda precisa ser conferido no checkout de uma loja Suri real.
+  **Baixar planilha** (mesmo card) gera o .xlsx de politicas de frete para importar no
+  Portal do Suri (`apps/suri/frete_planilha.py`, modelo `template_politicas.xlsx` do Suri):
+  uma aba por tabela ativa por faixa de CEP marcada "oferecer no checkout", uma linha por
+  faixa (CEP como texto, prazo da faixa ou da tabela em dias, valor). RETIRADA `N`,
+  SELLER_ID `-1` (todas as lojas) e FORMATO_TEMPO_ENTREGA `0` (dias) vao so na primeira
+  linha, como o modelo pede. Peso e valor do pedido ficam vazios. Tabela por distancia
+  fica de fora. Nao foi conferida numa importacao real no Suri.
 - **Usar no codigo:** `apps.logistica.cotacao.cotar(tabela, "20040-020")` devolve
   `Cotacao(valor, prazo_dias, distancia_km, detalhe)` ou levanta `FreteIndisponivel` com
   o motivo. Botao **Simular cotacao** na tabela para conferir um CEP.

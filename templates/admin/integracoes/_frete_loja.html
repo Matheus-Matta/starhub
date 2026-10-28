@@ -27,6 +27,12 @@
       <li class="frete-ck-item frete-ck-manual"><span class="frete-ck-icone">{% icone "shield" %}</span><div class="frete-ck-texto"><strong>Header Value</strong><span class="frete-ck-como"><code>{{ frete_loja.api.header_value }}</code></span><span class="frete-ck-detalhe">Troque SEU_TOKEN_DA_API_DO_SURI pelo mesmo Token da API informado na conexao acima.</span></div></li>
     </ul>
   {% endif %}
+  {% if frete_loja.planilha %}
+    <h4 class="frete-ck-grupo">Planilha de politicas de frete</h4>
+    <ul class="frete-ck">
+      <li class="frete-ck-item frete-ck-manual"><span class="frete-ck-icone">{% icone "file-spreadsheet" %}</span><div class="frete-ck-texto"><strong>Importar no Portal do Suri</strong><span class="frete-ck-detalhe">Uma aba por tabela por faixa de CEP marcada para o checkout, no modelo de politicas do Suri. Tabela por distancia fica de fora.</span><span class="frete-ck-como"><a class="btn btn-sm btn-outline" href="{{ frete_loja.planilha }}">{% icone "file-spreadsheet" "icon-sm" %} Baixar planilha</a></span></div></li>
+    </ul>
+  {% endif %}
   <h4 class="frete-ck-grupo">Tabelas marcadas para o checkout</h4>
   <ul class="frete-ck">
     {% for tabela in frete_loja.tabelas %}

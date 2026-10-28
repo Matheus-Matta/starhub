@@ -7,12 +7,18 @@ Woo: ligar envia as zonas de entrega (tarefa); desligar tira as zonas do StarHub
 loja. Suri: ligar so marca no hub; o orcamento sai quando o pedido em montagem chega.
 """
 
+from io import BytesIO
 from urllib.parse import urljoin
 
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
+from django.http import HttpResponse
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.logistica.models import TabelaFrete
+
+XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 TEXTOS = {
     "woocommerce": (
@@ -48,14 +54,31 @@ def _tabelas(plataforma):
 def contexto(plataforma, configuracao, endereco_atual=""):
     if plataforma not in TEXTOS:
         return None
-    api = None
+    api = planilha = None
     if plataforma == "suri" and configuracao is not None:
         base = configuracao.url_webhook or endereco_atual
         api = {"url": urljoin(base, reverse("suri_logistica", args=[configuracao.uuid])),
                "header_key": "Authorization",
                "header_value": "Bearer SEU_TOKEN_DA_API_DO_SURI"}
+    if plataforma == "suri":
+        planilha = reverse("admin:integracoes_suri_frete_planilha")
     return {"ligado": _estado(plataforma, configuracao), "texto": TEXTOS[plataforma],
-            "tabelas": _tabelas(plataforma), "salvo": configuracao is not None, "api": api}
+            "tabelas": _tabelas(plataforma), "salvo": configuracao is not None, "api": api,
+            "planilha": planilha}
+
+
+def planilha_suri_view(model_admin, request):
+    """Baixa na hora o .xlsx das politicas de frete (apps/suri/frete_planilha.py)."""
+    from apps.suri.frete_planilha import planilha
+
+    if not model_admin.has_view_or_change_permission(request):
+        raise PermissionDenied
+    arquivo = BytesIO()
+    planilha().save(arquivo)
+    resposta = HttpResponse(arquivo.getvalue(), content_type=XLSX)
+    nome = f"frete-suri-{timezone.localdate():%Y-%m-%d}.xlsx"
+    resposta["Content-Disposition"] = f'attachment; filename="{nome}"'
+    return resposta
 
 
 def ligar(request, plataforma, configuracao, ligado):
