@@ -144,6 +144,10 @@ REST_FRAMEWORK = {
 # link do registro. Vazio, o e-mail vai sem link.
 STARHUB_URL_PUBLICA = env("STARHUB_URL_PUBLICA", "")
 
+# Corpo dos webhooks e das cotacoes de frete no log (apps/integracoes/log_corpo.py).
+# Traz dado de cliente: ligue so enquanto investiga uma integracao em prod.
+LOG_CORPO_INTEGRACOES = env("LOG_CORPO_INTEGRACOES", "0") == "1"
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=int(env("JWT_ACESSO_DIAS", "7"))),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),

@@ -8,6 +8,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from apps.core.tenant.context import tenant_context
+from apps.integracoes import log_corpo
 from apps.logistica.cotacao import FreteIndisponivel, cotar, normalizar_cep
 from apps.logistica.models import TabelaFrete
 from apps.suri.cliente import json_decimal
@@ -29,7 +30,13 @@ def _sem_opcoes(status, motivo):
 
 
 def _campo(dados, nome):
-    return (dados or {}).get(nome) or (dados or {}).get(nome[:1].lower() + nome[1:])
+    # Sem caixa: o exemplo da doc usa "ZipCode", mas serializador .NET pode mandar
+    # "zipCode" ou "Zipcode" conforme a versao, e o CEP sumia em silencio.
+    if not isinstance(dados, dict):
+        return None
+    alvo = nome.lower()
+    return next((valor for chave, valor in dados.items()
+                 if str(chave).lower() == alvo and valor not in (None, "")), None)
 
 
 def _autorizado(request, configuracao):
@@ -40,7 +47,7 @@ def _autorizado(request, configuracao):
 
 def _destino(corpo):
     endereco = _campo(corpo, "Address") or {}
-    return (_campo(endereco, "ZipCode") or "", _campo(endereco, "City") or "",
+    return (str(_campo(endereco, "ZipCode") or ""), _campo(endereco, "City") or "",
             _campo(endereco, "State") or "")
 
 
@@ -88,8 +95,10 @@ def consultar_logistica(request, configuracao_uuid):
     if configuracao is None:
         return _sem_opcoes(404, "integracao Suri inexistente ou desligada; confira a URL.")
     if not _autorizado(request, configuracao):
-        return _sem_opcoes(401, "Authorization diferente do token da loja; confira os "
-                                "headers adicionais no Suri.")
+        recebido = request.headers.get("Authorization", "")
+        return _sem_opcoes(401, f"Authorization {_formato(recebido)} diferente do token da "
+                                f"loja {configuracao.pk}; confira os headers adicionais no "
+                                "Suri (Authorization: Bearer <token da integracao>).")
     if request.method == "GET":
         # A documentacao diz que o corpo da validacao e ignorado, mas algumas versoes
         # do Suri tentam desserializa-lo como a mesma lista de opcoes usada no POST.
@@ -99,7 +108,11 @@ def consultar_logistica(request, configuracao_uuid):
         resposta["Allow"] = "GET, POST"
         return resposta
     if not frete_ligado(configuracao):
+        logger.info("Frete do Suri pedido com o frete desligado na loja %s: respondido [].",
+                    configuracao.pk)
         return _json([])
+    logger.info("Frete do Suri pedido: loja=%s corpo=%s", configuracao.pk,
+                log_corpo.corpo(request.body))
     try:
         corpo = json.loads(request.body or b"null")
         if not isinstance(corpo, dict):
@@ -109,6 +122,21 @@ def consultar_logistica(request, configuracao_uuid):
     except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
         return _sem_opcoes(400, "corpo nao e um objeto JSON com Items e Address.")
     except FreteIndisponivel as erro:
-        logger.info("Frete do Suri indisponivel: %s", erro)
+        # A estrutura (so chaves, sem dado do cliente) mostra onde o CEP deveria estar.
+        logger.warning("Frete do Suri indisponivel: %s Esperado Address.ZipCode; chegou "
+                       "%s", erro, json.dumps(log_corpo.estrutura(corpo), ensure_ascii=False))
         return _json([])
+    cep, cidade, uf = _destino(corpo)
+    logger.info("Frete do Suri respondido: loja=%s cep=%s cidade=%s uf=%s %s opcao(oes): %s",
+                configuracao.pk, cep, cidade, uf, len(opcoes),
+                ", ".join(f"{o['Name']}={o['Price']}" for o in opcoes) or "nenhuma tabela "
+                "atende o CEP (confira as tabelas com 'no checkout' ligado)")
     return _json(opcoes)
+
+
+def _formato(recebido):
+    """Descreve o header sem mostrar o token: so o esquema e o tamanho."""
+    if not recebido:
+        return "ausente"
+    esquema, _, resto = recebido.partition(" ")
+    return f"'{esquema} <{len(resto)} caracteres>'" if resto else f"<{len(recebido)} caracteres>"
