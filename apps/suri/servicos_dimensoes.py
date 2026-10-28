@@ -12,9 +12,9 @@ Cada categoria e um atributo, na ordem dela; servico sem categoria vai no atribu
 o preco porque o Suri nao mostra quanto cada opcao soma.
 
 A dimension do servico vende a variante padrao com o servico: as outras opcoes (Cor)
-sao as dela, nunca "Qualquer"; preco = variante padrao + servico, com o estoque, as
-medidas e a foto dela (a do servico, se tiver). No pedido o hub tira o servico do
-valor do item (importar_itens.py).
+sao as dela, nunca "Qualquer"; preco = variante padrao + servico, com as medidas e a
+foto dela (a do servico, se tiver). No pedido o hub tira o servico do valor do item
+(importar_itens.py). O estoque e o maior entre as pecas do produto (estoque()).
 
 Toda dimension tem valor em todos os atributos, ou o Suri recusa o produto inteiro
 (ProductAttributtesAndDimensionsMustMatch): por isso toda categoria tem "Sem serviço",
@@ -23,6 +23,7 @@ o valor das cores e dos servicos das outras categorias nela.
 
 from apps.core.ui.formatos import moeda
 from apps.integracoes.url_publica import url_publica
+from apps.loja.models import Produto
 from apps.suri.envio import produtos_dimensoes
 
 ATRIBUTO = "Serviço"
@@ -50,22 +51,35 @@ def grupos(servicos):
     return por_atributo
 
 
+def estoque(produto):
+    """Estoque da dimension do servico: simples, o dele; variavel, a variacao com mais;
+    kit (bundle), o item com mais. O servico nao acaba enquanto houver peca para levar."""
+    if produto.tipo == Produto.Tipo.BUNDLE:
+        quantidades = produto.componentes.values_list(
+            "component_variant__inventory_quantity", flat=True)
+    else:
+        quantidades = produto.variantes.values_list("inventory_quantity", flat=True)
+    return max((max(q, 0) for q in quantidades), default=0)
+
+
 def _foto(configuracao, servico):
     imagem = servico.imagem if isinstance(servico.imagem, dict) else {}
     url = url_publica(configuracao, imagem.get("src")) if configuracao else ""
     return url, imagem.get("alt") or servico.nome
 
 
-def _do_servico(padrao, servico, preco, valores, configuracao):
+def _do_servico(padrao, servico, preco, valores, configuracao, quantidade):
     url, descricao = _foto(configuracao, servico)
     return {**padrao, "sku": servico.sku, "dimensions": {**padrao["dimensions"], **valores},
             "price": padrao["price"] + preco,
             "image": produtos_dimensoes.imagem(url, descricao) if url else padrao["image"],
-            "stocks": {loja: dict(estoque) for loja, estoque in padrao["stocks"].items()}}
+            "stocks": {loja: {"stock": quantidade} for loja in padrao["stocks"]}}
 
 
-def dimensoes(servicos, base, sku_padrao, configuracao=None):
-    """(dimensions, do_servico): {sku do servico: {"variante", "servico", "preco"}}."""
+def dimensoes(servicos, base, sku_padrao, configuracao=None, quantidade=0):
+    """(dimensions, do_servico): {sku do servico: {"variante", "servico", "preco"}}.
+
+    `quantidade` e o estoque das dimensions de servico (estoque() do produto)."""
     por_atributo = grupos(servicos)
     if not por_atributo:
         return base, {}
@@ -79,7 +93,8 @@ def dimensoes(servicos, base, sku_padrao, configuracao=None):
                 continue
             skus.add(servico.sku)
             saida.append(_do_servico(padrao, servico, preco,
-                                     {**vazio, nome: rotulo(servico, preco)}, configuracao))
+                                     {**vazio, nome: rotulo(servico, preco)}, configuracao,
+                                     quantidade))
             do_servico[servico.sku] = {"variante": padrao["sku"], "servico": servico,
                                        "preco": preco}
     return saida, do_servico

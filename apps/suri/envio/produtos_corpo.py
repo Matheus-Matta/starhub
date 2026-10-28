@@ -94,7 +94,8 @@ def corpo(enviador_categorias, produto, loja, configuracao, servicos=(), enviado
     produtos_atributos.distinguir(corpo["dimensions"], variantes)
     if servicos:
         corpo["dimensions"], de_servico = servicos_dimensoes.dimensoes(
-            servicos, corpo["dimensions"], corpo["sku"], configuracao)
+            servicos, corpo["dimensions"], corpo["sku"], configuracao,
+            servicos_dimensoes.estoque(produto))
         if enviados is not None:
             enviados.update(de_servico)
     if imagens:

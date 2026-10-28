@@ -3,8 +3,8 @@
 A dimension sai de servicos_dimensoes.py, com o SKU do servico. Cada uma ganha o
 vinculo "servicos" ("<produto>:<sku do servico>" -> Servico, pai = produto, metadata
 {"variante", "preco"}): o pedido volta a ser o item da variante padrao com o servico a
-parte (importar_itens.py), o estoque dela vai junto para a dimension do servico, e o
-reenvio acha o produto quando a regra muda (servicos_sinais.py).
+parte (importar_itens.py), a baixa de estoque acha as dimensions de servico do produto
+(envio/produtos.py), e o reenvio acha o produto quando a regra muda (servicos_sinais.py).
 
 So com Integracoes > Suri > "enviar servicos como variantes" ligado. O PUT do Suri
 troca o produto inteiro: produto que saiu da regra vai sem o servico e ele some la.
@@ -71,12 +71,11 @@ def da_dimensao(linha):
     return metadata["variante"], servico, preco
 
 
-def skus_do_estoque(produto_id, sku_variante):
-    """SKUs no Suri que vendem a peca da variante: ela e os servicos que a levam."""
-    servicos = _do_produto_no_suri(produto_id).filter(
-        metadata__variante=sku_variante).order_by("external_id").values_list(
+def skus_dos_servicos(produto_id):
+    """SKUs das dimensions de servico do produto no Suri."""
+    chaves = _do_produto_no_suri(produto_id).order_by("external_id").values_list(
         "external_id", flat=True)
-    return [sku_variante, *(chave.partition(":")[2] for chave in servicos)]
+    return [chave.partition(":")[2] for chave in chaves]
 
 
 def desvincular(produto_id):

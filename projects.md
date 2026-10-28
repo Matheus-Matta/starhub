@@ -939,15 +939,18 @@ Mesma tela, matriz, Sincronizar, Tarefas e Retomar das outras lojas.
     aparece junto da cor da variante padrao.
 
   A dimension do servico vende a variante padrao com o servico: preco = variante
-  padrao + servico, com o estoque, as medidas e a foto dela (a do servico, se tiver).
+  padrao + servico, com as medidas e a foto dela (a do servico, se tiver). Estoque
+  do servico = o maior entre as pecas: simples, o do produto; variavel, a variacao
+  com mais; kit (bundle), o item com mais (`servicos_dimensoes.estoque`).
   SKU do servico igual ao de uma variante do produto nao vai (derrubaria o PUT). Os
   attributes saem das dimensions: o Suri recusa com
   `ProductAttributtesAndDimensionsMustMatch` dimension sem todos os atributos. Toda
   dimension leva `image`, `measurements`, `priceTables`, `price` e `stocks`; omitir
   esses blocos causava HTTP 400 `Value cannot be null (source)`. O vinculo `servicos`
   ("<produto>:<sku do servico>" -> Servico, metadata `{"variante", "preco"}`) guarda
-  o que foi; o estoque da variante padrao (`EstoqueSuri`) vai no mesmo PUT de stocks
-  para os servicos. Mudou servico, regra, as linhas dela ou a categoria
+  o que foi. A baixa de qualquer variacao (`EstoqueSuri`) manda no mesmo PUT de
+  stocks o estoque novo dos servicos do produto; a de um item de kit, o dos servicos
+  dos kits que o levam, mesmo com o item fora do Suri. Mudou servico, regra, as linhas dela ou a categoria
   (`servicos_sinais.py`): reenvia os produtos que a regra pega e os que levam o
   servico hoje; o PUT sem o servico o apaga no Suri. Ligar o envio nao reenvia
   sozinho: exporte os produtos. Servico nunca e enviado sozinho: a exportacao exige

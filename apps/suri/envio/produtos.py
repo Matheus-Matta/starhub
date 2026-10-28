@@ -3,7 +3,8 @@
 - produto: POST shop/products (cria com o id "sh-<pk>"), PUT shop/products (o objeto
   inteiro), DELETE shop/products/<id>. Cada SKU ganha o vinculo "variantes"; o servico
   que vai como variante, o vinculo "servicos" (apps/suri/servicos.py).
-- estoque: PUT shop/products/<id>/stocks so do SKU que mudou, na loja do estoque.
+- estoque: PUT shop/products/<id>/stocks do SKU que mudou, na loja do estoque, e dos
+  servicos do produto e dos kits que levam a variante (o maior estoque das pecas).
 - pedido: nasce no Suri. O hub manda o que o Suri ainda nao tem: pago, cancelado ou a
   logistica (entregue). O estado do Suri fica no metadata do vinculo do pedido.
 """
@@ -12,7 +13,7 @@ from apps.integracoes.envio.base import EnvioNaoSuportado
 from apps.loja.models import Pedido, Produto, VarianteProduto
 from apps.loja.services.pedidos import transacao
 from apps.suri import servicos as servicos_suri
-from apps.suri import vinculos
+from apps.suri import servicos_dimensoes, vinculos
 from apps.suri.envio.base import RecursoSuri
 from apps.suri.envio.produtos_corpo import corpo
 
@@ -63,14 +64,38 @@ class EstoqueSuri(RecursoSuri):
     def excluir(self, external_id):
         raise EnvioNaoSuportado("estoque nao se exclui; sai junto com o produto.")
 
+    def enviar(self, operacao, pk):
+        # Antes da variante: o item do kit pode nem estar no Suri (o envio dela para
+        # em "sem vinculo"), mas o servico do kit esta e precisa do numero novo.
+        if operacao != "delete":
+            self._servicos_dos_kits(pk)
+        return super().enviar(operacao, pk)
+
+    def _put(self, produto_id, quantidades):
+        loja = self.loja_do_estoque()
+        self.cliente.put(f"shop/products/{produto_id}/stocks", {"skus": [
+            {"sku": sku, "stocks": {loja: {"stock": max(quantidade, 0)}}}
+            for sku, quantidade in quantidades]})
+
+    def _servicos_dos_kits(self, pk):
+        kits = Produto.all_objects.filter(
+            account_id=self.configuracao.account_id, tipo=Produto.Tipo.BUNDLE,
+            componentes__component_variant_id=pk).distinct()
+        for kit in kits:
+            kit_id = vinculos.externo_id("produtos", kit.pk)
+            skus = servicos_suri.skus_dos_servicos(kit_id) if kit_id else []
+            if skus:
+                quantidade = servicos_dimensoes.estoque(kit)
+                self._put(kit_id, [(sku, quantidade) for sku in skus])
+
     def atualizar(self, obj, external_id):
         produto_id, _, sku = external_id.partition(":")
-        estoque = {self.loja_do_estoque(): {"stock": max(obj.inventory_quantity, 0)}}
-        # A dimension do servico vende a mesma peca: leva o estoque da variante.
-        skus = servicos_suri.skus_do_estoque(produto_id, sku)
-        self.cliente.put(f"shop/products/{produto_id}/stocks", {"skus": [
-            {"sku": s, "stocks": {loja: dict(v) for loja, v in estoque.items()}}
-            for s in skus]})
+        # A dimension do servico fica com o maior estoque entre as variacoes: a baixa
+        # de qualquer uma pode mudar esse numero.
+        servicos = servicos_suri.skus_dos_servicos(produto_id)
+        quantidade = servicos_dimensoes.estoque(obj.produto) if servicos else 0
+        self._put(produto_id, [(sku, obj.inventory_quantity),
+                               *((s, quantidade) for s in servicos)])
 
 
 ENTREGUE = 4
