@@ -1,8 +1,8 @@
-"""Estoque da dimension do servico no Suri: o maior entre as pecas que o produto vende.
+"""Estoque da dimension do servico no Suri: o da peca que ela vende.
 
-    simples              -> o estoque dele
-    variavel (Azul 5, Verde 8) -> 8
-    kit (bundle: 4 e 9)  -> 9
+    simples                    -> o estoque dele
+    variavel (Azul 5, Verde 8) -> Azul + Imper 5, Verde + Imper 8
+    kit (bundle: 4 e 9)        -> 9, o maior das pecas
 """
 
 import pytest
@@ -54,20 +54,20 @@ def test_servico_do_produto_simples_tem_o_estoque_dele(cfg, monkeypatch, camiset
     assert _estoque(corpo, "IMP") == 7
 
 
-def test_servico_do_produto_variavel_tem_o_maior_estoque_das_variacoes(
+def test_servico_de_cada_cor_tem_o_estoque_da_cor(
         cfg, monkeypatch, camiseta, imper):  # noqa: F811
-    """Antes ia o estoque da variante padrao (Azul 5) mesmo com Verde 8 a venda."""
+    """Com o servico preso a Azul, ia o maior estoque (8) e a Azul vendia sem ter."""
     _mudar_estoque(camiseta.variantes.get(sku="CAM-VD"), 8)
 
     _, corpo = _enviar(cfg, monkeypatch, camiseta)
 
-    assert (_estoque(corpo, "CAM-AZ"), _estoque(corpo, "CAM-VD"), _estoque(corpo, "IMP")) == (
-        5, 8, 8)
+    assert [_estoque(corpo, sku) for sku in ("CAM-AZ", "CAM-VD", "IMP", "IMP-CAM-VD")] == [
+        5, 8, 5, 8]
 
 
-def test_estoque_de_qualquer_variacao_atualiza_o_servico_com_o_maior(
+def test_estoque_da_variacao_atualiza_o_servico_dela(
         cfg, monkeypatch, camiseta, imper):  # noqa: F811
-    """A baixa da Verde (que nao e a padrao) nao mexia no servico no Suri."""
+    """A baixa da Verde (que nao e a padrao) nao mexia no servico dela no Suri."""
     loja, _ = _enviar(cfg, monkeypatch, camiseta)
     verde = camiseta.variantes.get(sku="CAM-VD")
     _mudar_estoque(verde, 12)
@@ -77,7 +77,7 @@ def test_estoque_de_qualquer_variacao_atualiza_o_servico_com_o_maior(
     metodo, rota, corpo = loja.chamadas[-1]
     assert (metodo, rota) == ("PUT", "shop/products/48349/stocks")
     assert {s["sku"]: s["stocks"]["48346"]["stock"] for s in corpo["skus"]} == {
-        "CAM-VD": 12, "IMP": 12}
+        "CAM-VD": 12, "IMP-CAM-VD": 12}
 
 
 def test_servico_do_kit_tem_o_maior_estoque_dos_itens(cfg, monkeypatch, kit):  # noqa: F811

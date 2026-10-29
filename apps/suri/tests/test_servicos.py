@@ -77,8 +77,10 @@ def test_exportar_produto_cria_servico_como_variante_com_sku_e_preco_da_regra(
     assert servico["stocks"] == {"48346": {"stock": 5}}
     assert {"name": "Serviço", "options": OPCOES} in corpo["attributes"]
     vinculos = ExternalReference.objects.filter(entity_type="servicos").order_by("external_id")
+    servicos = [{"id": montagem.pk, "preco": "30.00"}]
     assert [(v.external_id, v.metadata) for v in vinculos] == [
-        (f"{corpo['id']}:SERV-MONT", {"variante": "CAM-AZ", "preco": "30.00"})]
+        (f"{corpo['id']}:SERV-MONT", {"variante": "CAM-AZ", "servicos": servicos}),
+        (f"{corpo['id']}:SERV-MONT-CAM-VD", {"variante": "CAM-VD", "servicos": servicos})]
 
 
 def test_envio_de_servicos_desligado_manda_so_as_variantes_do_produto(

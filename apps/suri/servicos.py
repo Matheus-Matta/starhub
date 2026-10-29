@@ -1,10 +1,11 @@
 """Servicos do hub no Suri Shop, que nao tem servico: cada um vira dimension do produto.
 
-A dimension sai de servicos_dimensoes.py, com o SKU do servico. Cada uma ganha o
-vinculo "servicos" ("<produto>:<sku do servico>" -> Servico, pai = produto, metadata
-{"variante", "preco"}): o pedido volta a ser o item da variante padrao com o servico a
-parte (importar_itens.py), a baixa de estoque acha as dimensions de servico do produto
-(envio/produtos.py), e o reenvio acha o produto quando a regra muda (servicos_sinais.py).
+A dimension sai de servicos_dimensoes.py: uma por cor e escolha de servicos. Cada uma
+ganha o vinculo "servicos" ("<produto>:<sku>" -> 1o servico, pai = produto, metadata
+{"variante", "servicos": [{"id", "preco"}]}): o pedido volta a ser o item da cor com
+os servicos a parte (importar_itens.py), a baixa de estoque acha as dimensions da cor
+(envio/produtos.py), e o reenvio acha o produto quando a regra muda (servicos_sinais.py:
+todo servico tem a dimension dele sozinho, entao o 1o servico basta para achar).
 
 So com Integracoes > Suri > "enviar servicos como variantes" ligado. O PUT do Suri
 troca o produto inteiro: produto que saiu da regra vai sem o servico e ele some la.
@@ -45,14 +46,16 @@ def vincular(produto_id, enviados):
     chaves = []
     for sku, enviado in enviados.items():
         chave = vinculos.id_variacao(produto_id, sku)
-        vinculos.referenciar(ENTIDADE, chave, enviado["servico"], pai=produto_id, metadata={
-            "variante": enviado["variante"], "preco": f"{enviado['preco']:.2f}"})
+        pares = enviado["servicos"]
+        vinculos.referenciar(ENTIDADE, chave, pares[0][0], pai=produto_id, metadata={
+            "variante": enviado["variante"],
+            "servicos": [{"id": servico.pk, "preco": f"{preco:.2f}"} for servico, preco in pares]})
         chaves.append(chave)
     _do_produto_no_suri(produto_id).exclude(external_id__in=chaves).delete()
 
 
 def da_dimensao(linha):
-    """(SKU da variante, servico, preco) da linha que e a dimension de um servico."""
+    """(SKU da variante, [(servico, preco)]) da linha que e uma dimension de servico."""
     chave = vinculos.id_variacao(str(linha.get("providerId") or ""),
                                  str(linha.get("sku") or "").strip())
     referencia = ExternalReference.objects.filter(
@@ -61,19 +64,32 @@ def da_dimensao(linha):
     if referencia is None:
         return None
     metadata = referencia["metadata"] or {}
-    servico = Servico.objects.filter(pk=referencia["object_id"]).first()
-    try:
-        preco = Decimal(str(metadata["preco"]))
-    except (KeyError, InvalidOperation):
-        return None  # vinculo de antes, sem preco: a linha segue como servico avulso
-    if servico is None or not metadata.get("variante"):
+    # Vinculo de antes das combinacoes: um servico so, no object_id, com "preco".
+    lista = metadata.get("servicos") or [{"id": referencia["object_id"],
+                                           "preco": metadata.get("preco")}]
+    por_id = Servico.objects.in_bulk([item["id"] for item in lista])
+    pares = []
+    for item in lista:
+        try:
+            pares.append((por_id[int(item["id"])], Decimal(str(item["preco"]))))
+        except (KeyError, TypeError, ValueError, InvalidOperation):
+            return None  # servico apagado ou vinculo sem preco: a linha segue avulsa
+    if not metadata.get("variante"):
         return None
-    return metadata["variante"], servico, preco
+    return metadata["variante"], pares
 
 
 def skus_dos_servicos(produto_id):
     """SKUs das dimensions de servico do produto no Suri."""
     chaves = _do_produto_no_suri(produto_id).order_by("external_id").values_list(
+        "external_id", flat=True)
+    return [chave.partition(":")[2] for chave in chaves]
+
+
+def skus_da_variante(produto_id, sku_variante):
+    """SKUs das dimensions que vendem essa variante com servico."""
+    chaves = _do_produto_no_suri(produto_id).filter(
+        metadata__variante=sku_variante).order_by("external_id").values_list(
         "external_id", flat=True)
     return [chave.partition(":")[2] for chave in chaves]
 

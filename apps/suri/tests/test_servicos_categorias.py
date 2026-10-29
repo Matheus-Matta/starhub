@@ -2,7 +2,7 @@
 
     Camiseta (Azul, Verde) + Instalacao (Simples, Completa) + Impermeabilizacao (Imper)
     -> Cor | Instalação: Sem serviço, Completa, Simples | Impermeabilização: Sem serviço,
-       Imper; uma dimension por servico, com o SKU dele
+       Imper; uma dimension por cor e escolha (test_servicos_combinacoes.py)
 
 Toda categoria comeca em "Sem serviço" (o Suri marca a primeira opcao): a dimension
 das cores e a dos servicos das outras categorias precisam de um valor nela.
@@ -38,7 +38,7 @@ def servicos(camiseta):  # noqa: F811
     return criados
 
 
-def test_cada_categoria_vira_um_atributo_e_cada_servico_uma_dimension_com_o_sku_dele(
+def test_cada_categoria_vira_um_atributo_e_o_servico_sozinho_leva_o_sku_dele(
         cfg, monkeypatch, camiseta, servicos):  # noqa: F811
     _, corpo = _enviar(cfg, monkeypatch, camiseta)
 
@@ -50,7 +50,8 @@ def test_cada_categoria_vira_um_atributo_e_cada_servico_uma_dimension_com_o_sku_
         {"name": "Impermeabilização", "options": [{"name": "Sem serviço"},
                                                   {"name": "Imper (R$ 30,00)"}]}]
     por_sku = {d["sku"]: d for d in corpo["dimensions"]}
-    assert list(por_sku) == ["CAM-AZ", "CAM-VD", "INS2", "INS1", "IMP"]
+    assert list(por_sku)[:4] == ["CAM-AZ", "CAM-VD", "IMP", "IMP-CAM-VD"]
+    assert {"INS1", "INS2", "INS1-IMP", "INS2-IMP-CAM-VD"} <= set(por_sku)
     assert por_sku["INS1"]["dimensions"] == {
         "Cor": "Azul", "Instalação": "Simples (R$ 20,00)", "Impermeabilização": "Sem serviço"}
     assert por_sku["INS1"]["price"] == por_sku["CAM-AZ"]["price"] + Decimal("20.00")

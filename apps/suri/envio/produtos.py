@@ -3,8 +3,8 @@
 - produto: POST shop/products (cria com o id "sh-<pk>"), PUT shop/products (o objeto
   inteiro), DELETE shop/products/<id>. Cada SKU ganha o vinculo "variantes"; o servico
   que vai como variante, o vinculo "servicos" (apps/suri/servicos.py).
-- estoque: PUT shop/products/<id>/stocks do SKU que mudou, na loja do estoque, e dos
-  servicos do produto e dos kits que levam a variante (o maior estoque das pecas).
+- estoque: PUT shop/products/<id>/stocks do SKU que mudou, na loja do estoque, das
+  combinacoes dele com servico e dos kits que levam a variante (o maior estoque das pecas).
 - pedido: nasce no Suri. O hub manda o que o Suri ainda nao tem: pago, cancelado ou a
   logistica (entregue). O estado do Suri fica no metadata do vinculo do pedido.
 """
@@ -90,10 +90,14 @@ class EstoqueSuri(RecursoSuri):
 
     def atualizar(self, obj, external_id):
         produto_id, _, sku = external_id.partition(":")
-        # A dimension do servico fica com o maior estoque entre as variacoes: a baixa
-        # de qualquer uma pode mudar esse numero.
-        servicos = servicos_suri.skus_dos_servicos(produto_id)
-        quantidade = servicos_dimensoes.estoque(obj.produto) if servicos else 0
+        if obj.produto.tipo == Produto.Tipo.BUNDLE:
+            # O kit vende as pecas: as combinacoes ficam com o maior estoque delas.
+            servicos = servicos_suri.skus_dos_servicos(produto_id)
+            quantidade = servicos_dimensoes.estoque(obj.produto) if servicos else 0
+        else:
+            # Cada combinacao vende uma cor: so as dela mudam com a baixa dela.
+            servicos = servicos_suri.skus_da_variante(produto_id, sku)
+            quantidade = obj.inventory_quantity
         self._put(produto_id, [(sku, obj.inventory_quantity),
                                *((s, quantidade) for s in servicos)])
 

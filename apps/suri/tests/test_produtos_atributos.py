@@ -78,7 +78,9 @@ def test_tipo_servico_recebe_cada_titulo_como_opcao_e_variante(
     servicos = [d for d in corpo["dimensions"] if d["dimensions"]["Serviço"] != "Sem serviço"]
     assert [(d["sku"], d["dimensions"]["Serviço"], d["stocks"]["48346"]["stock"])
             for d in servicos] == [
-                ("GAR", "Garantia (R$ 20,00)", 5), ("SERV-MONT", "Montagem (R$ 30,00)", 5)]
+                ("GAR", "Garantia (R$ 20,00)", 5), ("GAR-CAM-VD", "Garantia (R$ 20,00)", 0),
+                ("SERV-MONT", "Montagem (R$ 30,00)", 5),
+                ("SERV-MONT-CAM-VD", "Montagem (R$ 30,00)", 0)]
 
 
 def test_variantes_sem_opcao_e_produto_simples_com_opcao_batem_com_o_suri(

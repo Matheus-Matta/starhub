@@ -6,7 +6,7 @@
                      "stocks": {"<loja>": {"stock": 3}}, "measurements": {...}}]}
 
 Preco e Decimal ate o JSON (apps/suri/cliente._json escreve o numero exato). Os
-servicos do produto vao no fim de "dimensions", um por SKU do servico
+servicos do produto vao no fim de "dimensions", uma por cor e escolha de servicos
 (apps/suri/servicos_dimensoes.py), e os attributes saem das dimensions, batendo com
 elas (produtos_atributos.py).
 """
@@ -95,7 +95,8 @@ def corpo(enviador_categorias, produto, loja, configuracao, servicos=(), enviado
     if servicos:
         corpo["dimensions"], de_servico = servicos_dimensoes.dimensoes(
             servicos, corpo["dimensions"], corpo["sku"], configuracao,
-            servicos_dimensoes.estoque(produto))
+            servicos_dimensoes.estoque(produto) if produto.tipo == Produto.Tipo.BUNDLE
+            else None)
         if enviados is not None:
             enviados.update(de_servico)
     if imagens:

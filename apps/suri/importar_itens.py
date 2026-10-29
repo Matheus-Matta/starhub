@@ -5,9 +5,9 @@ O item do Suri nao tem id proprio: a chave do vinculo "itens_pedido" e
 (GET shop/products/<providerId>) e importado inteiro, nunca um cadastro minimo.
 Quantidade fracionada (venda por quilo) nao cabe no hub (inteiro): vira aviso.
 
-Servico que foi como variante (apps/suri/servicos.py) chega com o SKU do servico e
-o preco da variante padrao + servico: vira o item da variante padrao. Com "receber
-servicos" ligado, o valor do servico sai do item e vai para o servico, a parte;
+Servico que foi como variante (apps/suri/servicos.py) chega com o SKU da combinacao e
+o preco da cor + servicos: vira o item da cor. Com "receber servicos" ligado, o valor
+de cada servico sai do item e vai para o servico, a parte;
 desligado, o item fica com o valor inteiro da linha, para o dinheiro nao sumir.
 Pedido antigo traz o servico numa linha propria, so com o preco dele: ela soma no
 item do mesmo produto.
@@ -147,7 +147,7 @@ def gravar_itens(pedido, dados):
         mantidos.add(item.pk)
         do_produto.setdefault(str(linha.get("providerId") or ""), item)
         if dimensao and receber:
-            servicos.append(_separar_servico(item, *dimensao[1:]))
+            servicos.extend(_separar_servico(item, *par) for par in dimensao[1])
     for linha, servico in de_servico:
         item = do_produto.get(str(linha.get("providerId") or ""))
         if item is None:

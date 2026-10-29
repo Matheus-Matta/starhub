@@ -1,7 +1,8 @@
-"""Servico no Suri: uma dimension por servico, com o SKU dele, sem combinar com as cores.
+"""Servico no Suri: Azul (padrao) + Imper vai com o SKU do servico; Verde + Imper, com
+"IMP-CAM-VD" (combinacoes em test_servicos_combinacoes.py).
 
-O cliente compra "Imper" e leva a variante padrao (Azul) com o servico; o pedido volta
-ao hub como o item Azul pelo preco dele e o servico a parte.
+O cliente compra "Imper" e leva a cor escolhida com o servico; o pedido volta ao hub
+como o item da cor pelo preco dele e o servico a parte.
 """
 
 from decimal import Decimal
@@ -59,7 +60,7 @@ def test_servico_vai_com_o_sku_dele_e_o_preco_somado_ao_do_produto(
     _, corpo = _enviar(cfg, monkeypatch, camiseta)
 
     por_sku = {d["sku"]: d for d in corpo["dimensions"]}
-    assert list(por_sku) == ["CAM-AZ", "CAM-VD", "IMP"], "sem combinar com as cores"
+    assert list(por_sku) == ["CAM-AZ", "CAM-VD", "IMP", "IMP-CAM-VD"]
     servico, azul = por_sku["IMP"], por_sku["CAM-AZ"]
     assert servico["dimensions"] == {"Cor": "Azul", "Serviço": "Imper (R$ 30,00)"}
     assert azul["dimensions"] == {"Cor": "Azul", "Serviço": "Sem serviço"}

@@ -81,7 +81,7 @@ def test_variante_e_servico_sem_foto_usam_a_primeira_foto_do_produto(conta, monk
     foto = "https://hub.test/media/produtos/sofa.png"
     assert [i["url"] for i in corpo["images"]] == [foto]
     assert {d["sku"]: d["image"]["url"] for d in corpo["dimensions"]} == {
-        "CAM-AZ": foto, "CAM-VD": foto, "8875": foto}
+        "CAM-AZ": foto, "CAM-VD": foto, "8875": foto, "8875-CAM-VD": foto}
 
 
 def test_servico_ignorado_no_suri_nao_vira_variante(conta, monkeypatch):
