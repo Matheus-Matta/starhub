@@ -1,0 +1,55 @@
+{% extends "admin/base_site.html" %}
+{# JSON do pedido (apps/loja/admin/pedidos_json.py): so leitura, nao grava nada. #}
+{% block content_title %}{% endblock %}
+{% block breadcrumbs %}
+  <div class="breadcrumbs"><a href="{% url 'admin:index' %}">Painel</a> &rsaquo; <a href="{% url 'admin:loja_pedido_changelist' %}">Pedidos</a> &rsaquo; <a href="{{ url_pedido }}">#{{ pedido.number }}</a> &rsaquo; JSON</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="form-page">
+  <section class="form-workspace form-workspace-flat">
+    <header class="form-workspace-header">
+      <div class="form-workspace-heading">
+        <span class="form-workspace-kicker">Pedido #{{ pedido.number }}{% if pedido.external_number %} &middot; {{ pedido.external_number }} na loja{% endif %}</span>
+        <h1>JSON do pedido</h1>
+        <p>O que o ERP recebe, o vinculo com cada loja e os webhooks que chegaram.</p>
+      </div>
+      <div class="form-workspace-tools"><a href="{{ url_pedido }}" class="btn btn-outline">Voltar para o pedido</a></div>
+    </header>
+
+    {% componente "card" titulo="Como o ERP recebe" subtitulo=rota_api icone="file-text" %}
+      <pre class="tarefa-json">{{ json_api }}</pre>
+    {% endcomponente %}
+
+    {% for item in vinculos %}
+      {% componente "card" titulo="Vinculo "|add:item.vinculo.get_platform_display subtitulo=item.vinculo.external_id icone="store" %}
+        <pre class="tarefa-json">{{ item.json }}</pre>
+      {% endcomponente %}
+    {% empty %}
+      {% componente "card" titulo="Vinculos" icone="store" %}
+        <p class="tarefa-vazio">Pedido sem vinculo com loja: foi criado no hub ou pelo ERP.</p>
+      {% endcomponente %}
+    {% endfor %}
+
+    {% if ver_tarefas %}
+      {% for webhook in webhooks %}
+        {% componente "card" titulo="Webhook recebido" subtitulo=webhook.tarefa.created_at|date:"d/m/Y H:i:s" icone="history" %}
+          <dl class="tarefa-dados">
+            <dt>Loja</dt><dd>{{ webhook.tarefa.configuracao }}</dd>
+            <dt>Etapa</dt><dd>{{ webhook.tarefa.etapa }}</dd>
+            <dt>Status</dt><dd>{{ webhook.tarefa.get_status_display }} &middot; <a href="{{ webhook.url }}">abrir a tarefa</a></dd>
+          </dl>
+          {% if webhook.corpo %}<pre class="tarefa-json">{{ webhook.corpo }}</pre>{% else %}<p class="tarefa-vazio">Sem corpo guardado.</p>{% endif %}
+        {% endcomponente %}
+      {% empty %}
+        {% componente "card" titulo="Webhooks recebidos" icone="history" %}
+          <p class="tarefa-vazio">Nenhum webhook deste pedido nas tarefas. Pedido importado pela sincronizacao nao passa por webhook.</p>
+        {% endcomponente %}
+      {% endfor %}
+      {% if webhooks|length >= limite_webhooks %}
+        {% componente "alert" tom="info" icone="info" %}Mostrando os {{ limite_webhooks }} webhooks mais recentes.{% endcomponente %}
+      {% endif %}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

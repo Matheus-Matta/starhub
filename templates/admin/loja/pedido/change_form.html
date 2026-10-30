@@ -1,0 +1,5 @@
+{% extends "admin/change_form.html" %}
+{# Botao "JSON" (apps/loja/admin/pedidos_json.py): so com o pedido ja salvo. #}
+{% block object-tools-items %}{{ block.super }}
+  {% if change and url_json %}<li><a href="{{ url_json }}">{% icone "file-text" "icon-sm" %} JSON</a></li>{% endif %}
+{% endblock %}

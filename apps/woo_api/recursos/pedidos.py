@@ -2,6 +2,7 @@ from django.utils import timezone
 
 from apps.loja.models import Cliente, Pedido
 from apps.loja.services.pedidos import gravar_endereco_do_pedido, gravar_transacao
+from apps.loja.services.pedidos_status import aplicar_datas_do_status
 from apps.loja.totais import recalcular_totais
 from apps.woo_api import datas
 from apps.woo_api.erros import WooErro
@@ -43,17 +44,7 @@ def _aplicar_status(pedido, dados):
         pedido.paid_at = pedido.paid_at or agora
         if pedido.status in ("pending", "on-hold", "failed"):
             pedido.status = Pedido.Status.PROCESSANDO
-    # Igual ao Woo: chegar em processando/concluido marca a data de pagamento.
-    if pedido.status in Pedido.PAGOS:
-        pedido.paid_at = pedido.paid_at or agora
-        pedido.financial_status = Pedido.StatusFinanceiro.PAGO
-        if pedido.cliente_id:
-            Cliente.objects.filter(pk=pedido.cliente_id).update(cliente_pagante=True)
-    if pedido.status == Pedido.Status.CONCLUIDO:
-        pedido.fulfilled_at = pedido.fulfilled_at or agora
-        pedido.fulfillment_status = Pedido.StatusEntrega.ATENDIDO
-    if pedido.status == Pedido.Status.CANCELADO:
-        pedido.cancelled_at = pedido.cancelled_at or agora
+    aplicar_datas_do_status(pedido)
 
 
 class PedidoRecurso(Recurso):

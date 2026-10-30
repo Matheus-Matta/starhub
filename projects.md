@@ -1205,7 +1205,14 @@ da conta e token ficam na configuracao da conta do StarHub, e o token e criptogr
 - **Produto:** preco, SKU e estoque ficam na `VarianteProduto`; produto simples tem
   uma variante padrao (`criar_produto(nome, sku=..., price=...)`).
 - **Pedido:** enderecos sao copias proprias (`core.Address`), nunca o endereco vivo
-  do cliente; o item guarda nome/SKU/preco vendidos.
+  do cliente; o item guarda nome/SKU/preco vendidos. O botao **JSON** na edicao do
+  pedido (`apps/loja/admin/pedidos_json.py`) mostra, so leitura, o JSON que o ERP recebe
+  no GET `/wc/v3/orders/<id>`, o `metadata` de cada vinculo e os 20 webhooks de pedido
+  mais recentes cujo corpo traz o id externo (corpo so para quem ve Tarefas). Na lista,
+  as acoes **Mudar status para ...** (`apps/loja/admin/pedidos_status.py`) salvam um
+  pedido por vez com `mudar_status` (`apps/loja/services/pedidos_status.py`): lock,
+  datas iguais as da API Woo e `save()`, entao StarChats, notificacoes e o envio as
+  lojas ficam sabendo.
 
 - Dinheiro: `apps/loja/dinheiro.py`. `dinheiro()` arredonda uma vez, na entrada,
   e recusa float. O total do pedido e a soma das linhas ja arredondadas
