@@ -68,6 +68,22 @@ def test_cpf_e_cnpj_com_mascara_sao_gravados_so_com_digitos(admin_logado, conta)
     )
 
 
+@pytest.mark.parametrize(("campo", "mascarado"), [
+    ("cpf", "529.982.247-25"), ("cnpj", "11.222.333/0001-81"), ("cep_inicial", "20000-000"),
+])
+def test_campo_so_digitos_deixa_digitar_o_valor_com_a_mascara(campo, mascarado):
+    """O maxlength do model (CEP = 8) cortava "20000-000" no navegador em 7 digitos."""
+    from apps.core.ui.entradas import CampoSoDigitos
+
+    tamanho = {"cpf": 11, "cnpj": 14, "cep_inicial": 8}[campo]
+    form_field = CampoSoDigitos(max_length=tamanho)
+    maxlength = form_field.widget.attrs.get("maxlength")
+    assert maxlength is None or int(maxlength) >= len(mascarado)
+    assert len(form_field.clean(mascarado)) == tamanho
+    with pytest.raises(ValidationError):
+        form_field.clean(mascarado + "9")
+
+
 @pytest.mark.django_db
 def test_documento_e_telefone_invalidos_voltam_como_erro_no_campo(admin_logado, conta):
     resposta = admin_logado.post("/admin/loja/cliente/add/", {

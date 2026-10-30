@@ -104,6 +104,13 @@ class CampoSoDigitos(forms.CharField):
     def to_python(self, value):
         return re.sub(r"\D", "", super().to_python(value) or "")
 
+    def widget_attrs(self, widget):
+        # O maxlength do model conta so digitos; no navegador ele cortava o valor ja
+        # mascarado ("20000-000" virava 7 digitos). O limite segue valendo no servidor.
+        attrs = super().widget_attrs(widget)
+        attrs.pop("maxlength", None)
+        return attrs
+
 
 def _chave(mapa, db_field):
     return mapa.get(f"{db_field.model.__name__}.{db_field.name}", mapa.get(db_field.name))
