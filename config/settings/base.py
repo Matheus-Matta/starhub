@@ -148,6 +148,11 @@ STARHUB_URL_PUBLICA = env("STARHUB_URL_PUBLICA", "")
 # Traz dado de cliente: ligue so enquanto investiga uma integracao em prod.
 LOG_CORPO_INTEGRACOES = env("LOG_CORPO_INTEGRACOES", "0") == "1"
 
+# Cada faixa de CEP da tabela de frete manda ~7 campos no POST do admin: com o padrao
+# (1000) uma tabela com mais de ~140 faixas respondia 400 e nao salvava. 10000 cobre
+# ~1400 faixas; acima disso, "Importar planilha" na lista de tabelas.
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=int(env("JWT_ACESSO_DIAS", "7"))),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),

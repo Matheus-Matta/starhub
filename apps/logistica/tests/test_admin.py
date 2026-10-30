@@ -81,3 +81,15 @@ def test_simular_mostra_valor_prazo_e_km(admin_logado):
     assert "R$ 865,60" in html and "432.8 km" in html and "2 dias uteis" in html
     assert "Simular cotacao" in admin_logado.get(
         reverse("admin:logistica_tabelafrete_change", args=[tabela.pk])).content.decode()
+
+
+def test_tabela_com_muitas_faixas_salva_sem_estourar_o_limite_de_campos(admin_logado,
+                                                                        conta_do_form):
+    """Cada faixa manda ~7 campos no navegador: com o limite padrao (1000) do Django, uma tabela com
+    mais de ~140 faixas respondia 400 (TooManyFieldsSent) e nao salvava mais."""
+    linhas = [(f"{n:05d}-000", f"{n:05d}-999", "15") for n in range(10000, 10400)]
+    resposta = admin_logado.post(ADD, {**conta_do_form, "nome": "RJ", "tipo": "faixa_cep",
+                                       "prazo_dias": "3", "taxa_fixa": "0",
+                                       "valor_minimo": "0", **_faixas(*linhas)})
+    assert resposta.status_code == 302
+    assert FaixaCep.objects.count() == 400
