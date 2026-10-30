@@ -1,6 +1,7 @@
 # Gera as imagens da marca a partir de static/starhub/img/logo.png e favicon.png
 # (fundo transparente): favicon-32/192, apple-touch-icon, marca-64 (simbolo),
-# logo-600 e logo-600-escuro ("Star" em branco para o tema escuro).
+# logo-600-escuro (o logo.png como veio, "Star" claro) e logo-600 ("Star" em
+# azul-marinho para o tema claro, onde o claro sumiria no fundo branco).
 # Uso: powershell -File scripts/gerar_marca.ps1   (troque os PNGs de origem e rode de novo)
 Add-Type -AssemblyName System.Drawing
 $img = Join-Path $PSScriptRoot "..\static\starhub\img"
@@ -53,18 +54,20 @@ foreach ($t in 32, 64, 180, 192) {
   $s.Save("$img\$nome", [System.Drawing.Imaging.ImageFormat]::Png); $s.Dispose()
 }
 
-# Logo: recortado, 600px de largura; e a versao para o tema escuro ("Star" em branco).
+# Logo: recortado, 600px de largura; e a versao para o tema claro ("Star" azul-marinho).
 $logo = New-Object System.Drawing.Bitmap("$img\logo.png")
 $cortado = Cortar $logo
 $alt = [int](600 * $cortado.Height / $cortado.Width)
 $pequeno = Redimensionar $cortado 600 $alt
-$pequeno.Save("$img\logo-600.png", [System.Drawing.Imaging.ImageFormat]::Png)
+$pequeno.Save("$img\logo-600-escuro.png", [System.Drawing.Imaging.ImageFormat]::Png)
 for ($y = 0; $y -lt $pequeno.Height; $y++) { for ($x = 0; $x -lt $pequeno.Width; $x++) {
   $p = $pequeno.GetPixel($x, $y)
-  # Azul-marinho do "Star" (escuro e pouco saturado); o gradiente do "Hub" fica.
-  if ($p.A -gt 0 -and $p.R -lt 70 -and $p.G -lt 70 -and $p.B -lt 120 -and ($p.B - $p.R) -lt 90) {
-    $pequeno.SetPixel($x, $y, [System.Drawing.Color]::FromArgb($p.A, 245, 247, 250))
+  $menor = [Math]::Min($p.R, [Math]::Min($p.G, $p.B))
+  $maior = [Math]::Max($p.R, [Math]::Max($p.G, $p.B))
+  # "Star" claro e sem cor (cinza-branco); o gradiente do "Hub" e saturado e fica.
+  if ($p.A -gt 0 -and $menor -gt 170 -and ($maior - $menor) -lt 30) {
+    $pequeno.SetPixel($x, $y, [System.Drawing.Color]::FromArgb($p.A, 4, 23, 73))
   } } }
-$pequeno.Save("$img\logo-600-escuro.png", [System.Drawing.Imaging.ImageFormat]::Png)
+$pequeno.Save("$img\logo-600.png", [System.Drawing.Imaging.ImageFormat]::Png)
 "logo ${alt}px de altura; simbolo ${lado}px"
 Get-ChildItem $img -Filter *.png | Select-Object Name, Length | Format-Table -AutoSize | Out-String
