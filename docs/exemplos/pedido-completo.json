@@ -32,8 +32,14 @@
     "phone": "+5511999999999",
     "number": "100",
     "neighborhood": "Centro",
+    "persontype": "F",
     "cpf": "12345678900",
-    "persontype": "1"
+    "rg": "",
+    "cnpj": "",
+    "ie": "",
+    "birthdate": "",
+    "gender": "",
+    "cellphone": ""
   },
   "shipping": {
     "first_name": "Maria",

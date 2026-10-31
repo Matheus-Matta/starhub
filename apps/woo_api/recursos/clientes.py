@@ -52,7 +52,7 @@ class ClienteRecurso(Recurso):
             "last_name": obj.sobrenome,
             "role": obj.papel,
             "username": obj.usuario,
-            "billing": enderecos.saida(endereco_do_cliente(obj, "billing"), "billing"),
+            "billing": enderecos.saida(endereco_do_cliente(obj, "billing"), "billing", obj),
             "shipping": enderecos.saida(endereco_do_cliente(obj, "shipping"), "shipping"),
             "is_paying_customer": obj.cliente_pagante,
             "avatar_url": obj.avatar_url,

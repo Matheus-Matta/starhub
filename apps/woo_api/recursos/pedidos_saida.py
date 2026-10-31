@@ -56,7 +56,7 @@ def pedido_para_woo(pedido):
         "total_tax": dinheiro_texto(pedido.total_impostos),
         "customer_id": pedido.cliente_id or 0,
         "order_key": pedido.chave,
-        "billing": enderecos.saida(pedido.endereco_cobranca, "billing"),
+        "billing": enderecos.saida(pedido.endereco_cobranca, "billing", pedido.cliente),
         "shipping": enderecos.saida(pedido.endereco_entrega, "shipping"),
         "payment_method": pedido.forma_pagamento,
         "payment_method_title": pedido.forma_pagamento_titulo,

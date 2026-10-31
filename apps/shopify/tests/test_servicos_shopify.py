@@ -30,6 +30,8 @@ def _sem_rede(monkeypatch):
         raise AssertionError("chamada de rede a Shopify num teste")
 
     monkeypatch.setattr("apps.shopify.cliente.ShopifyClient.graphql", recusar)
+    # O CPF do checkout tem os testes dele (test_pedidos_enderecos, test_cpf_do_shopify).
+    monkeypatch.setattr("apps.shopify.pedidos.completar_documento", lambda dados: dados)
 
 
 @pytest.fixture

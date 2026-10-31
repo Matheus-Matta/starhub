@@ -59,7 +59,7 @@ class PedidoRecurso(Recurso):
 
     def queryset(self):
         return Pedido.objects.select_related(
-            "endereco_cobranca", "endereco_entrega"
+            "endereco_cobranca", "endereco_entrega", "cliente"
         ).prefetch_related("itens__produto__midias__variante", "pagamentos")
 
     def filtrar(self, qs, params):

@@ -2,23 +2,34 @@
 
     address1 "Rua das Flores, 100"   -> address_1 "Rua das Flores", number "100"
     address2 "Apto 10, Centro"       -> neighborhood "Centro"
-    note_attributes customer_document -> cpf "12345678900", persontype "1"
+    localizationExtensions (TAX, BR) -> cpf "12345678900", persontype "1"
+    (sem ele, note_attributes customer_document)
 """
 
 import re
+import unicodedata
 
 from apps.core.models import Address
 from apps.loja.services.enderecos import COLUNAS
 from apps.loja.services.pedidos import gravar_endereco_do_pedido
 from apps.loja.validators import somente_digitos
 from apps.shopify.pedidos_base import atributo
+from apps.shopify.pedidos_documento import documento_localizado
 
 _NUMERO_NO_FIM = re.compile(r"^(?P<rua>.*?)[,\s]+(?:n[º°o.]*\s*)?(?P<numero>\d+[a-zA-Z]?)\s*$")
 
 
+def _sem_invisiveis(texto):
+    """Tira U+2060, zero-width e afins (categoria Cf) que o checkout cola no texto: com
+    eles o numero nao e achado no fim do endereco e o ERP recebe o bairro sujo."""
+    if not isinstance(texto, str):
+        return texto
+    return "".join(c for c in texto if unicodedata.category(c) != "Cf")
+
+
 def documento(dados):
-    bruto = atributo(dados, ("customer_document", "cpf", "billing_cpf", "document"),
-                     contem=("cpf", "document"))
+    bruto = documento_localizado(dados) or atributo(
+        dados, ("customer_document", "cpf", "billing_cpf", "document"), contem=("cpf", "document"))
     return somente_digitos(bruto)
 
 
@@ -53,7 +64,8 @@ def _cortado(dados):
 
 def endereco_woo(dados, tipo, reserva=None):
     """shipping usa a cobranca (`reserva`) para o que faltar de numero e bairro."""
-    origem = dados.get(f"{tipo}_address") or {}
+    origem = {chave: _sem_invisiveis(valor)
+              for chave, valor in (dados.get(f"{tipo}_address") or {}).items()}
     if not any(origem.values()):
         return {}
     reserva = reserva or {}

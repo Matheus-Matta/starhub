@@ -18,6 +18,7 @@ from apps.loja.totais import recalcular_totais
 from apps.shopify.pedidos_base import data, ids_do_pedido
 from apps.shopify.pedidos_cliente import cliente_do_pedido
 from apps.shopify.pedidos_cupons import gravar_cupons
+from apps.shopify.pedidos_documento import completar_documento, gravar_documento_do_cliente
 from apps.shopify.pedidos_enderecos import documento, gravar_enderecos, tipo_pessoa
 from apps.shopify.pedidos_entrega import entrega_do_pedido, gravar_frete
 from apps.shopify.pedidos_itens import gravar_itens
@@ -99,14 +100,20 @@ def _extras(dados, numero_externo, loja, cupons, servicos):
     }
 
 
-@transaction.atomic
 def importar_pedido(dados, loja=None):
     """`loja`: dominio da loja Shopify para o link do admin; sem ele, o da configuracao."""
+    # Fora da transacao: a consulta ao Shopify nao segura o lock do pedido.
+    return _importar(completar_documento(dados), loja)
+
+
+@transaction.atomic
+def _importar(dados, loja):
     externo, numero_externo = ids_do_pedido(dados)
     pedido, criado = _pedido_da_linha(dados, externo, numero_externo)
     # Lock e releitura: o que foi lido antes do lock pode ser de outro webhook.
     pedido = Pedido.objects.select_for_update().get(pk=pedido.pk)
     _campos_do_pedido(pedido, dados, externo, numero_externo)
+    gravar_documento_do_cliente(pedido.cliente, documento(dados), dados.get("name") or "")
     aplicar_status(pedido, dados)
     gravar_enderecos(pedido, dados)
     gravar_frete(pedido, dados)

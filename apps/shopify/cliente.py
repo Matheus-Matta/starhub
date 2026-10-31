@@ -18,12 +18,12 @@ class ShopifyErro(RuntimeError):
 
 
 class ShopifyClient:
-    def __init__(self, configuracao, timeout=30):
+    def __init__(self, configuracao, timeout=30, versao=None):
         self.configuracao = configuracao
         self.timeout = timeout
         self.endpoint = (
             f"https://{configuracao.dominio_loja}/admin/api/"
-            f"{configuracao.versao_api}/graphql.json"
+            f"{versao or configuracao.versao_api}/graphql.json"
         )
 
     def graphql(self, query, variables=None):

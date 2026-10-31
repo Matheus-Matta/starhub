@@ -71,8 +71,14 @@ alteração foram fixados.
     "phone": "+5511999999999",
     "number": "100",
     "neighborhood": "Centro",
+    "persontype": "F",
     "cpf": "12345678900",
-    "persontype": "1"
+    "rg": "",
+    "cnpj": "",
+    "ie": "",
+    "birthdate": "",
+    "gender": "",
+    "cellphone": ""
   },
   "shipping": {
     "first_name": "Maria",
@@ -285,8 +291,13 @@ Os campos do Woo (`first_name`, `last_name`, `company`, `address_1`, `address_2`
 | `number` | os dois | Número do endereço. |
 | `neighborhood` | os dois | Bairro. |
 | `email` | só `billing` | E-mail do cliente. |
-| `cpf` | só `billing` | CPF ou CNPJ, só dígitos. |
-| `persontype` | só `billing` | `"1"` pessoa física (CPF), `"2"` pessoa jurídica (CNPJ). |
+| `persontype` | só `billing` | `"F"` pessoa física (CPF), `"J"` pessoa jurídica (CNPJ). |
+| `cpf` | só `billing` | CPF, só dígitos. Vazio no endereço: vem do cadastro do cliente. |
+| `cnpj` | só `billing` | CNPJ, só dígitos. |
+| `rg`, `ie`, `birthdate`, `gender`, `cellphone` | só `billing` | Sempre presentes (vazios quando não há). |
+
+As chaves e a ordem são as do WooCommerce com o plugin Brazilian Market: o
+`billing` sempre traz todas, e o `shipping` nunca traz documento.
 
 ## meta_data do pedido
 

@@ -484,7 +484,14 @@ de `regular_price`, `sale_price` e `stock_quantity`. Filtros/corpos aparecem no 
 - Dinheiro sai como texto com 2 casas (`"19.90"`). Numero no JSON de entrada
   (`19.9`) e lido como Decimal, nunca como float.
 - `billing`/`shipping` guardam campos extras (cpf, cnpj, number, neighborhood)
-  do plugin Brazilian Market e os devolvem iguais.
+  do plugin Brazilian Market e os devolvem iguais. Na saida as chaves seguem o Woo
+  com o plugin (`apps/woo_api/recursos/enderecos.py`): billing sempre com
+  persontype (F/J), cpf, rg, cnpj, ie, birthdate, gender, cellphone; shipping so
+  com phone, number e neighborhood. CPF vazio no endereco sai o do cliente.
+- Pedido do Shopify: o CPF/CNPJ do checkout vem de `Order.localizationExtensions`
+  (purpose TAX, BR), que o webhook e a sincronizacao nao trazem.
+  `apps/shopify/pedidos_documento.py` busca na API 2024-01 a cada pedido importado,
+  grava no billing do pedido e, se o cadastro do cliente nao tem documento, nele.
 - Servicos do pedido (montagem, impermeabilizacao...) ficam em
   `starhub.servicos` do pedido. No GET de `orders` cada servico sai no
   `line_items[].meta_data` do seu item duas vezes: `{"key": "starhub", ...}` e
