@@ -492,6 +492,9 @@ de `regular_price`, `sale_price` e `stock_quantity`. Filtros/corpos aparecem no 
   (purpose TAX, BR), que o webhook e a sincronizacao nao trazem.
   `apps/shopify/pedidos_documento.py` busca na API 2024-01 a cada pedido importado,
   grava no billing do pedido e, se o cadastro do cliente nao tem documento, nele.
+  Pedidos antigos sem CPF: acao "Buscar CPF no Shopify (segundo plano)" na lista de
+  pedidos cria a tarefa "Buscar CPF dos pedidos" (`pedidos_documento_lote.py`), que
+  consulta de 20 em 20 no worker e so preenche o que esta vazio.
 - Servicos do pedido (montagem, impermeabilizacao...) ficam em
   `starhub.servicos` do pedido. No GET de `orders` cada servico sai no
   `line_items[].meta_data` do seu item duas vezes: `{"key": "starhub", ...}` e

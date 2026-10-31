@@ -60,6 +60,21 @@ def verificar_frete_shopify(execucao_id):
 
 
 @shared_task
+def preencher_cpf_shopify(execucao_id):
+    from apps.shopify.pedidos_documento_lote import preencher_documentos
+
+    parametros = ExecucaoIntegracao.all_objects.filter(pk=execucao_id).values_list(
+        "parametros", flat=True
+    ).first() or {}
+
+    def preencher(configuracao, progresso):
+        # Sem lista: todos os pedidos do Shopify que ainda estao sem CPF.
+        return preencher_documentos(configuracao, progresso, parametros.get("pedidos"))
+
+    return _executar(execucao_id, preencher)
+
+
+@shared_task
 def exportar_servicos_shopify(execucao_id):
     from apps.shopify.servicos_exportar import exportar_servicos
 

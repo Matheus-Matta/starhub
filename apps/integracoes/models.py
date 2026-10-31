@@ -138,6 +138,7 @@ class ExecucaoIntegracao(BaseModel):
         FRETE_CHECKOUT = "carrier", "Cadastrar frete no checkout"
         VERIFICAR_FRETE = "carrier_check", "Verificar frete no checkout"
         ENCAMINHAR = "forward", "Encaminhar pedido a loja"
+        CPF_PEDIDOS = "fill_documents", "Buscar CPF dos pedidos"
 
     class Status(models.TextChoices):
         PENDENTE = "pending", "Pendente"

@@ -19,6 +19,7 @@ from apps.loja.admin import campos
 from apps.loja.admin.codigo_externo import SEM_CODIGO
 from apps.loja.admin.detalhes import itens_do_pedido
 from apps.loja.admin.enderecos import EnderecosForm, secao_endereco
+from apps.loja.admin.pedidos_cpf import buscar_cpf_no_shopify
 from apps.loja.admin.pedidos_inlines import EntregaInline, ItemPedidoInline, PagamentoInline
 from apps.loja.admin.pedidos_json import PedidoJsonMixin
 from apps.loja.admin.pedidos_status import ACOES_STATUS
@@ -69,7 +70,7 @@ class PedidoAdmin(PedidoJsonMixin, TemaModelAdmin):
     list_select_related = ["cliente"]
     autocomplete_fields = ["cliente"]
     inlines = [ItemPedidoInline, PagamentoInline, EntregaInline]
-    actions = ACOES_STATUS
+    actions = [*ACOES_STATUS, buscar_cpf_no_shopify]
     condicoes = {
         "cancelled_at": {"campo": "status", "em": ["cancelled"]},
         "paid_at": {"campo": "financial_status", "em": [
