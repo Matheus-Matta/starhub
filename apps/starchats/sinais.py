@@ -24,7 +24,9 @@ def cliente_salvo(sender, instance, created, raw=False, **kwargs):
 
 
 def pedido_salvo(sender, instance, created, raw=False, **kwargs):
-    if not raw:
+    # Desativado nao manda mensagem; a reativacao (_sem_envio) tambem nao e novidade
+    # para o cliente.
+    if not raw and instance.active and not getattr(instance, "_sem_envio", False):
         acao = "criado" if created else "alterado"
         _agendar(instance, f"pedido.{acao}")
 

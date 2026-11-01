@@ -4,9 +4,10 @@ Como no Woo: linha com "id" altera a existente, sem "id" cria. Para remover uma
 linha, mande o "id" com "quantity": 0 (itens) ou "method_id"/"name" nulo (frete/taxa).
 """
 
-from apps.loja.dinheiro import ValorInvalido, dinheiro
+from apps.loja.dinheiro import ZERO, ValorInvalido, dinheiro
 from apps.loja.dinheiro import texto as dinheiro_texto
 from apps.loja.models import ItemPedido, Produto, VarianteProduto
+from apps.loja.services.extras_pedido import somados_por_item
 from apps.loja.services.servicos import ServicoDesconhecido, do_erp
 from apps.loja.totais import valores_do_item
 from apps.woo_api import metadados
@@ -52,7 +53,7 @@ def _variante(produto, id_variacao):
     return produto.variante_padrao
 
 
-def _gravar_item(pedido, linha, item):
+def _gravar_item(pedido, linha, item, somado=ZERO):
     quantidade = inteiro(linha.get("quantity", item.quantidade), "line_items")
     item.id_variacao = inteiro(linha.get("variation_id", item.id_variacao) or 0, "line_items")
     if "product_id" in linha or "variation_id" in linha or item.pk is None:
@@ -70,6 +71,10 @@ def _gravar_item(pedido, linha, item):
     recalcular = item.pk is None or "quantity" in linha or "product_id" in linha
     subtotal = _valor(linha, "subtotal", "line_items")
     total = _valor(linha, "total", "line_items")
+    # O GET tira do item o servico que o hub somou nele (pedidos_saida.py): o ERP
+    # devolve sem; somado de volta, o total do pedido nao cai a cada PUT.
+    subtotal = None if subtotal is None else subtotal + somado
+    total = None if total is None else total + somado
     if recalcular or subtotal is not None or total is not None:
         preco = item.variante.current_price if item.variante else None
         item.subtotal, item.total = valores_do_item(preco, quantidade, subtotal, total)
@@ -100,6 +105,7 @@ def gravar_itens(pedido, dados):
     """Grava os itens e devolve {item_id: servicos} das linhas que trouxeram servicos."""
     por_item = {}
     existentes = {item.pk: item for item in pedido.itens.all()}
+    somados = somados_por_item(pedido)
     for linha in _lista(dados, "line_items"):
         if linha.get("id"):
             item = existentes.get(inteiro(linha["id"], "line_items"))
@@ -111,7 +117,7 @@ def gravar_itens(pedido, dados):
                 continue
         else:
             item = ItemPedido()
-        servicos = _gravar_item(pedido, linha, item)
+        servicos = _gravar_item(pedido, linha, item, somados.get(item.pk, ZERO))
         if servicos is not None:
             por_item[item.pk] = servicos
     return por_item

@@ -1,9 +1,11 @@
 from django.contrib import admin
 from django.template.loader import render_to_string
+from django.utils.html import format_html
 
 from apps.core.admin_base import TemaModelAdmin
 from apps.core.admin_utils import (
     acoes_da_linha,
+    badge,
     badge_status,
     imagem_principal,
     na_listagem,
@@ -25,6 +27,23 @@ from apps.loja.models import Produto, VarianteProduto
 UNICA = ["simple", "external", "grouped", "bundle"]
 
 
+class FiltroStatusProduto(admin.SimpleListFilter):
+    """Status do produto e, no mesmo filtro, "Inativo" (active=False: fora das lojas,
+    ex. o produto que o ERP criou), que nao e um status do Woo."""
+
+    title = "status"
+    parameter_name = "status"
+    INATIVO = "inativo"
+
+    def lookups(self, request, model_admin):
+        return [*Produto.Status.choices, (self.INATIVO, "Inativo")]
+
+    def queryset(self, request, queryset):
+        if self.value() == self.INATIVO:
+            return queryset.filter(active=False)
+        return queryset.filter(status=self.value()) if self.value() else queryset
+
+
 @admin.register(Produto)
 class ProdutoAdmin(CodigoExternoMixin, TemaModelAdmin):
     entidade_externa = "produtos"
@@ -35,8 +54,8 @@ class ProdutoAdmin(CodigoExternoMixin, TemaModelAdmin):
     ]
     list_display_links = ["produto_info"]
     list_filter = [
-        ("created_at", FiltroPeriodo), "status", "variantes__stock_status", "tipo", "destaque",
-        "categorias", "origin",
+        ("created_at", FiltroPeriodo), FiltroStatusProduto, "variantes__stock_status", "tipo",
+        "destaque", "categorias", "origin",
     ]
     search_fields = ["nome", "variantes__sku", "variantes__barcode", "slug"]
     list_per_page = 25
@@ -56,7 +75,7 @@ class ProdutoAdmin(CodigoExternoMixin, TemaModelAdmin):
     }
     fieldsets = [
         ("Geral", {"fields": [
-            ("nome", "slug"), ("tipo", "status"), ("visibilidade", "destaque"),
+            ("nome", "slug"), ("tipo", "status"), ("visibilidade", "destaque"), "active",
             ("fornecedor", "marca"), "categoria", "categorias", "tags",
         ]}),
         # secao-variantes: condicoes acima; secao-lista: desenho da lista (lista-modal.css).
@@ -130,4 +149,8 @@ class ProdutoAdmin(CodigoExternoMixin, TemaModelAdmin):
 
     @admin.display(description="status", ordering="status")
     def status_badge(self, obj):
-        return badge_status(obj.status, obj.get_status_display())
+        status = badge_status(obj.status, obj.get_status_display())
+        if obj.active:
+            return status
+        # Inativo nao vai as lojas (loja/services/inativos.py): ex. o que o ERP criou.
+        return format_html('<span class="nowrap">{} {}</span>', status, badge("Inativo"))

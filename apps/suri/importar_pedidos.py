@@ -16,6 +16,7 @@ from apps.loja.dinheiro import ZERO, texto
 from apps.loja.models import PagamentoPedido, Pedido
 from apps.loja.services.extras_pedido import mesclar_extras
 from apps.loja.services.pedidos import gravar_endereco_do_pedido, gravar_transacao
+from apps.loja.services.pedidos_ativos import ignorar_entrada
 from apps.loja.services.servicos_automaticos import completar as servicos_automaticos
 from apps.loja.totais import recalcular_totais
 from apps.suri import vinculos
@@ -115,6 +116,8 @@ def importar_pedido(dados):
     pedido, criado = _pedido_da_linha(dados)
     # Lock e releitura: o que foi lido antes do lock pode ser de outro webhook.
     pedido = Pedido.objects.select_for_update().get(pk=pedido.pk)
+    if ignorar_entrada(pedido, "suri"):
+        return pedido, False
     comprador = dados.get("customer") or {}
     pedido.email = (comprador.get("email") or pedido.email)[:254]
     pedido.telefone = str(comprador.get("phone") or pedido.telefone)[:30]

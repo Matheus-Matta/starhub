@@ -463,6 +463,14 @@ Base: `/wp-json/wc/v1/`. Sem barra no final, como no WordPress (com barra tambem
 A integracao tambem aceita produtos e categorias em `/wp-json/wc/v3/products`: consulta,
 categorias podem ser criadas e alteradas, mas produtos existentes aceitam somente alteracao
 de `regular_price`, `sale_price` e `stock_quantity`. Filtros/corpos aparecem no terminal.
+O SKU localiza o produto (`apps/woo_api/recursos/produtos_sku.py`): `POST products`
+(o ERP manda `id` 0 quando nao sabe o id) com um `sku` que o hub tem atualiza preco e
+estoque daquela variante e devolve 201 com o produto e o `id`. SKU que o hub nao tem
+cria um produto **simples, inativo e em rascunho** so com nome, SKU, precos e estoque
+(201 com o `id`); inativo nao vai a loja nenhuma ate o operador completar e ativar
+(secao 7.2). Sem `sku`, continua 404 `rest_no_route`. No `PUT products/<id>` o `sku`
+escolhe a variante so dentro do produto da URL; SKU de fora (ex.: o codigo do ERP) cai
+na variante padrao, como antes. O lote (`batch`) continua recusando `create`.
 
 | Recurso | Lista / cria | Le / altera / exclui | Lote |
 | --- | --- | --- | --- |
@@ -495,12 +503,29 @@ de `regular_price`, `sale_price` e `stock_quantity`. Filtros/corpos aparecem no 
   Pedidos antigos sem CPF: acao "Buscar CPF no Shopify (segundo plano)" na lista de
   pedidos cria a tarefa "Buscar CPF dos pedidos" (`pedidos_documento_lote.py`), que
   consulta de 20 em 20 no worker e so preenche o que esta vazio.
+- Pedido do Shopify gravado errado no hub (ex.: sem itens, o ERP acusa "Total calculado
+  R$ 0.00 difere do total do pedido"): acao "Reimportar do Shopify (segundo plano)" na
+  lista de pedidos, tarefa "Reimportar pedidos do Shopify" (`apps/shopify/
+  pedidos_reimportar.py`, mesmos campos da sincronizacao, 3 por consulta). So leitura na
+  loja; status, itens e totais voltam a ser os do Shopify, entao confira o status de
+  pedido que o operador mudou a mao (cancelado no hub e pago na loja volta a pago).
+- Pedido desativado no hub (secao 8) sai da lista do ERP (nao e importado de novo). Pelo
+  id, GET, PUT, lote e DELETE respondem 200 com o pedido como esta e nao gravam nada: o
+  ERP que ja o conhecia (ex.: mandando o cancelamento) nao fica registrando erro.
 - Servicos do pedido (montagem, impermeabilizacao...) ficam em
   `starhub.servicos` do pedido. No GET de `orders` cada servico sai no
   `line_items[].meta_data` do seu item duas vezes: `{"key": "starhub", ...}` e
   `epofw_field_<n>` no formato do plugin EPOFW (value em texto JSON), que e o que
   o ERP le (`apps/woo_api/recursos/pedidos_epofw.py`). Na volta os dois formatos
   sao aceitos; vindo os dois, vale o `starhub`, sem duplicar.
+- **Servico somado fora do item no GET** (`pedidos_saida.pedido_para_woo`): o servico
+  que o hub somou no item (`"somado": true`, linha propria no Shopify/Suri) sai do
+  `subtotal`, `total` e `price` daquele item, porque o ERP soma o servico do EPOFW ao
+  item e contava duas vezes. So nesses casos: servico so informado no item (sem
+  `somado`) e automatico nao mudam nada. O `total` do pedido continua o pago. No PUT o
+  hub soma o servico de volta no `subtotal`/`total` recebido do item e mantem a marca
+  `somado` (`pedidos_meta._manter_somado`), entao reenviar o que o GET deu nao baixa o
+  total. O envio a loja WooCommerce (`pedidos_legado.py`) usa `servico_no_item=True`.
 - Cada servico sai com `id`, `nome`, `sku`, `preco` e `opcao`. `id` e `sku` sao do
   **cadastro de Servicos** (`Servico`, Loja > Servicos), nao de Produto (produto
   vai para a loja como item a venda). Servico sem cadastro nasce na hora
@@ -753,6 +778,14 @@ No marketplace, `EnviadorRecurso.enviar` (base) trava a linha canonica
 (`select_for_update`) e rele o vinculo (`ExternalReference`) depois do lock: com
 vinculo atualiza; sem vinculo cria e vincula (em `update`, so se `Enviar > criar`
 estiver ligado); `delete` exclui e desfaz o vinculo.
+
+**Inativo fica so no hub** (`apps/loja/services/inativos.py`): pedido desativado e
+produto inativo (com as variantes e o estoque dele) nao entram na fila nem saem por
+envio ja enfileirado ou Retomar ("ignorado: registro inativo no hub"). Ativar o produto
+(switch "ativo" na edicao) e uma alteracao: o envio seguinte cria nas lojas com
+`Enviar > produtos > criar` ligado. A entrada continua: a importacao do Shopify liga o
+produto pelo slug e o ERP segue atualizando pela API Woo. Produto apagado no Shopify
+(webhook de exclusao) tambem fica inativo e para de ir ao Suri e ao Woo.
 
 Nao geram envio (nao disparam signal): `QuerySet.update()`, `bulk_create`,
 `bulk_update`, `tag.produtos.add(...)` pelo lado da tag e filhos fora do mapa
@@ -1223,6 +1256,18 @@ da conta e token ficam na configuracao da conta do StarHub, e o token e criptogr
   pedido por vez com `mudar_status` (`apps/loja/services/pedidos_status.py`): lock,
   datas iguais as da API Woo e `save()`, entao StarChats, notificacoes e o envio as
   lojas ficam sabendo.
+- **Pedido desativado** (`active=False`): fica so no hub, fora de toda integracao
+  (`apps/loja/services/pedidos_ativos.py`). Nao vai a nenhum marketplace (Distribuidor
+  e `EnviadorRecurso.enviar`, inclusive envio que ja estava na fila e Retomar), sai
+  da lista da API Woo do ERP (pelo id responde como esta e o PUT nao grava),
+  webhook e sincronizacao das lojas nao o alteram (a tarefa diz "Pedido desativado no
+  hub: webhook ignorado"), a busca de CPF do Shopify o pula e StarChats e avisos nao
+  disparam. Na lista: acoes **Desativar pedidos** e **Reativar pedidos**, que criam a
+  tarefa "Desativar/reativar pedidos" (`pedidos_ativos_lote.py`, no worker, com barra,
+  falhas e Retomar); filtro "ativo" e badge "Desativado" no status. Reativar nao
+  reenvia nada (o hub pode estar velho, os webhooks foram ignorados): a proxima
+  alteracao real sai normalmente. Pedido apagado na loja (webhook de exclusao do
+  Shopify/Woo) tambem fica desativado, entao segue a mesma regra.
 
 - Dinheiro: `apps/loja/dinheiro.py`. `dinheiro()` arredonda uma vez, na entrada,
   e recusa float. O total do pedido e a soma das linhas ja arredondadas

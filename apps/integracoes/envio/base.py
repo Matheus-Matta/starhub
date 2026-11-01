@@ -8,6 +8,7 @@ do vinculo com o id externo (ExternalReference) e de decidir qual das tres chama
 from django.db import transaction
 
 from apps.core.models import ExternalReference
+from apps.loja.services.inativos import AVISO_ENVIO, fora_das_lojas
 
 
 class EnvioNaoSuportado(Exception):
@@ -93,6 +94,9 @@ class EnviadorRecurso:
         obj = self._carregar(pk)
         if obj is None:
             return "ignorado: o registro nao existe mais no hub"
+        if fora_das_lojas(obj):
+            # Envio que ja estava na fila (ou Retomar) quando o registro ficou inativo.
+            return AVISO_ENVIO
         external_id = self.referencia(pk)
         if external_id:
             # Sem lock: o envio manda o estado atual (valor absoluto), entao envios fora
@@ -104,6 +108,8 @@ class EnviadorRecurso:
             obj = self._carregar_travado(pk)
             if obj is None:
                 return "ignorado: o registro nao existe mais no hub"
+            if fora_das_lojas(obj):
+                return AVISO_ENVIO
             # Relido depois do lock: o envio anterior pode ter acabado de vincular.
             external_id = self.referencia(pk)
             if external_id:

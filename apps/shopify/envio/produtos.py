@@ -24,7 +24,7 @@ CRIAR = """mutation($input: ProductSetInput!) {
 }"""
 ATUALIZAR = """mutation($product: ProductUpdateInput!, $media: [CreateMediaInput!]) {
   productUpdate(product: $product, media: $media) {
-    product { id media(last: 250) { nodes { id } } } userErrors { field message }
+    product { id media(first: 250) { nodes { id } } } userErrors { field message }
   }
 }"""
 ATUALIZAR_VARIANTES = """mutation($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
@@ -84,7 +84,8 @@ class ProdutoShopify(RecursoShopify):
         if imagens:
             variaveis["media"] = midias_shopify.novas(imagens)
         produto = self.mutacao(ATUALIZAR, variaveis, "productUpdate").get("product") or {}
-        # As novas entram no fim da lista de midias do produto, na ordem enviada.
+        # As novas entram no fim da lista de midias do produto, na ordem enviada. first (e
+        # nao last): o Shopify recusa last sem before e o productUpdate inteiro falhava.
         recebidas = _midias(produto)[-len(imagens):] if imagens else []
         midias_shopify.registrar(self, imagens, recebidas, produto_gid)
         vinculos = dict(self.referencias_variantes().filter(

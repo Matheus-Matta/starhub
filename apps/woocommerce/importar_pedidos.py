@@ -16,6 +16,7 @@ from apps.core.models import ExternalReference, Origin
 from apps.loja.models import Cliente, PagamentoPedido, Pedido
 from apps.loja.services.extras_pedido import mesclar_extras
 from apps.loja.services.pedidos import gravar_endereco_do_pedido, gravar_transacao
+from apps.loja.services.pedidos_ativos import ignorar_entrada
 from apps.loja.services.servicos_automaticos import completar as servicos_automaticos
 from apps.loja.totais import recalcular_totais
 from apps.woocommerce import vinculos
@@ -126,6 +127,8 @@ def importar_pedido(dados, loja=""):
     pedido, criado = _pedido_da_linha(dados)
     # Lock e releitura: o que foi lido antes do lock pode ser de outro webhook.
     pedido = Pedido.objects.select_for_update().get(pk=pedido.pk)
+    if ignorar_entrada(pedido, "woocommerce"):
+        return pedido, False
     _campos(pedido, dados)
     for tipo in ("billing", "shipping"):
         limpo = endereco(dados.get(tipo))

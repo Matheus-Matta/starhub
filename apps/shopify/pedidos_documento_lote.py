@@ -39,7 +39,7 @@ CONSULTA_LOTE = """
 
 def pedidos_sem_documento(pedidos=None):
     """Pedidos do Shopify cujo billing nao tem CPF nem CNPJ, com o gid de cada um."""
-    qs = Pedido.objects.filter(origin=Origin.SHOPIFY).exclude(
+    qs = Pedido.objects.filter(origin=Origin.SHOPIFY, active=True).exclude(
         endereco_cobranca__document__gt="")
     if pedidos is not None:
         qs = qs.filter(pk__in=pedidos)
@@ -50,11 +50,11 @@ def pedidos_sem_documento(pedidos=None):
     return sorted((int(pk), gid) for pk, gid in vinculos)
 
 
-def _consultar(cliente, gids):
+def consultar_com_espera(cliente, consulta, gids):
     """nodes(ids) com espera quando o Shopify limita a taxa (THROTTLED)."""
     for tentativa in range(TENTATIVAS):
         try:
-            return cliente.graphql(CONSULTA_LOTE, {"ids": gids}).get("nodes") or []
+            return cliente.graphql(consulta, {"ids": gids}).get("nodes") or []
         except ShopifyErro as erro:
             if "throttled" not in str(erro).casefold() or tentativa == TENTATIVAS - 1:
                 raise
@@ -67,7 +67,7 @@ def _preencher(pedido_id, doc, nome):
     # Lock e releitura: um webhook do mesmo pedido pode ter gravado o CPF no meio.
     pedido = Pedido.objects.select_for_update().select_related(
         "endereco_cobranca", "cliente").get(pk=pedido_id)
-    if pedido.endereco_cobranca and pedido.endereco_cobranca.document:
+    if not pedido.active or (pedido.endereco_cobranca and pedido.endereco_cobranca.document):
         return False
     campo = "cnpj" if len(doc) == 14 else "cpf"
     gravar_endereco_do_pedido(pedido, "billing", {campo: doc, "persontype": tipo_pessoa(doc)})
@@ -84,7 +84,7 @@ def preencher_documentos(configuracao, progresso, pedidos=None):
     progresso(0, total, f"Pedidos sem CPF: 0 de {total}")
     for inicio in range(0, total, LOTE):
         lote = dict((gid, pk) for pk, gid in alvos[inicio:inicio + LOTE])
-        for no in _consultar(cliente, list(lote)):
+        for no in consultar_com_espera(cliente, CONSULTA_LOTE, list(lote)):
             if not no or no.get("id") not in lote:
                 continue  # pedido apagado na loja: nodes devolve null
             doc = somente_digitos(documento_localizado(

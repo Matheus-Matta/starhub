@@ -1,5 +1,6 @@
 """Normaliza e aplica os webhooks recebidos do Shopify."""
 
+from apps.loja.services.pedidos_ativos import AVISO_WEBHOOK, desativado
 from apps.shopify.atualizar import ATUALIZADORES
 from apps.shopify.clientes_webhook import de_webhook
 from apps.shopify.cupons import buscar_desconto
@@ -101,7 +102,9 @@ def processar_webhook(configuracao, recurso, operacao, dados, progresso):
     elif operacao == "update":
         normalizado = _normalizar(recurso, dados)
         obj, alterou = ATUALIZADORES[recurso](normalizado)
-        if alterou:
+        if desativado(obj):
+            mensagem = AVISO_WEBHOOK
+        elif alterou:
             mensagem = "Registro atualizado."
         elif configuracao and configuracao.habilitado("receber", recurso, "create"):
             obj, criado = SINCRONIZADORES[recurso](normalizado)
@@ -114,7 +117,8 @@ def processar_webhook(configuracao, recurso, operacao, dados, progresso):
         else:
             mensagem = "Registro nao encontrado."
     else:
-        _obj, criado = SINCRONIZADORES[recurso](_normalizar(recurso, dados))
-        mensagem = "Registro criado." if criado else "Registro ja existia."
+        obj, criado = SINCRONIZADORES[recurso](_normalizar(recurso, dados))
+        mensagem = (AVISO_WEBHOOK if desativado(obj)
+                    else "Registro criado." if criado else "Registro ja existia.")
     progresso(1, 1, "Webhook processado")
     return mensagem

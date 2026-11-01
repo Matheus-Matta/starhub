@@ -139,6 +139,8 @@ class ExecucaoIntegracao(BaseModel):
         VERIFICAR_FRETE = "carrier_check", "Verificar frete no checkout"
         ENCAMINHAR = "forward", "Encaminhar pedido a loja"
         CPF_PEDIDOS = "fill_documents", "Buscar CPF dos pedidos"
+        ATIVAR_PEDIDOS = "order_active", "Desativar/reativar pedidos"
+        REIMPORTAR_PEDIDOS = "reimport_orders", "Reimportar pedidos do Shopify"
 
     class Status(models.TextChoices):
         PENDENTE = "pending", "Pendente"

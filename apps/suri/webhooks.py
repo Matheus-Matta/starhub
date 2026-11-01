@@ -11,6 +11,7 @@ import logging
 from apps.core.tenant.context import tenant_context
 from apps.integracoes import sincronizacao
 from apps.loja.models import Pedido
+from apps.loja.services.pedidos_ativos import AVISO_WEBHOOK, desativado
 from apps.suri import vinculos
 from apps.suri.cliente import SuriClient
 from apps.suri.frete import frete_ligado, precisa_orcamento, responder_orcamento
@@ -109,4 +110,6 @@ def processar_webhook(configuracao, pedido_id, progresso):
     except PedidoIgnorado as aviso:
         return str(aviso)
     progresso(1, 1, "Webhook processado")
+    if desativado(pedido):
+        return AVISO_WEBHOOK
     return f"Pedido {pedido.number} {'criado' if criado else 'atualizado'}."

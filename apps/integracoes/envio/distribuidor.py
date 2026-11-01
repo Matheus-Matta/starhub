@@ -14,6 +14,7 @@ from django.core.exceptions import ValidationError
 from apps.core import origem
 from apps.integracoes.envio import registro, transacao
 from apps.integracoes.models import ConfiguracaoIntegracao
+from apps.loja.services.inativos import fora_das_lojas
 
 # Campos que o hub mexe sozinho a cada save: mudar so eles nao e alteracao real.
 IGNORADOS = {"updated_at", "updated_by", "created_at", "created_by"}
@@ -58,9 +59,10 @@ class Distribuidor:
     def antes_de_salvar(self, instance, update_fields=None):
         """pre_save: guarda os destinos e como a linha esta no banco para comparar depois."""
         instance._envio_antes = None
-        if getattr(instance, "_sem_envio", False):
+        if getattr(instance, "_sem_envio", False) or fora_das_lojas(instance):
             # Registro marcado para ficar so no hub (ex.: cliente criado pela planilha de
-            # avaliacoes so para assinar a avaliacao: nao vira conta na loja).
+            # avaliacoes so para assinar a avaliacao: nao vira conta na loja), ou inativo
+            # (pedido desativado, produto inativo), que nao vai a loja nenhuma.
             instance._envio_configs = []
             return
         # Sem destino (conta sem marketplace, ou so a propria origem, como na
@@ -76,6 +78,8 @@ class Distribuidor:
     def depois_de_salvar(self, instance, created, update_fields=None):
         relacionados = instance.__dict__.pop("_envio_campos_relacionados", set())
         configuracoes = instance.__dict__.pop("_envio_configs", None)
+        if fora_das_lojas(instance):
+            return
         if configuracoes is None:
             configuracoes = self.candidatos(instance.account_id)
         if not configuracoes:
@@ -89,11 +93,15 @@ class Distribuidor:
         self.distribuir(instance.account_id, recurso, operacao, pk, configuracoes)
 
     def depois_de_excluir(self, instance):
+        if fora_das_lojas(instance):
+            return  # ja estava fora das lojas: excluir no hub nao apaga la
         recurso, pk, operacao = self._alvo(instance, "delete", None)
         self.distribuir(instance.account_id, recurso, operacao, pk)
 
     def m2m_do_produto(self, produto):
         """Categoria ou tag do produto mudou: o save do produto ja passou sem ela."""
+        if fora_das_lojas(produto):
+            return
         self.distribuir(produto.account_id, "produtos", "update", produto.pk)
 
     # Decisao.

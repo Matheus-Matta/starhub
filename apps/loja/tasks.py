@@ -32,3 +32,10 @@ def importar_servicos(execucao_id):
     return importar_planilha.executar(
         execucao_id, servicos_planilha.importar_linha, objeto="servicos", recurso="servicos",
         quem=lambda dados: str(dados.get("sku") or ""))
+
+
+@shared_task
+def ativar_pedidos(execucao_id):
+    from apps.loja.services.pedidos_ativos_lote import executar
+
+    return executar(execucao_id)

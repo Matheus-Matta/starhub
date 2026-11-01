@@ -19,7 +19,8 @@ from apps.loja.admin import campos
 from apps.loja.admin.codigo_externo import SEM_CODIGO
 from apps.loja.admin.detalhes import itens_do_pedido
 from apps.loja.admin.enderecos import EnderecosForm, secao_endereco
-from apps.loja.admin.pedidos_cpf import buscar_cpf_no_shopify
+from apps.loja.admin.pedidos_ativos import desativar_pedidos, reativar_pedidos
+from apps.loja.admin.pedidos_cpf import buscar_cpf_no_shopify, reimportar_do_shopify
 from apps.loja.admin.pedidos_inlines import EntregaInline, ItemPedidoInline, PagamentoInline
 from apps.loja.admin.pedidos_json import PedidoJsonMixin
 from apps.loja.admin.pedidos_status import ACOES_STATUS
@@ -63,14 +64,15 @@ class PedidoAdmin(PedidoJsonMixin, TemaModelAdmin):
     ]
     list_filter = [
         ("created_at", FiltroPeriodo), "status", "financial_status", "fulfillment_status",
-        "forma_pagamento", "origin",
+        "forma_pagamento", "origin", "active",
     ]
     search_fields = ["number", "external_number", "cliente__email", "cliente__nome",
                      "pagamentos__transaction_id", "chave"]
     list_select_related = ["cliente"]
     autocomplete_fields = ["cliente"]
     inlines = [ItemPedidoInline, PagamentoInline, EntregaInline]
-    actions = [*ACOES_STATUS, buscar_cpf_no_shopify]
+    actions = [*ACOES_STATUS, buscar_cpf_no_shopify, reimportar_do_shopify, desativar_pedidos,
+               reativar_pedidos]
     condicoes = {
         "cancelled_at": {"campo": "status", "em": ["cancelled"]},
         "paid_at": {"campo": "financial_status", "em": [
@@ -82,13 +84,14 @@ class PedidoAdmin(PedidoJsonMixin, TemaModelAdmin):
         ],
     }
     readonly_fields = [
-        "chave", "total_desconto", "total_frete", "total_impostos", "total",
+        "active", "chave", "total_desconto", "total_frete", "total_impostos", "total",
         "created_at", "updated_at",
     ]
     fieldsets = [
         ("Pedido", {"fields": [
             ("number", "external_number"), ("status", "moeda"),
-            ("financial_status", "fulfillment_status"), "cliente", "observacao_cliente", "notas",
+            ("financial_status", "fulfillment_status"), "active", "cliente",
+            "observacao_cliente", "notas",
         ]}),
         ("Pagamento e entrega", {"fields": [
             ("forma_pagamento", "forma_pagamento_titulo"), ("placed_at", "paid_at"),
@@ -105,7 +108,12 @@ class PedidoAdmin(PedidoJsonMixin, TemaModelAdmin):
 
     @admin.display(description="status", ordering="status")
     def status_badge(self, obj):
-        return badge_status(obj.status, obj.get_status_display())
+        status = badge_status(obj.status, obj.get_status_display())
+        if obj.active:
+            return status
+        # O status continua: reativado, o pedido volta exatamente como estava.
+        return format_html('<span class="nowrap">{} {}</span>', status,
+                           badge("Desativado", "destructive"))
 
     @admin.display(description="total", ordering="total")
     def total_fmt(self, obj):

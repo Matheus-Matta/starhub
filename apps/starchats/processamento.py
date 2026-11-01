@@ -39,7 +39,8 @@ def _objeto(tipo, objeto_id):
         return cliente, cliente, None
     if tipo == "pedido":
         pedido = Pedido.objects.select_related("cliente").get(pk=objeto_id)
-        return pedido, pedido.cliente, pedido
+        # Desativado depois de o evento entrar na fila: sem cliente, nada e enviado.
+        return pedido, (pedido.cliente if pedido.active else None), pedido
     raise ValueError(f"Tipo de evento desconhecido: {tipo}")
 
 

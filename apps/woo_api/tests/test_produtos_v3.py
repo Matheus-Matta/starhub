@@ -51,11 +51,11 @@ def test_v3_atualiza_produto_e_exibe_o_corpo_recebido(api, caplog):
     assert "Caneca grande" in caplog.text
 
 
-def test_v3_nao_cria_produto(api):
-    """Produto ausente pertence a outra origem; o ERP nao pode cria-lo pela v3."""
+def test_v3_nao_cria_produto_sem_sku(api):
+    """Sem SKU o hub nao acha nem cria (com SKU: test_produtos_v3_sku.py)."""
     resposta = api.post(
         URL,
-        {"name": "Produto indevido", "sku": "NOVO", "regular_price": "10.00"},
+        {"name": "Produto indevido", "regular_price": "10.00"},
         format="json",
     )
 

@@ -141,6 +141,14 @@ def separar_servicos(meta_data):
     return (servicos if achou else None), resto
 
 
+def _manter_somado(atuais, novos):
+    """O ERP devolve o servico sem a marca "somado" (o GET nao a mostra): sem ela o
+    proximo GET deixaria o valor do servico dentro do item e o ERP contaria duas vezes."""
+    somados = {(s.get("item_id"), s.get("servico_id")) for s in atuais if s.get("somado")}
+    return [{**s, "somado": True} if (s.get("item_id"), s.get("servico_id")) in somados
+            else s for s in novos]
+
+
 def gravar_servicos(pedido, por_item):
     """Troca os servicos dos itens enviados e tira os de item que nao existe mais.
 
@@ -149,7 +157,8 @@ def gravar_servicos(pedido, por_item):
     atuais = extras(pedido).get("servicos") or []
     ids = set(pedido.itens.values_list("pk", flat=True))
     mantidos = [s for s in atuais if s.get("item_id") in ids and s.get("item_id") not in por_item]
-    novos = vincular([servico for servicos in por_item.values() for servico in servicos])
+    novos = _manter_somado(atuais, vincular(
+        [servico for servicos in por_item.values() for servico in servicos]))
     servicos = sorted(mantidos + novos, key=lambda s: s.get("item_id") or 0)
     if servicos == atuais:
         return False

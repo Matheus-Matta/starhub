@@ -20,8 +20,8 @@ O Woo soma o total a partir das linhas: sem o servico nos itens, ele fica fora d
 
 from decimal import Decimal
 
-from apps.loja.dinheiro import somar, texto
-from apps.loja.services.extras_pedido import extras
+from apps.loja.dinheiro import texto
+from apps.loja.services.extras_pedido import somados_por_item
 from apps.woo_api.recursos.pedidos_saida import pedido_para_woo
 from apps.woocommerce import vinculos
 
@@ -35,15 +35,6 @@ STATUS_WOO = {"pending", "processing", "on-hold", "completed", "cancelled", "ref
 def _sem_id(metas):
     # O "id" do meta e do banco de quem le; no POST o Woo cria os dele.
     return [{"key": m["key"], "value": m["value"]} for m in metas or []]
-
-
-def _somados(pedido):
-    """{item_id: valor dos servicos que o hub somou no item}."""
-    por_item = {}
-    for servico in extras(pedido).get("servicos") or []:
-        if isinstance(servico, dict) and servico.get("somado"):
-            por_item.setdefault(servico.get("item_id"), []).append(servico.get("preco"))
-    return {item_id: somar(precos) for item_id, precos in por_item.items()}
 
 
 def _item(item, saida, fora):
@@ -64,8 +55,8 @@ def _item(item, saida, fora):
 
 
 def corpo(pedido, legado):
-    saida = pedido_para_woo(pedido)
-    fora = _somados(pedido) if legado else {}
+    saida = pedido_para_woo(pedido, servico_no_item=True)
+    fora = somados_por_item(pedido) if legado else {}
     itens = {item.pk: item for item in pedido.itens.all()}
     cliente = vinculos.externo_id("clientes", pedido.cliente_id) if pedido.cliente_id else None
     corpo = {

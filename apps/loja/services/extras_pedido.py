@@ -83,3 +83,18 @@ def rotulo_servico(nome):
             return rotulo
     limpo = re.sub(r"_\d+$", "", nome.strip().strip("_")).replace("_", " ").strip(" :")
     return limpo[:1].upper() + limpo[1:].lower()
+
+
+def somados_por_item(pedido):
+    """{item_id: valor dos servicos que o hub somou no total do item}.
+
+    So os marcados "somado" (servico que veio como linha propria no Shopify/Suri e foi
+    somado ao item do produto); servico so informado no item nao entra.
+    """
+    from apps.loja.dinheiro import somar
+
+    por_item = {}
+    for servico in extras(pedido).get("servicos") or []:
+        if isinstance(servico, dict) and servico.get("somado"):
+            por_item.setdefault(servico.get("item_id"), []).append(servico.get("preco"))
+    return {item_id: somar(precos) for item_id, precos in por_item.items()}

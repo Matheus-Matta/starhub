@@ -6,6 +6,7 @@ Celery com aviso desligado; a tarefa confere de novo quando roda.
 
 from django.db.models.signals import post_delete, post_save
 
+from apps.loja.services.pedidos_ativos import desativado
 from apps.notificacoes import agenda, eventos
 
 
@@ -26,6 +27,8 @@ def enfileirar(conta_id, aviso):
 
 
 def _registrar(obj, acao):
+    if desativado(obj):  # pedido fora de toda integracao tambem nao gera aviso
+        return
     evento = eventos.evento_de(type(obj), acao)
     if evento is None or not obj.account_id or not _ligado(obj.account_id, evento):
         return

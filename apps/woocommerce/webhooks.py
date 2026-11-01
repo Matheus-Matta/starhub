@@ -9,6 +9,7 @@ por causa da loja: historico e financeiro ficam).
 """
 
 from apps.loja.models import Cliente, Cupom, Pedido, Produto
+from apps.loja.services.pedidos_ativos import AVISO_WEBHOOK, desativado
 from apps.woocommerce import vinculos
 from apps.woocommerce.cliente import WooClient
 from apps.woocommerce.importar_clientes import importar_cliente
@@ -48,6 +49,7 @@ def processar_webhook(configuracao, recurso, operacao, dados, progresso):
     else:
         obj, criado = _importador(configuracao, recurso)(dados)
         mensagem = ("Registro nao importado (sem e-mail ou codigo)." if obj is None
+                    else AVISO_WEBHOOK if desativado(obj)
                     else "Registro criado." if criado else "Registro atualizado.")
     progresso(1, 1, "Webhook processado")
     return mensagem

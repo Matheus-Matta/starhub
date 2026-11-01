@@ -13,6 +13,7 @@ from apps.core.models import ExternalReference, Origin
 from apps.integracoes.models import ConfiguracaoIntegracao
 from apps.loja.models import Pedido
 from apps.loja.services.extras_pedido import mesclar_extras
+from apps.loja.services.pedidos_ativos import ignorar_entrada
 from apps.loja.services.servicos_automaticos import completar as servicos_automaticos
 from apps.loja.totais import recalcular_totais
 from apps.shopify.pedidos_base import data, ids_do_pedido
@@ -112,6 +113,8 @@ def _importar(dados, loja):
     pedido, criado = _pedido_da_linha(dados, externo, numero_externo)
     # Lock e releitura: o que foi lido antes do lock pode ser de outro webhook.
     pedido = Pedido.objects.select_for_update().get(pk=pedido.pk)
+    if ignorar_entrada(pedido, "shopify"):
+        return pedido, False
     _campos_do_pedido(pedido, dados, externo, numero_externo)
     gravar_documento_do_cliente(pedido.cliente, documento(dados), dados.get("name") or "")
     aplicar_status(pedido, dados)

@@ -5,6 +5,13 @@ import logging
 from apps.woo_api.erros import WooErro
 from apps.woo_api.recursos.categorias import CategoriaRecurso
 from apps.woo_api.recursos.produtos import ProdutoRecurso
+from apps.woo_api.recursos.produtos_sku import (
+    criar_inativo,
+    erro_sem_sku,
+    gravar_na_variante,
+    sku_de,
+    variante_do_sku,
+)
 from apps.woo_api.views.base import DetalheView, ListaView
 from apps.woo_api.views.lote import LoteView
 
@@ -34,9 +41,16 @@ def _produto_somente_update():
 
 class ProdutoV3Recurso(ProdutoRecurso):
     def gravar(self, obj, dados, criando):
-        if criando:
-            raise _produto_somente_update()
         permitidos = {campo: dados[campo] for campo in _CAMPOS_UPDATE_PRODUTO if campo in dados}
+        # No PUT o SKU so vale dentro do produto da URL: o ERP pode mandar o codigo dele
+        # no sku, e o PUT que ja atualizava a variante padrao nao pode quebrar.
+        variante = variante_do_sku(dados, produto=None if criando else obj)
+        if variante is not None:
+            return gravar_na_variante(variante, permitidos)
+        if criando:
+            if not sku_de(dados):
+                raise erro_sem_sku()
+            return criar_inativo(obj, dados, permitidos)
         return super().gravar(obj, permitidos, criando=False)
 
 
@@ -48,8 +62,9 @@ class ProdutoListaV3View(ListaView):
         return super().get(request)
 
     def post(self, request):
-        logger.info("Woo v3 ignorou criacao de produto: corpo=%s", request.data)
-        raise _produto_somente_update()
+        logger.info("Woo v3 recebeu criacao de produto (localiza pelo SKU): corpo=%s",
+                    request.data)
+        return super().post(request)
 
 
 class ProdutoDetalheV3View(DetalheView):

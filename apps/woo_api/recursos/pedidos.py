@@ -1,3 +1,5 @@
+import logging
+
 from django.utils import timezone
 
 from apps.loja.models import Cliente, Pedido
@@ -5,7 +7,7 @@ from apps.loja.services.pedidos import gravar_endereco_do_pedido, gravar_transac
 from apps.loja.services.pedidos_status import aplicar_datas_do_status
 from apps.loja.totais import recalcular_totais
 from apps.woo_api import datas
-from apps.woo_api.erros import WooErro
+from apps.woo_api.erros import WooErro, id_invalido
 from apps.woo_api.recursos import enderecos
 from apps.woo_api.recursos.base import Recurso, booleano, escolha, inteiro, lista_de_ids, texto
 from apps.woo_api.recursos.pedidos_linhas import gravar_itens, gravar_linhas
@@ -23,6 +25,7 @@ TEXTOS = {
     "currency": ("moeda", 3),
     "cart_hash": ("hash_carrinho", 64),
 }
+logger = logging.getLogger("django.request")
 DATAS = (
     ("date_created", "placed_at"), ("date_paid", "paid_at"), ("date_completed", "fulfilled_at"),
 )
@@ -57,10 +60,28 @@ class PedidoRecurso(Recurso):
         "title": "id", "slug": "id",
     }
 
-    def queryset(self):
+    def _todos(self):
         return Pedido.objects.select_related(
             "endereco_cobranca", "endereco_entrega", "cliente"
         ).prefetch_related("itens__produto__midias__variante", "pagamentos")
+
+    def queryset(self):
+        # Pedido desativado no hub some da lista: o ERP nao importa de novo o que o
+        # operador tirou do fluxo (services/pedidos_ativos.py).
+        return self._todos().filter(active=True)
+
+    def obter(self, pk):
+        # Pelo id ele responde: o ERP que ja o conhecia (ex.: manda o cancelamento)
+        # recebia 404 e registrava erro a cada tentativa.
+        try:
+            return self._todos().get(pk=int(pk))
+        except (Pedido.DoesNotExist, ValueError, TypeError) as erro:
+            raise id_invalido(self.nome) from erro
+
+    def excluir(self, obj, forcar):
+        if not obj.active:
+            return self.para_woo(obj)  # desativado nao muda, nem para a lixeira
+        return super().excluir(obj, forcar)
 
     def filtrar(self, qs, params):
         status = [s.strip() for s in (params.get("status") or "any").split(",") if s.strip()]
@@ -84,6 +105,11 @@ class PedidoRecurso(Recurso):
         return pedido_para_woo(obj)
 
     def gravar(self, obj, dados, criando):
+        # Lido depois do lock (obter_para_escrita): desativado responde como esta e o
+        # PUT do ERP nao grava nada, nem dispara envio.
+        if not criando and not obj.active:
+            logger.info("Pedido %s desativado: PUT do ERP respondido sem gravar", obj.pk)
+            return obj
         for campo, (atributo, tamanho) in TEXTOS.items():
             if campo in dados:
                 setattr(obj, atributo, texto(dados[campo], campo, tamanho))

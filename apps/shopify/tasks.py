@@ -79,3 +79,17 @@ def exportar_servicos_shopify(execucao_id):
     from apps.shopify.servicos_exportar import exportar_servicos
 
     return _executar(execucao_id, exportar_servicos)
+
+
+@shared_task
+def reimportar_pedidos_shopify(execucao_id):
+    from apps.shopify.pedidos_reimportar import reimportar
+
+    parametros = ExecucaoIntegracao.all_objects.filter(pk=execucao_id).values_list(
+        "parametros", flat=True
+    ).first() or {}
+
+    def processar(configuracao, progresso):
+        return reimportar(configuracao, progresso, parametros.get("pedidos") or [])
+
+    return _executar(execucao_id, processar)
