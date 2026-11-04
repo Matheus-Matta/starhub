@@ -9,7 +9,7 @@ pytestmark = pytest.mark.django_db
 
 
 def test_menu_separa_integracao_de_cadastros_genericos():
-    """StarChats e uma conexao; modelos e regras pertencem a Mensagens."""
+    """StarChats e uma conexao; modelos e conjuntos pertencem a Mensagens."""
     assert apps.get_app_config("starchats").verbose_name == "Mensagens"
     assert settings.STARHUB_MENU_AGRUPAR["starchats.configuracaostarchats"] == (
         "integracoes"

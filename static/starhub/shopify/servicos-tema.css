@@ -17,9 +17,56 @@
 
 .starhub-servico {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   cursor: pointer;
+}
+
+.starhub-servico span,
+.starhub-servico small {
+  display: grid;
+}
+
+.starhub-servico small {
+  opacity: 0.72;
+}
+
+.starhub-servico-grupo {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 6px;
+}
+
+.starhub-servico-grupo select {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 10px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-radius: 6px;
+}
+
+.starhub-servico-grupo--cards {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.starhub-servico-grupo--cards legend {
+  grid-column: 1 / -1;
+}
+
+.starhub-servico--card {
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  border-radius: 8px;
+}
+
+.starhub-servico--card:has(input:checked) {
+  border-color: currentColor;
+  box-shadow: 0 0 0 1px currentColor;
 }
 
 .starhub-agendamento {

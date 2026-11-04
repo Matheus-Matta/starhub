@@ -3,9 +3,9 @@
     cupom, criado = importar_cupom({"id": 3, "code": "promo10", "discount_type": "percent",
                                     "amount": "10.00", "minimum_amount": "100.00"})
 
-No Woo o cupom e o codigo que o cliente digita; no hub ele vira o nome (o `code` do
-hub e chave interna). Sem vinculo, o mesmo nome e o mesmo cupom. O que so o Woo
-conhece (limite por e-mail, valor maximo) fica no metadata do vinculo.
+No Woo o cupom e o codigo que o cliente digita; no hub ele preenche nome e `code`.
+Sem vinculo, o mesmo nome e o mesmo cupom. O que so o Woo conhece (como restricao
+por e-mail) fica no metadata do vinculo.
 """
 
 from datetime import UTC
@@ -53,6 +53,7 @@ def _campos(cupom, dados):
                              else Cupom.Combinacao.COMBINA)
     cupom.excluir_promocao = bool(dados.get("exclude_sale_items"))
     minimo = preco(dados.get("minimum_amount"))
+    cupom.subtotal_maximo = preco(dados.get("maximum_amount"))
     cupom.minimum_requirement = (Cupom.RequisitoMinimo.SUBTOTAL if minimo
                                  else Cupom.RequisitoMinimo.NENHUM)
     cupom.minimum_subtotal = minimo
@@ -79,12 +80,12 @@ def importar_cupom(dados):
     cupom = vinculos.existente("cupons", Cupom, dados.get("id"))
     cupom = cupom or Cupom.objects.filter(name__iexact=codigo).order_by("pk").first()
     criado = cupom is None
-    cupom = cupom or Cupom(name=codigo, origin=ORIGEM)
+    cupom = cupom or Cupom(name=codigo, code=codigo, origin=ORIGEM)
+    cupom.code = codigo
     _campos(cupom, dados)
     cupom.save()
     _listas(cupom, dados)
     vinculos.referenciar("cupons", dados.get("id"), cupom, metadata={
         "codigo": codigo, "discount_type": dados.get("discount_type") or "",
-        "maximum_amount": dados.get("maximum_amount") or "",
         "email_restrictions": dados.get("email_restrictions") or []})
     return cupom, criado

@@ -700,12 +700,31 @@ SKU, preco, promocao, estoque e codigo de barras. Imagens de `create` e `update`
 sao validadas, baixadas do CDN Shopify para `/media/produtos/` e vinculadas as
 variantes; o ID externo evita baixar novamente em webhooks repetidos.
 Cupons sao identificados pelo **nome** na conta (indice unico `cupom_nome_conta_unico`);
-o `code` do Cupom e interno, aleatorio e fica fora do admin. Codigo de pedido que o
-hub ainda nao conhece e consultado no Shopify (`codeDiscountNodeByCode`) e o cupom
+o `code` nasce aleatorio, aparece no admin e pode ser trocado pelo codigo que o cliente
+digitara no checkout. Codigo de pedido que o hub ainda nao conhece e consultado no
+Shopify (`codeDiscountNodeByCode`) e o cupom
 nasce completo (tipo, valor, datas, limites, minimo, clientes, produtos/colecoes,
 combinacao) em `apps/shopify/cupons.py` + `cupons_mapa.py`; o que o Cupom nao tem vai
 para `metadata["shopify"]`. O codigo usado fica numa `ExternalReference`
 `cupons_codigos`, entao o proximo pedido com ele nao consulta o Shopify de novo.
+Com `Enviar > Cupons > Criar` ligado, `discountCodeBasicCreate` e
+`discountCodeFreeShippingCreate` publicam no checkout os cupons criados no hub. O
+input leva codigo, valor, datas, limites, requisito minimo, clientes e itens ligados;
+atualizacao nunca troca o codigo de uma campanha ja publicada. Regras que o desconto
+nativo da Shopify nao representa com fidelidade (primeira compra, exclusoes, limite
+maior que um por cliente e desconto de produto mais frete no mesmo codigo) falham com
+uma explicacao, em vez de publicar um cupom diferente do cadastrado.
+O card **Cupons no checkout**, em Integracoes > Shopify, tem o botao **Guia dos
+cupons** (`admin_cupons_guia.py`): explica a criacao do app, os escopos
+`read_discounts`/`write_discounts`, a matriz, a primeira sincronizacao, o teste no
+checkout e quais regras exigem Shopify Function.
+O motor canonico (`apps/loja/services/cupons.py`) tambem permite combinar subtotal e
+quantidade minimos, definir maximos de subtotal/quantidade, faixa de produtos distintos,
+faixa de preco dos itens e agenda por dias/horario (inclusive atravessando meia-noite).
+O WooCommerce recebe `minimum_amount` e `maximum_amount`; regras sem equivalente no
+desconto nativo do WooCommerce sao recusadas com a lista exata, pois ignora-las ampliaria a
+campanha. Para essas regras avancadas no checkout Shopify sera necessaria uma Shopify
+Function personalizada.
 Em desenvolvimento (`DEBUG=True`), o terminal registra os cabecalhos de contexto e
 o JSON recebido, sem registrar o HMAC ou qualquer credencial; em producao, nao.
 
@@ -808,10 +827,13 @@ tema (Liquid assina o token) --POST multipart--> /integracoes/shopify/avaliacoes
   cliente e produto (indice unico `avaliacao_unica_por_cliente`), nota 1 a 5
   (check), ate 3 fotos, comentario ate 1500. `compra_verificada` = existe pedido
   do cliente com o produto em `Pedido.PAGOS`. Regras em `apps/loja/services/avaliacoes.py`.
-- **Quem e o cliente:** token `"<customer.id>:<product.id>:<timestamp>"` assinado
+- **Quem e o cliente:** token
+  `"<customer.id>:<product.id>:<timestamp>:<first_name>:<last_name>"` assinado
   no Liquid com `hmac_sha256` e o segredo das configuracoes do tema
   (`settings.reviews_secret`). O mesmo segredo vai em Integracoes > Shopify >
-  Segredo das avaliacoes (nao e o client secret do app). Vale 2 horas.
+  Segredo das avaliacoes (nao e o client secret do app). O nome vem da conta assinada,
+  entao nao pode ser trocado no navegador; o formato antigo sem nome continua aceito
+  durante a troca do tema. Vale 2 horas.
   Detalhes em `apps/shopify/avaliacoes_token.py`.
 - **API** (`apps/shopify/avaliacoes_api.py`), o endereco aparece na tela da integracao:
 
@@ -868,19 +890,24 @@ padrao e o de cada regra ativa). Vinculos `servicos` (produto) e `servicos_varia
   servicos dos pedidos* e *oferecer servicos na pagina do produto*. Botao **Guia dos
   servicos**: passo a passo e o trecho do tema pronto (`admin_servicos_guia.py`).
 - Loja > Servicos: **Exportar para a Shopify** (tarefa, com Retomar). A Shopify so
-  recebe: o cadastro e do hub.
+  recebe: o cadastro e do hub. Com uma Shopify ativa e com dominio configurado, o
+  cadastro mostra a secao final **Layout na Shopify**: checkbox, radio, lista ou
+  cartoes, rotulo, descricao, ordem, obrigatoriedade e opcao inicial. Radio, Lista e
+  Cartoes usam o multiselect do tema para vincular varias alternativas; em cada
+  produto o grupo leva somente os servicos cujas regras casaram.
 - Tema: `GET /integracoes/shopify/servicos-publico/<uuid>/?produto=<product.id>` (CORS
   como o frete do tema) devolve os servicos do produto com a variante do preco da
-  regra. `static/starhub/shopify/servicos-tema.js` mostra os checkboxes e troca o envio
-  do formulario por um `/cart/add.js` com produto e servicos, todos com a propriedade
-  `_starhub_vinculo`.
+  regra e a configuracao visual. `static/starhub/shopify/servicos-tema.js` monta os
+  campos e troca o envio do formulario por um `/cart/add.js` com produto e servicos,
+  todos com a propriedade `_starhub_vinculo`.
 - Pedido: a linha do servico nao vira item; vira servico do item com o mesmo vinculo
   (sem ele, do primeiro item), com o valor somado no item (`pedidos_servicos_tema.py`).
   O produto-servico nunca entra no catalogo (`servicos_exportar.eh_servico`).
 - Agendamento: `data-agendamento` no trecho do tema mostra um campo de data; o script
   grava o atributo `agendamento` do carrinho (`/cart/update.js`) e o pedido traz em
   `note_attributes` -> `starhub.entrega.agendamento`.
-- Escopos do app: `write_products`, `read_publications`, `write_publications`.
+- Escopos do app: `write_products`, `read_publications`, `write_publications`,
+  `read_discounts` e `write_discounts`.
 - **Nao verificado na Shopify real:** `productSet` com `identifier`, a publicacao no
   canal pelo nome ("Online Store"/"Loja virtual") e o metafield `seo.hidden`.
 
@@ -1210,7 +1237,7 @@ As duas ficam no Nucleo do menu e abrem direto a da conta ativa.
 ### 7.9 Mensagens de WhatsApp e StarChats (`apps/starchats`)
 
 A configuracao da integracao aparece em **Integracoes > StarChats**. Modelos de
-mensagem, regras, conjuntos e historico ficam na secao generica **Mensagens**; cada
+mensagem, conjuntos e historico ficam na secao generica **Mensagens**; cada
 modelo registra a plataforma que o sincronizou, preparando o cadastro comum para
 outros provedores de WhatsApp. O motor escolhe o adaptador registrado em
 `apps/starchats/provedores.py`, portanto uma integracao nova reaproveita eventos,
@@ -1223,8 +1250,18 @@ da conta e token ficam na configuracao da conta do StarHub, e o token e criptogr
   somente as de WhatsApp e sincroniza os templates aprovados da caixa selecionada. Se
   houver varias caixas, volte a configuracao e escolha uma; salvar a escolha sincroniza
   os modelos dela automaticamente.
-- **Regras de envio** sao reutilizaveis. **Conjuntos de envio** tem relacao N:N com elas,
-  escolhem se todas ou qualquer regra deve valer, o evento e o modelo da mensagem.
+- **Regras de envio** sao cadastradas dentro do **Conjunto de envio**, numa lista com
+  modal como as regras dos servicos. O conjunto escolhe se todas ou qualquer regra
+  deve valer, o evento e o modelo da mensagem. A migration transforma cada regra
+  antiga em filha; se ela era reutilizada, cria uma copia para cada conjunto.
+- **Controles do conjunto:** limite maximo de envios por dia (zero = sem limite) e
+  numeros permitidos num campo de etiquetas (Enter ou virgula). Lista vazia libera
+  todos; preenchida, o telefone do cliente precisa estar nela. Formatos com ou sem
+  `+55` sao comparados pelo mesmo numero. A reserva do limite trava o conjunto no
+  banco, portanto dois eventos simultaneos nao ultrapassam a ultima vaga.
+- **Envio de teste:** na edicao do conjunto, informe um WhatsApp e marque para enviar
+  ao salvar. Uma tarefa envia o modelo para esse numero com dados de exemplo, sem
+  fazer a chamada externa dentro da requisicao do admin.
 - Os parametros `{{1}}` ou nomeados apontam para dados do cliente/pedido, por exemplo
   `cliente.nome_completo`, `pedido.numero` e `pedido.total`. Cabecalho com texto/midia e
   botao de copiar codigo tambem sao enviados em `template_params.processed_params`.

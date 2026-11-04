@@ -97,7 +97,7 @@ def test_codigo_desconhecido_consulta_o_shopify_e_cria_o_cupom_completo(shopify,
     assert list(cupom.produtos.all()) == [poltrona]
     assert cupom.stacking_policy == Cupom.Combinacao.COMBINA
     assert (cupom.free_shipping, cupom.origin) == (False, Origin.SHOPIFY)
-    assert cupom.code != "PROMO10"
+    assert cupom.code == "PROMO10"
     assert ExternalReference.objects.filter(
         entity_type="cupons", external_id=NODE["id"], object_id=str(cupom.pk)).exists()
     assert pedido.linhas_cupom[0]["code"] == "PROMO10"

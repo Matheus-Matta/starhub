@@ -31,16 +31,6 @@
   color: var(--primary);
 }
 
-.sh-data-hora {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.sh-data-hora input[type="time"] {
-  width: 120px;
-}
-
 .sh-calendario {
   padding: 8px;
 }
@@ -144,9 +134,4 @@
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--border);
-}
-
-/* A regra .aligned do formulario estica todo input; a hora fica curta. */
-.aligned .sh-data-hora input[type="time"] {
-  width: 120px;
 }

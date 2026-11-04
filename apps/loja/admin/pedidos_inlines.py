@@ -11,19 +11,19 @@ from apps.loja.totais import valores_do_item
 class ItemPedidoForm(forms.ModelForm):
     class Meta:
         model = ItemPedido
-        fields = ["produto", "variante", "nome", "sku", "quantidade", "subtotal", "total"]
+        fields = ["variante", "sku", "quantidade", "subtotal", "total"]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Em branco = calcular pelo preco da variante (ver clean).
         self.fields["subtotal"].required = False
         self.fields["total"].required = False
+        self.fields["variante"].label = "Produto"
 
     def clean(self):
         dados = super().clean()
-        produto = dados.get("produto")
-        variante = dados.get("variante") or (produto.variante_padrao if produto else None)
-        dados["variante"] = variante
+        variante = dados.get("variante")
+        produto = variante.produto if variante else None
         quantidade = dados.get("quantidade") or 0
         preco = variante.current_price if variante else None
         dados["subtotal"], dados["total"] = valores_do_item(
@@ -31,17 +31,26 @@ class ItemPedidoForm(forms.ModelForm):
         )
         # Snapshot: nome e SKU ficam gravados no item mesmo se o produto mudar depois.
         if produto:
-            dados["nome"] = dados.get("nome") or produto.nome
             dados["sku"] = dados.get("sku") or (variante.sku if variante else "")
         return dados
+
+    def save(self, commit=True):
+        item = super().save(commit=False)
+        variante = self.cleaned_data.get("variante")
+        if variante:
+            item.produto = variante.produto
+            item.nome = variante.produto.nome
+        if commit:
+            item.save()
+        return item
 
 
 class ItemPedidoInline(TemaTabularInline):
     model = ItemPedido
     form = ItemPedidoForm
     extra = 0
-    autocomplete_fields = ["produto", "variante"]
-    relacao_so_adicionar = ["produto", "variante"]
+    autocomplete_fields = ["variante"]
+    relacao_so_adicionar = ["variante"]
     verbose_name, verbose_name_plural = "item", "itens do pedido"
 
 

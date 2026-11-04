@@ -12,7 +12,7 @@ Exemplo num form comum:
 from django import forms
 
 FORMATO_DATA = "%d/%m/%Y"
-FORMATO_HORA = "%H:%M"
+FORMATO_DATA_HORA = "%Y-%m-%dT%H:%M"
 ATTRS_DATA = {"data-calendario": "", "placeholder": "dd/mm/aaaa", "autocomplete": "off"}
 
 
@@ -21,20 +21,14 @@ class DataTema(forms.DateInput):
         super().__init__(attrs={**ATTRS_DATA, **(attrs or {})}, format=FORMATO_DATA)
 
 
-class DataHoraTema(forms.SplitDateTimeWidget):
-    """Data (com calendario) + hora (input time do navegador), lado a lado.
-    Mesmo contrato do AdminSplitDateTime: o form continua SplitDateTimeField."""
+class DataHoraTema(forms.DateTimeInput):
+    """Data e horario juntos, no controle nativo datetime-local do navegador."""
 
-    template_name = "core/widgets/data_hora.html"
+    input_type = "datetime-local"
 
     def __init__(self, attrs=None):
-        super().__init__(
-            attrs=attrs,
-            date_format=FORMATO_DATA,
-            time_format=FORMATO_HORA,
-            date_attrs=dict(ATTRS_DATA),
-            time_attrs={"type": "time"},
-        )
+        base = {"autocomplete": "off"}
+        super().__init__(attrs={**base, **(attrs or {})}, format=FORMATO_DATA_HORA)
 
 
 class SwitchTema(forms.CheckboxInput):

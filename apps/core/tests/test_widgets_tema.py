@@ -12,7 +12,8 @@ def test_form_do_produto_usa_os_widgets_do_tema(admin_logado):
     html = admin_logado.get("/admin/loja/varianteproduto/add/").content.decode()
     # Data da promocao (na variante): calendario em modo periodo ligado ao campo final.
     assert 'data-periodo-fim="sale_ends_at"' in html
-    assert 'name="sale_starts_at_1"' in html and 'type="time"' in html
+    assert 'name="sale_starts_at"' in html and 'type="datetime-local"' in html
+    assert 'name="sale_starts_at_1"' not in html
     # Booleano vira switch.
     assert 'class="switch"' in html and 'role="switch"' in html
     # Categorias: select multiple comum (o JS monta o multi-select), sem as
@@ -53,13 +54,30 @@ def test_data_tema_mostra_e_aceita_dd_mm_aaaa():
     assert "27/09/2026" in str(Form(initial={"dia": form.cleaned_data["dia"]})["dia"])
 
 
-def test_data_hora_tema_e_compativel_com_split_datetime():
+def test_data_hora_tema_usa_data_e_horario_no_mesmo_input():
     class Form(forms.Form):
-        quando = forms.SplitDateTimeField(widget=DataHoraTema())
+        quando = forms.DateTimeField(widget=DataHoraTema())
 
-    form = Form(data={"quando_0": "27/09/2026", "quando_1": "14:30"})
+    form = Form(data={"quando": "2026-09-27T14:30"})
     assert form.is_valid(), form.errors
     assert (form.cleaned_data["quando"].hour, form.cleaned_data["quando"].minute) == (14, 30)
+    html = str(Form()["quando"])
+    assert 'type="datetime-local"' in html and 'type="time"' not in html
+    assert "data-calendario" not in html
+
+
+def test_linhas_dinamicas_distribuem_selects_sem_criar_rolagem():
+    css = (settings.BASE_DIR / "static/starhub/css/inline-dinamico.css").read_text(
+        encoding="utf-8")
+
+    assert "--linha-campo-largura" in css
+    assert ':not([type="datetime-local"])' in css
+    assert ':not([type="time"])' in css
+    assert "table-layout: fixed" in css
+    assert "overflow-x: clip" in css
+    assert ".related-widget-wrapper-link" in css
+    assert "flex: 1 1 0" in css
+    assert "width: 52px" in css
 
 
 def test_switch_tema_continua_checkbox():

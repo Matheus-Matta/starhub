@@ -74,7 +74,8 @@ class AvaliacaoView(APIView):
         contexto, erro = self._contexto(configuracao_id, request.query_params)
         if erro:
             return erro
-        configuracao, (cliente_id, produto_id) = contexto
+        configuracao, token = contexto
+        cliente_id, produto_id = token[:2]
         with tenant_context(configuracao.account_id):
             cliente = _registro(Cliente, "clientes", "Customer", cliente_id)
             produto = _registro(Produto, "produtos", "Product", produto_id)
@@ -88,7 +89,8 @@ class AvaliacaoView(APIView):
         contexto, erro = self._contexto(configuracao_id, request.data)
         if erro:
             return erro
-        configuracao, (cliente_id, produto_id) = contexto
+        configuracao, token = contexto
+        cliente_id, produto_id, nome_conta, sobrenome_conta = token
         fotos = request.FILES.getlist("fotos") or request.FILES.getlist("fotos[]")
         with tenant_context(configuracao.account_id), origem(ORIGEM, via=configuracao.nome):
             produto = _registro(Produto, "produtos", "Product", produto_id)
@@ -104,7 +106,8 @@ class AvaliacaoView(APIView):
                 avaliacao = criar_avaliacao(
                     cliente=cliente, produto=produto, nota=request.data.get("nota"),
                     comentario=request.data.get("comentario"), fotos=fotos,
-                    origin=Origin.SHOPIFY,
+                    origin=Origin.SHOPIFY, nome_conta=nome_conta,
+                    sobrenome_conta=sobrenome_conta,
                 )
             except AvaliacaoInvalida as falha:
                 return _erro(400, "avaliacao_invalida", str(falha), falha.campo)

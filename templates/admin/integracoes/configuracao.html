@@ -34,6 +34,16 @@
     {% endcomponente %}
   {% endif %}
 
+  {% if cupons_shopify %}
+    {% componente "card" titulo="Cupons no checkout" icone="wallet" %}
+      {% slot "acoes" %}<a class="btn btn-sm btn-outline" href="{{ url_guia_cupons }}">{% icone "book-open" "icon-sm" %} Guia dos cupons</a><a class="btn btn-sm btn-outline" href="{{ url_cupons }}">Gerenciar cupons</a>{% endslot %}
+      <p>O app da Shopify precisa dos escopos <code>read_discounts</code> e
+        <code>write_discounts</code>. Cadastre o codigo no cupom, ligue
+        <strong>Enviar &gt; Cupons</strong> e use <strong>Sincronizar loja</strong>
+        para publicar os cupons que ja existem no StarHub.</p>
+    {% endcomponente %}
+  {% endif %}
+
   {% componente "card" titulo="O que a loja pode receber e enviar" icone="sliders-horizontal" flush=True %}
     {% slot "acoes" %}{% if pode_editar %}
       <div class="integracao-selecao" aria-label="Marcacao rapida da matriz">

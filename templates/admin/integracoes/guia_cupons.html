@@ -1,0 +1,50 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'starhub/css/integracao.css' %}">{% endblock %}
+{% block breadcrumbs %}
+  <div class="breadcrumbs"><a href="{% url 'admin:index' %}">Painel</a> &rsaquo; Integracoes &rsaquo; <a href="{{ url_integracao }}">Shopify</a> &rsaquo; Guia dos cupons</div>
+{% endblock %}
+
+{% block content %}
+<div class="integracao-page">
+  {% componente "card" titulo="1. Prepare o app na Shopify" icone="plug" %}
+    <ol>
+      <li>Na administracao da Shopify, abra <strong>Configuracoes &gt; Apps e canais de vendas &gt; Desenvolver apps</strong> e escolha o app do StarHub.</li>
+      <li>Em <strong>Configuracao da API Admin</strong>, adicione os escopos <code>read_discounts</code> e <code>write_discounts</code>.</li>
+      <li>Instale ou reinstale o app para aplicar os novos escopos. Copie o token da API Admin.</li>
+      <li>Em <a href="{{ url_integracao }}">Integracoes &gt; Shopify</a>, informe dominio, token e segredo do app; depois salve.</li>
+    </ol>
+  {% endcomponente %}
+
+  {% componente "card" titulo="2. Ligue o fluxo de cupons" icone="sliders-horizontal" %}
+    <ol>
+      <li>Na matriz, localize <strong>Cupons</strong>.</li>
+      <li>Em <strong>Enviar</strong>, marque Criar, Atualizar e Excluir para o StarHub manter os descontos da Shopify.</li>
+      <li>Em <strong>Receber</strong>, marque Buscar, Criar e Atualizar se os cupons da Shopify tambem devem entrar no hub.</li>
+      <li>Salve e use <strong>Sincronizar loja</strong> para o primeiro envio ou recebimento em lote.</li>
+    </ol>
+  {% endcomponente %}
+
+  {% componente "card" titulo="3. Cadastre e publique" icone="wallet" %}
+    <ol>
+      <li>Abra <a href="{{ url_cupons }}">Loja &gt; Cupons</a> e cadastre nome, codigo, desconto, agenda, limites, produtos e clientes.</li>
+      <li>Produtos, variantes, categorias e clientes especificos precisam estar sincronizados com a Shopify antes do cupom.</li>
+      <li>Depois do primeiro lote, salvar ou excluir um cupom gera o envio automatico conforme a matriz.</li>
+      <li>Confira o resultado em <strong>Integracoes &gt; Tarefas</strong> e no menu Descontos da Shopify.</li>
+    </ol>
+  {% endcomponente %}
+
+  {% componente "card" titulo="4. Regras aceitas pela Shopify" icone="info" %}
+    <p>O desconto nativo aceita percentual, valor fixo, frete gratis, subtotal ou quantidade minima, limite total, um uso por cliente, combinacao, agenda e selecao de produtos, variantes, colecoes ou clientes.</p>
+    <p>Regras exclusivas do StarHub, como maximos, faixa de preco do item, dias e horarios, produtos excluidos ou primeira compra, exigem uma <strong>Shopify Function</strong> personalizada. A tarefa informa claramente quando uma dessas regras impede a publicacao nativa.</p>
+  {% endcomponente %}
+
+  {% componente "card" titulo="5. Teste" icone="circle-check" %}
+    <ol>
+      <li>Crie um cupom de teste ativo com codigo simples, como <code>TESTE10</code>.</li>
+      <li>Sincronize Cupons em Enviar e confirme que a tarefa terminou sem falhas.</li>
+      <li>Adicione um produto elegivel ao carrinho da loja e aplique o codigo no checkout.</li>
+    </ol>
+  {% endcomponente %}
+</div>
+{% endblock %}

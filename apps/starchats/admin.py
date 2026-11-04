@@ -1,3 +1,5 @@
+import importlib
+
 from django.contrib import admin, messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
@@ -8,10 +10,8 @@ from apps.core.tenant.context import get_current_account_id
 from apps.starchats.forms import ConfiguracaoStarChatsForm
 from apps.starchats.models import (
     ConfiguracaoStarChats,
-    ConjuntoEnvio,
     EnvioStarChats,
     ModeloMensagem,
-    RegraEnvio,
 )
 
 
@@ -89,45 +89,6 @@ class ModeloMensagemAdmin(TemaModelAdmin):
         return False
 
 
-@admin.register(RegraEnvio)
-class RegraEnvioAdmin(TemaModelAdmin):
-    list_display = ["nome", "campo", "operador", "valor", "active"]
-    list_filter = ["campo", "operador", "active"]
-    search_fields = ["nome", "valor"]
-    fieldsets = [
-        (
-            "Condicao reutilizavel",
-            {"fields": ["nome", ("campo", "operador"), "valor", "active"]},
-        )
-    ]
-
-
-@admin.register(ConjuntoEnvio)
-class ConjuntoEnvioAdmin(TemaModelAdmin):
-    list_display = ["nome", "evento", "modo", "modelo", "active"]
-    list_filter = ["evento", "modo", "active"]
-    search_fields = ["nome", "modelo__nome"]
-    fieldsets = [
-        ("Quando enviar", {"fields": ["nome", ("evento", "modo"), "regras", "active"]}),
-        (
-            "Mensagem",
-            {"fields": [
-                "modelo",
-                "parametros_corpo",
-                "parametros_cabecalho",
-                ("midia_cabecalho_url", "midia_cabecalho_tipo"),
-                "codigo_botao",
-                "enviar_uma_vez",
-            ]},
-        ),
-    ]
-
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == "modelo":
-            kwargs["queryset"] = ModeloMensagem.objects.filter(active=True)
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
-
-
 @admin.register(EnvioStarChats)
 class EnvioStarChatsAdmin(TemaModelAdmin):
     list_display = ["conjunto", "cliente", "evento", "status", "created_at"]
@@ -155,3 +116,8 @@ class EnvioStarChatsAdmin(TemaModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+# O Django descobre admin.py; importar o modulo registra os cadastros que formam
+# o conjunto sem misturar essa interface com conexao, modelos e historico.
+importlib.import_module("apps.starchats.admin_conjuntos")

@@ -29,7 +29,6 @@ STARHUB_MENU_ICONES = {
     "notificacoes.configuracaonotificacao": "bell",
     "starchats.configuracaostarchats": "marca:starchats",
     "starchats.modelomensagem": "message-square-text",
-    "starchats.regraenvio": "filter",
     "starchats.conjuntoenvio": "sliders-horizontal",
     "starchats.enviostarchats": "mail",
     "woo_api.chaveapi": "key-round",

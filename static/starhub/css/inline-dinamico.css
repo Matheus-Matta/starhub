@@ -1,0 +1,60 @@
+/* Linhas dinamicas dividem o espaco disponivel sem criar rolagem. Campos comuns
+   conservam um limite util; relacoes cedem espaco para o seletor e o botao "+". */
+.sh-inline-lista {
+  --linha-campo-largura: 220px;
+}
+
+.sh-inline-lista .table-wrap {
+  overflow-x: clip;
+}
+
+.sh-inline-lista .table {
+  table-layout: fixed;
+}
+
+.sh-inline-lista td input:not([type="checkbox"]):not([type="date"]):not([type="time"]):not([type="datetime-local"]) {
+  box-sizing: border-box;
+  width: min(var(--linha-campo-largura), 100%) !important;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sh-inline-lista td select,
+.sh-inline-lista td .sh-select,
+.sh-inline-lista td .sh-multiselect,
+.sh-inline-lista td .related-widget-wrapper {
+  box-sizing: border-box;
+  width: 100% !important;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sh-inline-lista td .related-widget-wrapper {
+  flex-wrap: nowrap;
+}
+
+.sh-inline-lista td .related-widget-wrapper > .select2-container,
+.sh-inline-lista td .related-widget-wrapper > select,
+.sh-inline-lista td .related-widget-wrapper > .sh-select {
+  flex: 1 1 0;
+  width: auto !important;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sh-inline-lista td .related-widget-wrapper-link {
+  flex: 0 0 auto;
+}
+
+.sh-inline-lista .sh-coluna-acoes {
+  box-sizing: border-box;
+  width: 52px;
+  padding-right: 8px !important;
+  padding-left: 4px !important;
+}
+
+@media (max-width: 767px) {
+  .sh-inline-lista {
+    --linha-campo-largura: 190px;
+  }
+}

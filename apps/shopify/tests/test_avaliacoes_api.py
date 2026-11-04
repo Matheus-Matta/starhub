@@ -2,6 +2,7 @@
 
 import time
 from decimal import Decimal
+from urllib.parse import quote
 
 import pytest
 from django.core.cache import cache
@@ -39,8 +40,10 @@ def loja(conta):
     return config, produto, cliente
 
 
-def _token(cliente="77", produto="55", carimbo=None, segredo=SEGREDO):
+def _token(cliente="77", produto="55", carimbo=None, segredo=SEGREDO, nome="", sobrenome=""):
     payload = f"{cliente}:{produto}:{int(carimbo or time.time())}"
+    if nome or sobrenome:
+        payload = f"{payload}:{quote(nome)}:{quote(sobrenome)}"
     return {"payload": payload, "sig": assinar(segredo, payload)}
 
 
@@ -56,7 +59,9 @@ def _enviar(client, config, **dados):
 def test_token_assinado_pelo_liquid_e_aceito():
     """hmac_sha256 do Liquid sai em hex minusculo; o hub tem que bater exatamente."""
     token = _token()
-    assert conferir(SEGREDO, token["payload"], token["sig"].upper()) == ("77", "55")
+    assert conferir(SEGREDO, token["payload"], token["sig"].upper()) == (
+        "77", "55", None, None,
+    )
 
 
 @pytest.mark.parametrize("token,motivo", [
@@ -87,6 +92,17 @@ def test_post_cria_avaliacao_pendente_do_cliente_do_token(client, loja):
     assert avaliacao.status == "pendente" and avaliacao.origin == "shopify"
     assert avaliacao.fotos.count() == 1
     assert resposta.json()["id"] == avaliacao.pk
+
+
+def test_post_usa_nome_assinado_da_conta_quando_cadastro_local_esta_sem_nome(client, loja):
+    """Cliente sincronizado sem nome nao pode publicar a avaliacao apenas como Cliente."""
+    config, _, cliente = loja
+    Cliente.objects.filter(pk=cliente.pk).update(nome="", sobrenome="")
+
+    resposta = _enviar(client, config, **_token(nome="Ana Maria", sobrenome="Lima Souza"))
+
+    assert resposta.status_code == 201, resposta.json()
+    assert Avaliacao.objects.get().nome_publico == "Ana L."
 
 
 def test_token_invalido_responde_401_sem_gravar(client, loja):

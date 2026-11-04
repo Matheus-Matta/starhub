@@ -45,7 +45,7 @@ def avaliar(regra, contexto):
 
 
 def conjunto_atende(conjunto, contexto):
-    resultados = [avaliar(regra, contexto) for regra in conjunto.regras.all()]
+    resultados = [avaliar(regra, contexto) for regra in conjunto.regras.filter(active=True)]
     if not resultados:
         return True
     return all(resultados) if conjunto.modo == "all" else any(resultados)

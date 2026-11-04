@@ -12,7 +12,7 @@ com o trecho do tema ja montado com os enderecos desta loja.
 {% block content %}
 <div class="integracao-page">
   {% componente "card" titulo="Como funciona" icone="info" %}
-    <p>A Shopify so cobra o que esta no carrinho. Cada servico do hub vira um <strong>produto escondido</strong> na loja (tag <code>starhub-servico</code>), com uma variante por preco das regras. Na pagina do produto, o bloco do tema pergunta ao hub quais servicos valem para aquele produto e mostra um checkbox para cada um. Com algum marcado, o botao de comprar poe o produto e o servico juntos no carrinho, ligados pela propriedade <code>_starhub_vinculo</code>. No pedido, a linha do servico vira servico do item do produto, com o valor somado nele.</p>
+    <p>A Shopify so cobra o que esta no carrinho. Cada servico do hub vira um <strong>produto escondido</strong> na loja (tag <code>starhub-servico</code>), com uma variante por preco das regras. Na pagina do produto, o bloco pergunta ao hub quais servicos valem para aquele produto e mostra checkbox, radio, lista ou cartoes, conforme o cadastro. Com algum escolhido, o botao de comprar poe o produto e o servico juntos no carrinho, ligados pela propriedade <code>_starhub_vinculo</code>. No pedido, a linha do servico vira servico do item do produto, com o valor somado nele.</p>
     <p>Exemplo: Sofa R$ 1.500,00 + Montagem R$ 80,00. O carrinho tem duas linhas; no hub o pedido tem um item de R$ 1.580,00 com o servico Montagem (SKU do servico) no meta do item.</p>
   {% endcomponente %}
 
@@ -22,6 +22,7 @@ com o trecho do tema ja montado com os enderecos desta loja.
       <li>Tem uma loja WooCommerce que precisa receber estes pedidos como o <code>docs/exemplos/pedido-completo.json</code> (servico so no meta do item, fora do valor)? Ligue <em>criar na loja os pedidos das outras lojas</em> em Integracoes &gt; WooCommerce &gt; Servicos.</li>
       <li>Confira o <strong>dominio da loja</strong> e os dominios proprios da conta: so eles podem consultar os servicos pelo navegador (o mesmo controle do frete do tema).</li>
       <li>Em <a href="{{ url_servicos }}">Loja &gt; Servicos</a>, cadastre cada servico com o <strong>SKU do ERP</strong> e o preco padrao (um a um ou por <strong>Importar planilha</strong>; <strong>Exportar planilha</strong> baixa o que ja existe no mesmo formato). Nas regras, diga a quais produtos ele vale (por categoria ou por produto) e o preco de cada um.</li>
+      <li>No fim do cadastro do servico, use <strong>Layout na Shopify</strong> para escolher Checkbox, Radio, Lista ou Cartoes, alem do rotulo, descricao, ordem e escolha obrigatoria. Em Radio, Lista ou Cartoes, use o multiselect para vincular todas as alternativas. O grupo mostra somente os servicos cujas regras incluem o produto.</li>
       <li>Ainda em Loja &gt; Servicos, clique <strong>Exportar para a Shopify</strong>. Depois disso, mudar servico ou regra reenvia sozinho.</li>
     </ol>
   {% endcomponente %}

@@ -27,7 +27,7 @@ from apps.core.widgets import DataHoraTema, DataTema, EditorHTML, SwitchTema, li
 WIDGETS_TEMA = {
     TextoHTMLField: {"widget": EditorHTML},
     models.DateField: {"widget": DataTema},
-    models.DateTimeField: {"widget": DataHoraTema},
+    models.DateTimeField: {"form_class": forms.DateTimeField, "widget": DataHoraTema},
     models.BooleanField: {"widget": SwitchTema},
     models.URLField: {"assume_scheme": "https"},
 }

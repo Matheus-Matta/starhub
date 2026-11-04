@@ -13,7 +13,7 @@
 
   function lerData(texto) {
     const br = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec((texto || "").trim());
-    const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec((texto || "").trim());
+    const iso = /^(\d{4})-(\d{2})-(\d{2})(?:T\d{2}:\d{2})?$/.exec((texto || "").trim());
     const partes = br ? [br[3], br[2], br[1]] : iso ? [iso[1], iso[2], iso[3]] : null;
     if (!partes) return null;
     const data = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
@@ -22,7 +22,12 @@
 
   function definir(campo, data) {
     if (!campo) return;
-    campo.value = paraTexto(data);
+    if (campo.type === "datetime-local") {
+      const hora = /T(\d{2}:\d{2})/.exec(campo.value || "");
+      campo.value = data ? `${paraIso(data)}T${hora ? hora[1] : "00:00"}` : "";
+    } else {
+      campo.value = paraTexto(data);
+    }
     campo.dispatchEvent(new Event("change", { bubbles: true }));
   }
 

@@ -2,7 +2,7 @@ from celery import shared_task
 
 from apps.core.tenant.context import tenant_context
 from apps.starchats.cliente import ErroStarChats
-from apps.starchats.models import ConfiguracaoStarChats
+from apps.starchats.models import ConfiguracaoStarChats, ConjuntoEnvio
 from apps.starchats.processamento import processar_evento
 from apps.starchats.provedores import ErroProvedorMensagens
 from apps.starchats.sincronizacao import sincronizar
@@ -24,3 +24,15 @@ def sincronizar_starchats(conta_id):
 def enviar_evento_starchats(conta_id, tipo, objeto_id, evento, evento_id):
     with tenant_context(conta_id):
         return processar_evento(conta_id, tipo, objeto_id, evento, evento_id)
+
+
+@shared_task(autoretry_for=(ErroStarChats,), retry_backoff=True, max_retries=3)
+def enviar_teste_starchats(conta_id, conjunto_id, numero):
+    from apps.starchats.envio_teste import enviar_teste
+
+    with tenant_context(conta_id):
+        conjunto = ConjuntoEnvio.objects.select_related(
+            "modelo", "modelo__configuracao"
+        ).get(pk=conjunto_id)
+        resposta = enviar_teste(conjunto, numero)
+        return str(resposta.get("id", ""))

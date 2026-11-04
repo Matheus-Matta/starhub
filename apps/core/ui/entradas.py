@@ -63,10 +63,14 @@ PLACEHOLDERS = {
     "url": "https://", "low_stock_amount": "5", "posicao": "0", "ordem": "0",
     "ordem_menu": "0", "inventory_quantity": "0",
     # cupom
-    "Cupom.name": "Black Friday", "Cupom.value": "10.00",
+    "Cupom.name": "Black Friday", "Cupom.code": "BLACK10", "Cupom.value": "10.00",
     "Cupom.description": "Uso interno", "usage_limit": "sem limite",
     "usage_limit_per_customer": "sem limite", "minimum_subtotal": "0.00",
-    "minimum_quantity": "1",
+    "minimum_quantity": "1", "subtotal_maximo": "sem limite",
+    "quantidade_maxima": "sem limite", "preco_item_minimo": "0.00",
+    "preco_item_maximo": "sem limite", "produtos_distintos_minimos": "1",
+    "produtos_distintos_maximos": "sem limite", "horario_inicio": "22:00",
+    "horario_fim": "06:00",
     # cliente e pedido
     "Cliente.nome": "Ana", "sobrenome": "Silva", "papel": "customer",
     "notas": "Observacoes internas", "observacao_cliente": "Recado do cliente",

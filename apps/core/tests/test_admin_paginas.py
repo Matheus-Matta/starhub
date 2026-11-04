@@ -157,8 +157,9 @@ def test_edicao_de_pedido_pelo_admin_recalcula_o_total(admin_logado, dados_loja)
         "linhas_frete": "[]", "linhas_taxa": "[]", "linhas_cupom": "[]", "metadados": "[]",
         "itens-TOTAL_FORMS": "1", "itens-INITIAL_FORMS": "1",
         "itens-MIN_NUM_FORMS": "0", "itens-MAX_NUM_FORMS": "1000",
-        "itens-0-id": item.pk, "itens-0-pedido": pedido.pk, "itens-0-produto": produto.pk,
-        "itens-0-nome": "Camisa azul", "itens-0-sku": "CAM-1", "itens-0-quantidade": "3",
+        "itens-0-id": item.pk, "itens-0-pedido": pedido.pk,
+        "itens-0-variante": item.variante_id,
+        "itens-0-sku": "CAM-1", "itens-0-quantidade": "3",
         "itens-0-subtotal": "", "itens-0-total": "",
         **_inline_vazio("pagamentos"), **_inline_vazio("entregas"),
     }

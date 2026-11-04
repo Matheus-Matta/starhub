@@ -7,6 +7,7 @@ import pytest
 from apps.core.models import Address, ExternalReference
 from apps.integracoes.envio.base import EnvioNaoSuportado
 from apps.loja.models import Cupom, Pedido
+from apps.shopify.cliente import ShopifyErro
 from apps.shopify.envio.cupons import CupomShopify
 from apps.shopify.envio.pedidos import PedidoShopify
 from apps.shopify.tests.envio_falso import enviador
@@ -29,11 +30,51 @@ def _vinculo(c, metadata):
         metadata=metadata)
 
 
-def test_cupom_criar_nao_suportado():
-    """Cupom do hub tem codigo interno aleatorio: o cliente nao teria o que digitar."""
+def test_cupom_percentual_do_hub_e_criado_com_codigo_para_o_checkout():
+    """Recusar o create impede usar no Shopify qualquer campanha criada no hub."""
+    criado = {"codeDiscountNode": {"id": GID}, "userErrors": []}
+    env, falso = enviador(CupomShopify, discountCodeBasicCreate=criado)
+    c = cupom(code="PROMO10", minimum_requirement=Cupom.RequisitoMinimo.SUBTOTAL,
+              minimum_subtotal=50, usage_limit=100, usage_limit_per_customer=1)
+
+    assert env.criar(c) == GID
+
+    query, variaveis = falso.chamadas[0]
+    assert "discountCodeBasicCreate" in query
+    desconto = variaveis["desconto"]
+    assert desconto["code"] == "PROMO10"
+    assert desconto["context"] == {"all": "ALL"}
+    assert desconto["customerGets"] == {
+        "value": {"percentage": 0.1}, "items": {"all": True}}
+    assert desconto["minimumRequirement"] == {
+        "subtotal": {"greaterThanOrEqualToSubtotal": "50.00"}}
+    assert desconto["usageLimit"] == 100
+    assert desconto["appliesOncePerCustomer"] is True
+    assert desconto["startsAt"]
+
+
+def test_cupom_de_frete_do_hub_e_criado_para_todos_os_destinos():
+    """Frete gratis usa outra mutation e precisa declarar os destinos elegiveis."""
+    criado = {"codeDiscountNode": {"id": GID}, "userErrors": []}
+    env, falso = enviador(CupomShopify, discountCodeFreeShippingCreate=criado)
+
+    assert env.criar(cupom(code="FRETEGRATIS", discount_type=Cupom.TipoDesconto.FRETE_GRATIS,
+                           value=0)) == GID
+
+    query, variaveis = falso.chamadas[0]
+    assert "discountCodeFreeShippingCreate" in query
+    desconto = variaveis["desconto"]
+    assert desconto["code"] == "FRETEGRATIS"
+    assert desconto["destination"] == {"all": True}
+
+
+def test_shopify_recusa_regra_maxima_que_o_desconto_nativo_nao_suporta():
+    """Ignorar o maximo publicaria uma campanha mais ampla que a cadastrada no hub."""
     env, falso = enviador(CupomShopify)
-    with pytest.raises(EnvioNaoSuportado):
-        env.criar(cupom())
+
+    with pytest.raises(ShopifyErro, match="subtotal maximo"):
+        env.criar(cupom(code="ATE300", subtotal_maximo=300))
+
     assert falso.chamadas == []
 
 

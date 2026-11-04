@@ -45,6 +45,7 @@ def test_sincronizacao_cria_cupom_de_frete_gratis_com_clientes_e_minimo():
     cupom, criado = recursos.cupom(_frete_gratis())
 
     assert criado
+    assert cupom.code == "FRETE"
     assert (cupom.name, cupom.discount_type, cupom.free_shipping) == (
         "Frete na faixa", Cupom.TipoDesconto.FRETE_GRATIS, True)
     assert cupom.status == Cupom.Status.ATIVO

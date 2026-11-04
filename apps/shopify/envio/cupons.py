@@ -1,14 +1,11 @@
-"""Cupom do hub -> desconto com codigo do Shopify: so atualizar e excluir.
-
-O codigo que o cliente digita nunca e enviado (nem no update): o hub guarda um
-codigo interno aleatorio e sobrescrever o do Shopify quebraria as campanhas.
-"""
+"""Cupom do hub -> desconto com codigo nativo do Shopify."""
 
 from apps.integracoes.envio.base import EnvioNaoSuportado
 from apps.loja.models import Cupom
 from apps.shopify.cliente import ShopifyErro
 from apps.shopify.cupons_vinculo import dados, gravar, vinculo
 from apps.shopify.envio.base import RecursoShopify
+from apps.shopify.envio.cupons_entrada import entrada
 
 CONSULTAR_STATUS = """query($id: ID!) {
   codeDiscountNode(id: $id) { codeDiscount {
@@ -23,6 +20,16 @@ ATUALIZAR_BASICO = """mutation($id: ID!, $desconto: DiscountCodeBasicInput!) {
 }"""
 ATUALIZAR_FRETE = """mutation($id: ID!, $desconto: DiscountCodeFreeShippingInput!) {
   discountCodeFreeShippingUpdate(id: $id, freeShippingCodeDiscount: $desconto) {
+    codeDiscountNode { id } userErrors { field message }
+  }
+}"""
+CRIAR_BASICO = """mutation($desconto: DiscountCodeBasicInput!) {
+  discountCodeBasicCreate(basicCodeDiscount: $desconto) {
+    codeDiscountNode { id } userErrors { field message }
+  }
+}"""
+CRIAR_FRETE = """mutation($desconto: DiscountCodeFreeShippingInput!) {
+  discountCodeFreeShippingCreate(freeShippingCodeDiscount: $desconto) {
     codeDiscountNode { id } userErrors { field message }
   }
 }"""
@@ -52,22 +59,19 @@ class CupomShopify(RecursoShopify):
     modelo = Cupom
 
     def criar(self, obj):
-        raise EnvioNaoSuportado(
-            "cupom criado no hub nao tem codigo para o cliente digitar no Shopify: "
-            "crie o desconto no Shopify e sincronize."
-        )
+        frete = obj.discount_type == Cupom.TipoDesconto.FRETE_GRATIS
+        query, campo = ((CRIAR_FRETE, "discountCodeFreeShippingCreate") if frete
+                        else (CRIAR_BASICO, "discountCodeBasicCreate"))
+        resultado = self.mutacao(query, {"desconto": entrada(obj, incluir_codigo=True)}, campo)
+        id_externo = ((resultado.get("codeDiscountNode") or {}).get("id"))
+        if not id_externo:
+            raise ShopifyErro("A Shopify criou o desconto sem devolver o identificador.")
+        if obj.status != Cupom.Status.ATIVO:
+            self.mutacao(DESATIVAR, {"id": id_externo}, "discountCodeDeactivate")
+        return id_externo
 
     def _entrada(self, cupom):
-        entrada = {
-            "title": cupom.name,
-            # None remove o termino; sem isso o Shopify manteria uma data antiga.
-            "endsAt": cupom.ends_at.isoformat() if cupom.ends_at else None,
-            "usageLimit": cupom.usage_limit,
-            "appliesOncePerCustomer": bool(cupom.usage_limit_per_customer),
-        }
-        if cupom.starts_at:
-            entrada["startsAt"] = cupom.starts_at.isoformat()
-        return entrada
+        return entrada(cupom)
 
     def atualizar(self, obj, external_id):
         tipo = _tipo(obj)

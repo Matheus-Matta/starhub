@@ -105,7 +105,9 @@ def test_bloco_do_tema_recebe_a_variante_do_preco_da_regra(client, cfg, sofa, mo
     assert resposta.status_code == 200 and resposta["Access-Control-Allow-Origin"] == ORIGEM
     assert resposta.json()["servicos"] == [{
         "id": montagem.pk, "nome": "Montagem", "preco": "80.00",
-        "preco_texto": "R$ 80,00", "variante": 801}]
+        "preco_texto": "R$ 80,00", "variante": 801, "rotulo": "Montagem",
+        "descricao": "", "ordem": 10, "tipo_campo": "checkbox", "grupo": "",
+        "titulo_grupo": "", "obrigatorio": False, "selecionado": False}]
 
 
 def test_bloco_do_tema_desligado_ou_de_outro_dominio_nao_mostra_servico(

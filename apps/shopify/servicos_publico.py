@@ -20,6 +20,7 @@ from apps.loja.models import Produto
 from apps.shopify.envio.produtos_variantes import dinheiro
 from apps.shopify.frete_publico import _com_cors, _negada, _origem_permitida
 from apps.shopify.servicos_envio import VARIANTES
+from apps.shopify.servicos_layout import aplicar_layout
 
 
 def _produto(produto_id):
@@ -51,7 +52,7 @@ def servicos_da_pagina(produto_id):
         if variante and variante.isdigit():
             saida.append({"id": servico.pk, "nome": servico.nome, "preco": dinheiro(preco),
                           "preco_texto": moeda(preco), "variante": int(variante)})
-    return saida
+    return aplicar_layout(saida)
 
 
 def consultar_servicos(request, configuracao_uuid):

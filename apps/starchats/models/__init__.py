@@ -1,6 +1,7 @@
 from .configuracao import ConfiguracaoStarChats
+from .conjuntos import ConjuntoEnvio
 from .envios import ContatoStarChats, EnvioStarChats
-from .regras import ConjuntoEnvio, RegraEnvio
+from .regras import RegraEnvio
 from .templates import ModeloMensagem
 
 __all__ = [

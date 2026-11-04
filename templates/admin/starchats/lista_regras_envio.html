@@ -1,0 +1,42 @@
+{% load static %}{% comment %}
+Regras filhas do conjunto de envio; adicionar e editar abrem o admin no modal.
+{% endcomment %}
+<div class="sh-lista-variantes">
+  <div class="sh-lista-acoes">
+    <button type="button" class="btn btn-sm btn-outline sh-adicionar-relacionado"
+            data-modal-chave="regras" data-modal-titulo="Adicionar regra"
+            {% if url_adicionar %}data-modal-url="{{ url_adicionar }}"{% else %}data-modal-salvar-antes{% endif %}>
+      <img src="{% static 'admin/img/icon-addlink.svg' %}" alt="" width="14" height="14"> Adicionar regra
+    </button>
+  </div>
+  {% if linhas %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>Regra</th><th>Campo</th><th>Comparacao</th><th>Valor</th><th>Situacao</th>
+            <th class="sh-coluna-acoes"><span class="visually-hidden">Acoes</span></th></tr>
+        </thead>
+        <tbody>
+          {% for linha in linhas %}{% with r=linha.regra %}
+            <tr class="sh-linha-modal" tabindex="0" data-modal-url="{{ linha.url_editar }}"
+                data-modal-titulo="Editar regra: {{ r.nome }}">
+              <td class="font-medium">{{ r.nome }}</td>
+              <td>{{ r.get_campo_display }}</td><td>{{ r.get_operador_display }}</td>
+              <td>{{ r.valor|default:"-" }}</td>
+              <td>{% if r.active %}{% include "components/badge.html" with texto="Ativa" tom="success" %}{% else %}{% include "components/badge.html" with texto="Inativa" %}{% endif %}</td>
+              <td class="sh-coluna-acoes">
+                <button type="button" class="btn btn-sm btn-outline" data-modal-url="{{ linha.url_editar }}"
+                        data-modal-titulo="Editar regra: {{ r.nome }}">Editar</button>
+                <button type="button" class="btn btn-ghost btn-icon sh-remover-linha"
+                        data-modal-url="{{ linha.url_excluir }}" data-modal-titulo="Excluir regra: {{ r.nome }}"
+                        title="Excluir regra" aria-label="Excluir regra {{ r.nome }}">{% icone "trash-2" %}</button>
+              </td>
+            </tr>
+          {% endwith %}{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    {% include "components/empty_state.html" with icone="sliders-horizontal" texto="Nenhuma regra ainda." detalhe="Sem regras, o conjunto considera todos os clientes do evento antes dos outros controles." %}
+  {% endif %}
+</div>

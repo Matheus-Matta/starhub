@@ -36,13 +36,16 @@ class AvaliacaoConflito(Exception):
         self.codigo = codigo
 
 
-def nome_publico(cliente):
+def nome_publico(cliente, nome_conta=None, sobrenome_conta=None):
     """"Matheus Silva" vira "Matheus S.": o sobrenome inteiro nao vai para a vitrine."""
-    nome = (cliente.nome or "").strip().split(" ")[0]
-    sobrenome = (cliente.sobrenome or "").strip()
+    nome = cliente.nome if nome_conta is None else nome_conta
+    sobrenome = cliente.sobrenome if sobrenome_conta is None else sobrenome_conta
+    nome = (nome or "").strip().split(" ")[0]
+    sobrenome = (sobrenome or "").strip()
     if not nome:
         return "Cliente"
-    return f"{nome} {sobrenome[0].upper()}." if sobrenome else nome
+    publico = f"{nome} {sobrenome[0].upper()}." if sobrenome else nome
+    return publico[:80]
 
 
 def pedido_que_comprova(cliente, produto):
@@ -89,7 +92,8 @@ def _fotos(arquivos):
     return list(zip(arquivos, extensoes, strict=True))
 
 
-def criar_avaliacao(*, cliente, produto, nota, comentario, fotos=(), origin=Origin.STARHUB):
+def criar_avaliacao(*, cliente, produto, nota, comentario, fotos=(), origin=Origin.STARHUB,
+                    nome_conta=None, sobrenome_conta=None):
     """Grava a avaliacao PENDENTE com as fotos; levanta AvaliacaoInvalida/Conflito."""
     # Tudo validado antes de gravar: foto recusada nao deixa avaliacao pela metade.
     nota = _nota(nota)
@@ -102,7 +106,8 @@ def criar_avaliacao(*, cliente, produto, nota, comentario, fotos=(), origin=Orig
         try:
             with transaction.atomic():
                 avaliacao = Avaliacao.objects.create(
-                    produto=produto, cliente=cliente, nome_publico=nome_publico(cliente),
+                    produto=produto, cliente=cliente,
+                    nome_publico=nome_publico(cliente, nome_conta, sobrenome_conta),
                     nota=nota, comentario=comentario,
                     compra_verificada=pedido is not None, pedido=pedido, origin=origin,
                 )

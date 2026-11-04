@@ -26,7 +26,6 @@
   });
 
   const $ = window.django && window.django.jQuery;
-  if (!$) return; // pagina sem campos de relacao (sem o jQuery do admin)
 
   // Mesmo indice que o RelatedObjectLookups.js do Django usa no nome da janela.
   function indiceDoPopup() {
@@ -157,10 +156,12 @@
     };
   });
 
-  $("body").on("django:show-related", ".related-widget-wrapper-link", function (evento) {
-    evento.preventDefault();
-    abrir(this);
-  });
+  if ($) {
+    $("body").on("django:show-related", ".related-widget-wrapper-link", function (evento) {
+      evento.preventDefault();
+      abrir(this);
+    });
+  }
 
   function fecharModalDe(janela) {
     const dialogo = dialogoDa(janela);

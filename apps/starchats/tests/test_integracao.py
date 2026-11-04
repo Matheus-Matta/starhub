@@ -49,31 +49,24 @@ def test_token_fica_criptografado_no_banco(conta):
     assert configuracao.token_acesso == "token-super-secreto"
 
 
-def test_mesma_regra_pode_ser_usada_em_varios_conjuntos(conta):
-    """A regra e N:N: uma condicao reutilizavel pode participar de varios fluxos."""
+def test_regra_pertence_ao_conjunto_em_que_foi_cadastrada(conta):
+    """A regra e parte do conjunto e nao deve voltar a ser um cadastro separado."""
     configuracao = _configuracao(conta)
     modelo = _modelo(conta, configuracao)
+    conjunto = ConjuntoEnvio.objects.create(
+        account=conta, nome="Boas-vindas", evento="cliente.criado", modelo=modelo
+    )
     regra = RegraEnvio.objects.create(
         account=conta,
+        conjunto=conjunto,
         nome="Aceitou marketing",
         campo="cliente.aceita_marketing",
         operador=RegraEnvio.Operador.IGUAL,
         valor="true",
     )
-    primeiro = ConjuntoEnvio.objects.create(
-        account=conta, nome="Boas-vindas", evento="cliente.criado", modelo=modelo
-    )
-    segundo = ConjuntoEnvio.objects.create(
-        account=conta, nome="Pos-venda", evento="pedido.criado", modelo=modelo
-    )
 
-    primeiro.regras.add(regra)
-    segundo.regras.add(regra)
-
-    assert list(regra.conjuntos.order_by("nome").values_list("nome", flat=True)) == [
-        "Boas-vindas",
-        "Pos-venda",
-    ]
+    assert regra.conjunto == conjunto
+    assert list(conjunto.regras.all()) == [regra]
 
 
 def test_evento_renderiza_template_com_dados_do_cliente_e_pedido(
@@ -93,14 +86,14 @@ def test_evento_renderiza_template_com_dados_do_cliente_e_pedido(
             "3": "pedido.total",
         },
     )
-    regra = RegraEnvio.objects.create(
+    RegraEnvio.objects.create(
         account=conta,
+        conjunto=conjunto,
         nome="Pagamento confirmado",
         campo="pedido.status",
         operador=RegraEnvio.Operador.IGUAL,
         valor="confirmed",
     )
-    conjunto.regras.add(regra)
     cliente = Cliente.objects.create(
         account=conta,
         email="ana@example.com",
@@ -145,14 +138,14 @@ def test_evento_nao_envia_quando_regra_nao_bate(conta, monkeypatch):
         modelo=modelo,
         parametros_corpo={"1": "cliente.nome_completo", "2": "cliente.email", "3": "cliente.email"},
     )
-    regra = RegraEnvio.objects.create(
+    RegraEnvio.objects.create(
         account=conta,
+        conjunto=conjunto,
         nome="Aceitou marketing",
         campo="cliente.aceita_marketing",
         operador=RegraEnvio.Operador.IGUAL,
         valor="true",
     )
-    conjunto.regras.add(regra)
     cliente = Cliente.objects.create(
         account=conta,
         email="bia@example.com",

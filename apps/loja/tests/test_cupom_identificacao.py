@@ -1,4 +1,4 @@
-"""O cupom e identificado pelo nome dentro da conta; o codigo e interno e aleatorio."""
+"""O cupom e identificado pelo nome; o codigo e o que o cliente usa no checkout."""
 
 from decimal import Decimal
 
@@ -24,6 +24,13 @@ def test_codigo_nasce_sozinho_aleatorio_e_diferente_por_cupom():
     assert primeiro.code != segundo.code
 
 
+def test_codigo_pode_ser_escolhido_pelo_operador():
+    """Codigo oculto e imutavel impede publicar no Shopify um cupom do hub."""
+    campo = Cupom._meta.get_field("code")
+
+    assert campo.editable is True
+
+
 def test_nome_repetido_na_mesma_conta_e_recusado_pelo_banco():
     """O nome identifica o cupom: dois "Black Friday" na conta ninguem distingue."""
     _cupom("Black Friday")
@@ -42,5 +49,5 @@ def test_mesmo_nome_em_outra_conta_e_permitido(outra_conta):
 
 
 def test_cupom_aparece_pelo_nome():
-    """O codigo e oculto: mostra-lo nas listas e selects confundiria o operador."""
+    """Nos selects, o nome continua sendo a identificacao mais legivel."""
     assert str(_cupom("Black Friday")) == "Black Friday"

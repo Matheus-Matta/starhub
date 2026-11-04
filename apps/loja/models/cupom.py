@@ -10,8 +10,7 @@ _ALFABETO_CODIGO = string.ascii_uppercase + string.digits
 
 
 def gerar_codigo():
-    """Codigo interno do cupom: 36^12 combinacoes deixam colisao no indice
-    (conta, codigo) fora do horizonte pratico; o operador identifica pelo nome."""
+    """Sugestao automatica; o operador pode troca-la pelo codigo da campanha."""
     return "".join(secrets.choice(_ALFABETO_CODIGO) for _ in range(12))
 
 
@@ -31,6 +30,7 @@ class Cupom(ComDatas):
         NENHUM = "none", "Nenhum"
         SUBTOTAL = "subtotal", "Subtotal"
         QUANTIDADE = "quantity", "Quantidade"
+        AMBOS = "subtotal_quantity", "Subtotal e quantidade"
 
     class ElegibilidadeCliente(models.TextChoices):
         TODOS = "all", "Todos"
@@ -48,9 +48,9 @@ class Cupom(ComDatas):
         CATEGORIAS = "categories", "Categorias"
         TAGS = "product_tags", "Tags de produtos"
 
-    # O codigo digitado pelo cliente vive na plataforma (Shopify, ERP); aqui o
-    # cupom e identificado pelo nome e o codigo e so a chave interna.
-    code = models.CharField("codigo", max_length=100, default=gerar_codigo, editable=False)
+    # Nasce aleatorio para continuar pratico, mas pode ser trocado pelo codigo curto
+    # que o cliente digitara no checkout dos marketplaces.
+    code = models.CharField("codigo", max_length=100, default=gerar_codigo)
     name = models.CharField("nome", max_length=150)
     description = models.TextField("descricao", blank=True)
     discount_type = models.CharField("tipo de desconto", max_length=20, choices=TipoDesconto)
@@ -74,6 +74,30 @@ class Cupom(ComDatas):
         validators=NAO_NEGATIVO,
     )
     minimum_quantity = models.PositiveIntegerField("quantidade minima", null=True, blank=True)
+    subtotal_maximo = models.DecimalField(
+        "subtotal maximo", max_digits=12, decimal_places=2, null=True, blank=True,
+        validators=NAO_NEGATIVO,
+    )
+    quantidade_maxima = models.PositiveIntegerField(
+        "quantidade maxima", null=True, blank=True)
+    produtos_distintos_minimos = models.PositiveIntegerField(
+        "produtos distintos minimos", null=True, blank=True)
+    produtos_distintos_maximos = models.PositiveIntegerField(
+        "produtos distintos maximos", null=True, blank=True)
+    preco_item_minimo = models.DecimalField(
+        "preco minimo do item", max_digits=12, decimal_places=2, null=True, blank=True,
+        validators=NAO_NEGATIVO,
+    )
+    preco_item_maximo = models.DecimalField(
+        "preco maximo do item", max_digits=12, decimal_places=2, null=True, blank=True,
+        validators=NAO_NEGATIVO,
+    )
+    dias_semana = models.JSONField(
+        "dias da semana", default=list, blank=True,
+        help_text="Vazio permite todos os dias.",
+    )
+    horario_inicio = models.TimeField("horario inicial", null=True, blank=True)
+    horario_fim = models.TimeField("horario final", null=True, blank=True)
     customer_eligibility = models.CharField("clientes elegiveis",
         max_length=30, choices=ElegibilidadeCliente, default=ElegibilidadeCliente.TODOS
     )
@@ -127,10 +151,27 @@ class Cupom(ComDatas):
             erros["ends_at"] = "O termino deve ser posterior ao inicio."
         # O requisito escolhido pede o numero dele (o campo so aparece nesse caso).
         requisito = self.minimum_requirement
-        if requisito == self.RequisitoMinimo.SUBTOTAL and not self.minimum_subtotal:
+        exige_subtotal = requisito in (self.RequisitoMinimo.SUBTOTAL, self.RequisitoMinimo.AMBOS)
+        exige_quantidade = requisito in (
+            self.RequisitoMinimo.QUANTIDADE, self.RequisitoMinimo.AMBOS)
+        if exige_subtotal and not self.minimum_subtotal:
             erros["minimum_subtotal"] = "Informe o subtotal minimo."
-        if requisito == self.RequisitoMinimo.QUANTIDADE and not self.minimum_quantity:
+        if exige_quantidade and not self.minimum_quantity:
             erros["minimum_quantity"] = "Informe a quantidade minima."
+        pares = (
+            ("minimum_subtotal", "subtotal_maximo", "subtotal maximo"),
+            ("minimum_quantity", "quantidade_maxima", "quantidade maxima"),
+            ("preco_item_minimo", "preco_item_maximo", "preco maximo do item"),
+            ("produtos_distintos_minimos", "produtos_distintos_maximos",
+             "maximo de produtos distintos"),
+        )
+        for minimo, maximo, rotulo in pares:
+            menor, maior = getattr(self, minimo), getattr(self, maximo)
+            if menor is not None and maior is not None and maior < menor:
+                erros[maximo] = f"O {rotulo} nao pode ser menor que o minimo."
+        dias_validos = {str(dia) for dia in range(7)}
+        if not isinstance(self.dias_semana, list) or not set(self.dias_semana) <= dias_validos:
+            erros["dias_semana"] = "Escolha somente dias da semana validos."
         if erros:
             raise ValidationError(erros)
 

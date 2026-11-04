@@ -10,6 +10,7 @@ from apps.starchats.models import ConjuntoEnvio, EnvioStarChats
 from apps.starchats.provedores import obter, provedores, registrar
 from apps.starchats.regras import conjunto_atende
 from apps.starchats.renderizacao import preparar
+from apps.starchats.telefones import NumeroInvalido, numero_whatsapp
 
 
 def _starchats_disponivel(modelo):
@@ -51,6 +52,20 @@ def _chave(conjunto, tipo, objeto_id, evento_id):
 
 def _reservar(conjunto, cliente, tipo, objeto_id, evento, evento_id):
     with transaction.atomic():
+        # O lock do conjunto serializa a contagem: dois clientes simultaneos nao
+        # conseguem reservar juntos a ultima vaga do limite diario.
+        conjunto = ConjuntoEnvio.objects.select_for_update().get(pk=conjunto.pk)
+        if conjunto.limite_diario:
+            usados = EnvioStarChats.objects.filter(
+                conjunto=conjunto,
+                status__in=[
+                    EnvioStarChats.Status.PROCESSANDO,
+                    EnvioStarChats.Status.ENVIADO,
+                ],
+                created_at__date=timezone.localdate(),
+            ).count()
+            if usados >= conjunto.limite_diario:
+                return None
         envio, criado = EnvioStarChats.objects.get_or_create(
             chave_deduplicacao=_chave(conjunto, tipo, objeto_id, evento_id),
             defaults={
@@ -78,6 +93,23 @@ def _reservar(conjunto, cliente, tipo, objeto_id, evento, evento_id):
         return envio
 
 
+def _numero_permitido(conjunto, cliente):
+    permitidos = conjunto.numeros_permitidos or []
+    if not permitidos:
+        return True
+    try:
+        atual = numero_whatsapp(cliente.telefone)
+    except NumeroInvalido:
+        return False
+    normalizados = set()
+    for numero in permitidos:
+        try:
+            normalizados.add(numero_whatsapp(numero))
+        except NumeroInvalido:
+            continue
+    return atual in normalizados
+
+
 def processar_evento(conta_id, tipo, objeto_id, evento, evento_id):
     objeto, cliente, pedido = _objeto(tipo, objeto_id)
     if cliente is None:
@@ -96,6 +128,8 @@ def processar_evento(conta_id, tipo, objeto_id, evento, evento_id):
     for conjunto in conjuntos:
         provedor = obter(conjunto.modelo.plataforma)
         if not provedor or not provedor.disponivel(conjunto.modelo):
+            continue
+        if not _numero_permitido(conjunto, cliente):
             continue
         if not conjunto_atende(conjunto, contexto):
             continue

@@ -9,6 +9,7 @@ from apps.core.models import ExternalReference
 from apps.core.tarefas import enfileirar
 from apps.core.tenant.context import get_current_account_id
 from apps.integracoes import admin_frete, permissoes
+from apps.integracoes.admin_cupons_guia import guia_view as guia_cupons_view
 from apps.integracoes.admin_servicos_guia import guia_view
 from apps.integracoes.admin_shopify import adicionar_links_publicos
 from apps.integracoes.admin_sincronizacao import (
@@ -68,6 +69,9 @@ class ConfiguracaoIntegracaoAdmin(TemaModelAdmin):
                  name="integracoes_configuracaointegracao_shopify"),
             path("shopify/servicos-guia/", visao(lambda request: guia_view(self, request)),
                  name="integracoes_servicos_guia"),
+            path("shopify/cupons-guia/", visao(
+                lambda request: guia_cupons_view(self, request)),
+                name="integracoes_cupons_guia"),
             path("woocommerce/", visao(self.woocommerce_view),
                  name="integracoes_configuracaointegracao_woocommerce"),
             path("suri/", visao(self.suri_view), name="integracoes_configuracaointegracao_suri"),
@@ -156,6 +160,9 @@ class ConfiguracaoIntegracaoAdmin(TemaModelAdmin):
             "campos_api": [form[nome] for nome in CAMPOS_API if nome in form.fields],
             "campos_servicos": [form[nome] for nome in CAMPOS_SERVICOS if nome in form.fields],
             "guia_servicos": plataforma == Plataforma.SHOPIFY and configuracao is not None,
+            "cupons_shopify": plataforma == Plataforma.SHOPIFY,
+            "url_cupons": reverse("admin:loja_cupom_changelist"),
+            "url_guia_cupons": reverse("admin:integracoes_cupons_guia"),
             "campo_encaminhar": form["encaminhar_pedidos"]
             if "encaminhar_pedidos" in form.fields else None,
             "matriz": form.matriz_tela(),

@@ -60,8 +60,11 @@ def importar_desconto(node, padrao=None):
     if cupom is None:
         campos, listas, extras = mapear(node)
         nome = campos.pop("name") or next(iter(codigos(node)), "") or node["id"]
+        codigo = next(iter(codigos(node)), "")
         defaults = {"discount_type": Cupom.TipoDesconto.VALOR_FIXO, **(padrao or {}),
                     **campos, "origin": Origin.SHOPIFY}
+        if codigo:
+            defaults["code"] = codigo
         cupom, criado = _pelo_nome(nome, defaults)
         referencia, _ = ExternalReference.objects.get_or_create(
             platform=Origin.SHOPIFY, entity_type=ENTIDADE, external_id=node["id"],
@@ -122,6 +125,7 @@ def garantir_cupom(codigo, padrao):
                            "informa.", codigo)
     if node:
         return importar_desconto(node, padrao)[0]
-    cupom, _criado = _pelo_nome(codigo, {**padrao, "status": Cupom.Status.ATIVO,
+    cupom, _criado = _pelo_nome(codigo, {**padrao, "code": codigo,
+                                         "status": Cupom.Status.ATIVO,
                                          "origin": Origin.SHOPIFY})
     return cupom
