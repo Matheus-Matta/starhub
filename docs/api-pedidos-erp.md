@@ -24,6 +24,8 @@ Hoje so o Shopify manda pedidos (webhook `orders/create` e `orders/updated`, mai
 
 Todas devolvem JSON no formato WooCommerce. Barra final e opcional.
 
+O `<id>` do pedido e o id do hub somado a base de Integracoes > WooCommerce (padrao 0). Com base 13000, o pedido 1 do hub sai como `"id": 13001` e `"number": "13001"`, e e esse numero que o ERP usa nas rotas, no lote e em `include`/`exclude`. Id ate a base devolve 404.
+
 ### GET /wp-json/wc/v3/orders
 
 Lista pedidos com filtros:

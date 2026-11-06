@@ -54,6 +54,11 @@ class ConfiguracaoIntegracao(BaseModel):
                   "Ligado, cada chamada de pedido do ERP vai para a loja WooCommerce e a "
                   "resposta dela volta ao ERP; cada uma fica em Tarefas, com a requisicao "
                   "e a resposta.")
+    # So WooCommerce, so o superusuario muda: mudar renumera os pedidos que o ERP ja viu.
+    base_id_pedido = models.PositiveIntegerField(
+        "base do ID do pedido na API", default=0, blank=True,
+        help_text="Somada ao ID do pedido na API Woo do hub: com 13000, o pedido 1 sai como "
+                  "13001. Use um numero acima do ultimo pedido do ERP e nao mude depois.")
 
     # Servicos do hub (Loja > Servicos) na loja. Suri: cada servico vira variante do
     # produto (apps/suri/servicos.py). Shopify: cada servico vira um produto escondido,

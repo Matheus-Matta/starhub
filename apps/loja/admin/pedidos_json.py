@@ -78,12 +78,13 @@ class PedidoJsonMixin:
             entity_type="pedidos", object_id=str(pedido.pk)).order_by("platform"))
         # O corpo do webhook e o da tela de Tarefas: mesma permissao dela.
         ver_tarefas = request.user.has_perm("integracoes.view_execucaointegracao")
+        saida = pedido_para_woo(pedido)
         contexto = {
             **self.admin_site.each_context(request), "opts": self.model._meta,
             "title": f"JSON do pedido #{pedido.number}", "pedido": pedido,
             "url_pedido": reverse("admin:loja_pedido_change", args=[pedido.pk]),
-            "json_api": _legivel(pedido_para_woo(pedido)),
-            "rota_api": f"GET /wc/v3/orders/{pedido.pk}",
+            "json_api": _legivel(saida),
+            "rota_api": f"GET /wc/v3/orders/{saida['id']}",
             "vinculos": [{"vinculo": v, "json": _legivel(v.metadata)} for v in vinculos],
             "ver_tarefas": ver_tarefas,
             "webhooks": webhooks_do_pedido(vinculos) if ver_tarefas else [],

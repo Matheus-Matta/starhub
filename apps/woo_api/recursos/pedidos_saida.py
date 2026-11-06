@@ -6,6 +6,7 @@ from apps.loja.services.extras_pedido import somados_por_item
 from apps.loja.services.pedidos import transacao
 from apps.woo_api import datas
 from apps.woo_api.recursos import enderecos
+from apps.woo_api.recursos.pedidos_id import base_da_conta
 from apps.woo_api.recursos.pedidos_servicos import meta_do_item, servicos_por_item
 from apps.woo_api.recursos.pedidos_starhub import meta_do_pedido
 
@@ -39,15 +40,19 @@ def item_para_woo(item, servicos=None, fora=ZERO):
     }
 
 
-def pedido_para_woo(pedido, servico_no_item=False):
+def pedido_para_woo(pedido, servico_no_item=False, base_id=None):
     """O ERP soma o servico (meta EPOFW) ao item: o valor que o hub somou no item sai
     dele, senao o ERP contava duas vezes. O total do pedido nao muda (o cliente pagou).
-    `servico_no_item=True` devolve o item como o hub guarda (envio a loja WooCommerce)."""
+    `servico_no_item=True` devolve o item como o hub guarda (envio a loja WooCommerce).
+    `base_id`: a listagem passa pronta, para nao consultar a base a cada pedido."""
+    if base_id is None:
+        base_id = base_da_conta(pedido.account_id)
+    id_api = pedido.pk + base_id
     pago = pedido.status in ("processing", "completed")
     servicos = servicos_por_item(pedido)
     fora = {} if servico_no_item else somados_por_item(pedido)
     return {
-        "id": pedido.pk,
+        "id": id_api,
         "parent_id": pedido.id_pai,
         "status": pedido.status,
         "currency": pedido.moeda,
@@ -76,7 +81,7 @@ def pedido_para_woo(pedido, servico_no_item=False):
         **datas.par("date_completed", pedido.fulfilled_at),
         **datas.par("date_paid", pedido.paid_at),
         "cart_hash": pedido.hash_carrinho,
-        "number": str(pedido.pk),
+        "number": str(id_api),
         "meta_data": meta_do_pedido(pedido),
         "line_items": [item_para_woo(item, servicos.get(item.pk), fora.get(item.pk, ZERO))
                        for item in pedido.itens.all()],

@@ -11,10 +11,12 @@
 <form method="post" class="integracao-page" novalidate>{% csrf_token %}
   {% include "components/form_errors.html" with form=form %}
 
-  {% if campo_encaminhar %}
+  {% if campos_superusuario %}
     {% componente "card" titulo="Modo dos pedidos (superusuario)" icone="shield" %}
       <div class="form-grid">
-        {% include "components/field.html" with field=campo_encaminhar %}
+        {% for campo in campos_superusuario %}
+          {% include "components/field.html" with field=campo %}
+        {% endfor %}
       </div>
     {% endcomponente %}
   {% endif %}

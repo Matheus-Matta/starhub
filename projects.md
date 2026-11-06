@@ -621,6 +621,14 @@ loja" com a requisicao e a resposta. Codigo: `apps/woo_api/views/encaminhar.py` 
 no `initial` das views de pedido) e `apps/woocommerce/encaminhar.py` (o repasse HTTP).
 Produtos, clientes e categorias nao sao encaminhados.
 
+**Base do id do pedido** (`ConfiguracaoIntegracao.base_id_pedido`, no mesmo card, so
+superusuario, padrao 0): nas rotas de pedido da API do hub (v1 e v3), id da API = id do hub
++ base. Com 13000, o pedido 1 sai como `id: 13001` e `number: "13001"`, e o ERP o chama por
+`/orders/13001`, no lote e em `include`/`exclude`. Id ate a base da 404: e pedido antigo do
+ERP. Serve ao ERP legado, que importa em sequencia pelo id. Mudar a base renumera todos os
+pedidos para o ERP. Desligar a integracao nao muda a base. Com o encaminhamento ligado, quem
+responde e a loja e a base nao entra. Codigo: `apps/woo_api/recursos/pedidos_id.py`.
+
 ### 6.4.1 Pedidos das outras lojas criados no WooCommerce (formato legado)
 
 Switch em Integracoes > WooCommerce > Servicos (`ConfiguracaoIntegracao.pedido_legado`,

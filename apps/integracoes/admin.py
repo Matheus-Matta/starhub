@@ -12,10 +12,7 @@ from apps.integracoes import admin_frete, permissoes
 from apps.integracoes.admin_cupons_guia import guia_view as guia_cupons_view
 from apps.integracoes.admin_servicos_guia import guia_view
 from apps.integracoes.admin_shopify import adicionar_links_publicos
-from apps.integracoes.admin_sincronizacao import (
-    listas_do_modal,
-    processar_sincronizacao,
-)
+from apps.integracoes.admin_sincronizacao import listas_do_modal, processar_sincronizacao
 from apps.integracoes.forms import ConfiguracaoShopifyForm
 from apps.integracoes.forms_suri import ConfiguracaoSuriForm
 from apps.integracoes.forms_woocommerce import ConfiguracaoWooCommerceForm
@@ -39,6 +36,7 @@ Plataforma = ConfiguracaoIntegracao.Plataforma
 CAMPOS_API = ("dominio_loja", "token_acesso", "segredo_app", "segredo_avaliacoes",
               "url_webhook", "nome_frete", "exibir_prazo_frete", "id_vendedor", "active")
 CAMPOS_SERVICOS = ("enviar_servicos", "receber_servicos", "pedido_legado", "servicos_no_tema")
+CAMPOS_SUPERUSUARIO = ("encaminhar_pedidos", "base_id_pedido")
 # O que muda de uma plataforma para outra na mesma tela de configuracao.
 TELAS = {
     Plataforma.SHOPIFY: {"nome": "Shopify", "form": ConfiguracaoShopifyForm, "acoes": ACOES},
@@ -128,7 +126,8 @@ class ConfiguracaoIntegracaoAdmin(TemaModelAdmin):
             adicionar_links_publicos(form, configuracao, request.build_absolute_uri("/"))
         if not request.user.is_superuser:
             # Fora do form, o valor salvo fica como esta (o construct_instance ignora).
-            form.fields.pop("encaminhar_pedidos", None)
+            for nome in CAMPOS_SUPERUSUARIO:
+                form.fields.pop(nome, None)
         if not pode_editar:
             for campo in form.fields.values():
                 campo.disabled = True
@@ -163,8 +162,8 @@ class ConfiguracaoIntegracaoAdmin(TemaModelAdmin):
             "cupons_shopify": plataforma == Plataforma.SHOPIFY,
             "url_cupons": reverse("admin:loja_cupom_changelist"),
             "url_guia_cupons": reverse("admin:integracoes_cupons_guia"),
-            "campo_encaminhar": form["encaminhar_pedidos"]
-            if "encaminhar_pedidos" in form.fields else None,
+            "campos_superusuario": [form[nome] for nome in CAMPOS_SUPERUSUARIO
+                                    if nome in form.fields],
             "matriz": form.matriz_tela(),
             "operacoes": [rotulo for _, rotulo in permissoes.OPERACOES],
             "configuracao": configuracao,

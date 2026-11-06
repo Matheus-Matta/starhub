@@ -85,6 +85,10 @@ class Recurso:
     def erro_integridade(self, erro):
         return WooErro("woocommerce_rest_conflict", "Registro repetido.", 400)
 
+    def ids_internos(self, ids):
+        """Ids como a API mostra -> ids do banco. So o pedido difere (pedidos_id.py)."""
+        return ids
+
     def filtrar(self, qs, params):
         if params.get("search") and self.campo_busca:
             termo = params["search"]
@@ -93,9 +97,9 @@ class Recurso:
                 filtro |= Q(**{f"{campo}__icontains": termo})
             qs = qs.filter(filtro)
         if params.get("include"):
-            qs = qs.filter(pk__in=lista_de_ids(params, "include"))
+            qs = qs.filter(pk__in=self.ids_internos(lista_de_ids(params, "include")))
         if params.get("exclude"):
-            qs = qs.exclude(pk__in=lista_de_ids(params, "exclude"))
+            qs = qs.exclude(pk__in=self.ids_internos(lista_de_ids(params, "exclude")))
         if hasattr(self.modelo, "created_at"):
             for param, lookup in (("after", "gt"), ("before", "lt")):
                 if params.get(param):

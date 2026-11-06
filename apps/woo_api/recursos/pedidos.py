@@ -1,7 +1,9 @@
 import logging
 
 from django.utils import timezone
+from django.utils.functional import cached_property
 
+from apps.core.tenant.context import get_current_account_id
 from apps.loja.models import Cliente, Pedido
 from apps.loja.services.pedidos import gravar_endereco_do_pedido, gravar_transacao
 from apps.loja.services.pedidos_status import aplicar_datas_do_status
@@ -10,6 +12,7 @@ from apps.woo_api import datas
 from apps.woo_api.erros import WooErro, id_invalido
 from apps.woo_api.recursos import enderecos
 from apps.woo_api.recursos.base import Recurso, booleano, escolha, inteiro, lista_de_ids, texto
+from apps.woo_api.recursos.pedidos_id import base_da_conta, id_do_hub
 from apps.woo_api.recursos.pedidos_linhas import gravar_itens, gravar_linhas
 from apps.woo_api.recursos.pedidos_meta import gravar_meta, gravar_servicos
 from apps.woo_api.recursos.pedidos_saida import pedido_para_woo
@@ -70,12 +73,25 @@ class PedidoRecurso(Recurso):
         # operador tirou do fluxo (services/pedidos_ativos.py).
         return self._todos().filter(active=True)
 
+    @cached_property
+    def base_id(self):
+        return base_da_conta(get_current_account_id())
+
+    def ids_internos(self, ids):
+        return [id_do_hub(id_api, self.base_id) for id_api in ids]
+
     def obter(self, pk):
         # Pelo id ele responde: o ERP que ja o conhecia (ex.: manda o cancelamento)
         # recebia 404 e registrava erro a cada tentativa.
         try:
-            return self._todos().get(pk=int(pk))
+            return self._todos().get(pk=id_do_hub(int(pk), self.base_id))
         except (Pedido.DoesNotExist, ValueError, TypeError) as erro:
+            raise id_invalido(self.nome) from erro
+
+    def obter_para_escrita(self, pk):
+        try:
+            return super().obter_para_escrita(id_do_hub(int(pk), self.base_id))
+        except (ValueError, TypeError) as erro:
             raise id_invalido(self.nome) from erro
 
     def excluir(self, obj, forcar):
@@ -102,7 +118,7 @@ class PedidoRecurso(Recurso):
         return super().filtrar(qs, params).distinct()
 
     def para_woo(self, obj):
-        return pedido_para_woo(obj)
+        return pedido_para_woo(obj, base_id=self.base_id)
 
     def gravar(self, obj, dados, criando):
         # Lido depois do lock (obter_para_escrita): desativado responde como esta e o
