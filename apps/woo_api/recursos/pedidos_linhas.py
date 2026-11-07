@@ -71,8 +71,8 @@ def _gravar_item(pedido, linha, item, somado=ZERO):
     recalcular = item.pk is None or "quantity" in linha or "product_id" in linha
     subtotal = _valor(linha, "subtotal", "line_items")
     total = _valor(linha, "total", "line_items")
-    # O GET tira do item o servico que o hub somou nele (pedidos_saida.py): o ERP
-    # devolve sem; somado de volta, o total do pedido nao cai a cada PUT.
+    # Switch desligado, o GET tira do item o servico que o hub somou nele
+    # (pedidos_saida.py): o ERP devolve sem; somado de volta, o total nao cai a cada PUT.
     subtotal = None if subtotal is None else subtotal + somado
     total = None if total is None else total + somado
     if recalcular or subtotal is not None or total is not None:
@@ -101,11 +101,12 @@ def _gravar_item(pedido, linha, item, somado=ZERO):
         {"item_id": item.pk, "sku": item.sku, **servico} for servico in servicos]
 
 
-def gravar_itens(pedido, dados):
-    """Grava os itens e devolve {item_id: servicos} das linhas que trouxeram servicos."""
+def gravar_itens(pedido, dados, servico_no_item=True):
+    """Grava os itens e devolve {item_id: servicos} das linhas que trouxeram servicos.
+    `servico_no_item`: o GET ja mandou o servico no item, entao nao ha o que somar."""
     por_item = {}
     existentes = {item.pk: item for item in pedido.itens.all()}
-    somados = somados_por_item(pedido)
+    somados = {} if servico_no_item else somados_por_item(pedido)
     for linha in _lista(dados, "line_items"):
         if linha.get("id"):
             item = existentes.get(inteiro(linha["id"], "line_items"))

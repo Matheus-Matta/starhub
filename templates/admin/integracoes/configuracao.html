@@ -21,6 +21,14 @@
     {% endcomponente %}
   {% endif %}
 
+  {% if campos_pedidos %}
+    {% componente "card" titulo="Pedidos na API Woo (ERP)" icone="package" %}
+      <div class="form-grid">
+        {% for campo in campos_pedidos %}{% include "components/field.html" with field=campo %}{% endfor %}
+      </div>
+    {% endcomponente %}
+  {% endif %}
+
   {% componente "card" titulo="Conexao com a API" icone="plug" %}
     <div class="form-grid integracao-api-grid">
       {% for campo in campos_api %}{% include "components/field.html" with field=campo icones=True %}{% endfor %}

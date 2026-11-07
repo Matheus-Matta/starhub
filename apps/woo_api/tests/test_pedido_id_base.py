@@ -145,7 +145,8 @@ def test_salvar_com_a_base_vazia_nao_renumera_os_pedidos(admin_logado, loja):
     assert ConfiguracaoIntegracao.objects.get().base_id_pedido == BASE
 
 
-def test_operador_nao_ve_nem_muda_a_base(client, conta, loja):
+def test_usuario_da_conta_ve_e_muda_a_base(client, conta, loja):
+    """A base e da conta (o ERP dela): so o superusuario mudava e a loja dependia dele."""
     from django.contrib.auth.models import Permission
 
     from apps.core.models import User
@@ -157,7 +158,7 @@ def test_operador_nao_ve_nem_muda_a_base(client, conta, loja):
     client.force_login(operador)
 
     tela = client.get(reverse(TELA)).content.decode()
-    client.post(reverse(TELA), {**DADOS_TELA, "base_id_pedido": "1"})
+    client.post(reverse(TELA), {**DADOS_TELA, "base_id_pedido": "20000"})
 
-    assert "base_id_pedido" not in tela
-    assert ConfiguracaoIntegracao.objects.get().base_id_pedido == BASE
+    assert 'name="base_id_pedido"' in tela
+    assert ConfiguracaoIntegracao.objects.get().base_id_pedido == 20000

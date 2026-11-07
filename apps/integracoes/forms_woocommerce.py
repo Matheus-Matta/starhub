@@ -26,7 +26,8 @@ class ConfiguracaoWooCommerceForm(ConfiguracaoShopifyForm):
     )
 
     class Meta(ConfiguracaoShopifyForm.Meta):
-        fields = [*CAMPOS_COMUNS, "encaminhar_pedidos", "base_id_pedido", "pedido_legado"]
+        fields = [*CAMPOS_COMUNS, "encaminhar_pedidos", "base_id_pedido",
+                  "servico_no_subtotal", "pedido_legado"]
         widgets = {
             "dominio_loja": forms.URLInput(attrs={"placeholder": "https://sualoja.com.br"}),
             "url_webhook": forms.URLInput(attrs={

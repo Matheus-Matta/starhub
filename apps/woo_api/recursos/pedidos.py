@@ -12,7 +12,7 @@ from apps.woo_api import datas
 from apps.woo_api.erros import WooErro, id_invalido
 from apps.woo_api.recursos import enderecos
 from apps.woo_api.recursos.base import Recurso, booleano, escolha, inteiro, lista_de_ids, texto
-from apps.woo_api.recursos.pedidos_id import base_da_conta, id_do_hub
+from apps.woo_api.recursos.pedidos_id import id_do_hub, opcoes_da_conta
 from apps.woo_api.recursos.pedidos_linhas import gravar_itens, gravar_linhas
 from apps.woo_api.recursos.pedidos_meta import gravar_meta, gravar_servicos
 from apps.woo_api.recursos.pedidos_saida import pedido_para_woo
@@ -74,8 +74,12 @@ class PedidoRecurso(Recurso):
         return self._todos().filter(active=True)
 
     @cached_property
+    def opcoes(self):
+        return opcoes_da_conta(get_current_account_id())
+
+    @property
     def base_id(self):
-        return base_da_conta(get_current_account_id())
+        return self.opcoes.base_id
 
     def ids_internos(self, ids):
         return [id_do_hub(id_api, self.base_id) for id_api in ids]
@@ -118,7 +122,7 @@ class PedidoRecurso(Recurso):
         return super().filtrar(qs, params).distinct()
 
     def para_woo(self, obj):
-        return pedido_para_woo(obj, base_id=self.base_id)
+        return pedido_para_woo(obj, opcoes=self.opcoes)
 
     def gravar(self, obj, dados, criando):
         # Lido depois do lock (obter_para_escrita): desativado responde como esta e o
@@ -159,7 +163,8 @@ class PedidoRecurso(Recurso):
         _aplicar_status(obj, dados)
         obj.save()
         # Servicos depois dos itens: o campo starhub guarda o item_id de cada um.
-        if "line_items" in dados and gravar_servicos(obj, gravar_itens(obj, dados)):
+        if "line_items" in dados and gravar_servicos(obj, gravar_itens(
+                obj, dados, self.opcoes.servico_no_subtotal)):
             obj.save(update_fields=["metadados", "updated_at"])
         recalcular_totais(obj)
         if "transaction_id" in dados:

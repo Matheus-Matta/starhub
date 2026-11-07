@@ -1,13 +1,15 @@
-"""O servico que o hub somou no item sai dele no GET: o ERP soma o servico (EPOFW).
+"""Com o switch "servico no subtotal" DESLIGADO, o servico somado sai do item no GET.
 
 Sofa R$ 1500 + Montagem R$ 80 (linha propria no Shopify, somada no item): o hub guarda
-o item com 1580; o ERP recebia 1580 + o servico 80 e via total diferente do pedido.
+o item com 1580; o ERP que soma o servico (EPOFW) recebia 1580 + 80. O modo ligado (o
+padrao) esta em test_pedido_servico_no_subtotal.py.
 """
 
 from decimal import Decimal
 
 import pytest
 
+from apps.integracoes.models import ConfiguracaoIntegracao
 from apps.loja.models import ItemPedido, Pedido, Servico
 from apps.loja.services.extras_pedido import extras, mesclar_extras
 from apps.loja.services.variantes import criar_produto
@@ -18,6 +20,8 @@ URL = "/wp-json/wc/v3/orders"
 
 @pytest.fixture
 def pedido(conta):
+    ConfiguracaoIntegracao.objects.create(account=conta, plataforma="woocommerce",
+                                          servico_no_subtotal=False)
     sofa = criar_produto("Sofa", sku="SOF-1", price=Decimal("1500.00"))
     montagem = Servico.objects.create(nome="Montagem", sku="SERV-MONT", preco=Decimal("80"))
     pedido = Pedido.objects.create(status="processing", total=Decimal("1650.00"))

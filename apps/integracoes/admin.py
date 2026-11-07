@@ -36,7 +36,9 @@ Plataforma = ConfiguracaoIntegracao.Plataforma
 CAMPOS_API = ("dominio_loja", "token_acesso", "segredo_app", "segredo_avaliacoes",
               "url_webhook", "nome_frete", "exibir_prazo_frete", "id_vendedor", "active")
 CAMPOS_SERVICOS = ("enviar_servicos", "receber_servicos", "pedido_legado", "servicos_no_tema")
-CAMPOS_SUPERUSUARIO = ("encaminhar_pedidos", "base_id_pedido")
+# Pedidos na API Woo: a conta decide (o ERP e dela); encaminhar a loja so o superusuario.
+CAMPOS_PEDIDOS = ("base_id_pedido", "servico_no_subtotal")
+CAMPOS_SUPERUSUARIO = ("encaminhar_pedidos",)
 # O que muda de uma plataforma para outra na mesma tela de configuracao.
 TELAS = {
     Plataforma.SHOPIFY: {"nome": "Shopify", "form": ConfiguracaoShopifyForm, "acoes": ACOES},
@@ -156,14 +158,13 @@ class ConfiguracaoIntegracaoAdmin(TemaModelAdmin):
             "opts": self.model._meta,
             "form": form,
             "plataforma_nome": tela["nome"],
-            "campos_api": [form[nome] for nome in CAMPOS_API if nome in form.fields],
-            "campos_servicos": [form[nome] for nome in CAMPOS_SERVICOS if nome in form.fields],
+            **{f"campos_{grupo}": [form[n] for n in nomes if n in form.fields] for grupo, nomes
+               in (("api", CAMPOS_API), ("servicos", CAMPOS_SERVICOS),
+                   ("pedidos", CAMPOS_PEDIDOS), ("superusuario", CAMPOS_SUPERUSUARIO))},
             "guia_servicos": plataforma == Plataforma.SHOPIFY and configuracao is not None,
             "cupons_shopify": plataforma == Plataforma.SHOPIFY,
             "url_cupons": reverse("admin:loja_cupom_changelist"),
             "url_guia_cupons": reverse("admin:integracoes_cupons_guia"),
-            "campos_superusuario": [form[nome] for nome in CAMPOS_SUPERUSUARIO
-                                    if nome in form.fields],
             "matriz": form.matriz_tela(),
             "operacoes": [rotulo for _, rotulo in permissoes.OPERACOES],
             "configuracao": configuracao,

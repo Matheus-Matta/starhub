@@ -518,14 +518,17 @@ na variante padrao, como antes. O lote (`batch`) continua recusando `create`.
   `epofw_field_<n>` no formato do plugin EPOFW (value em texto JSON), que e o que
   o ERP le (`apps/woo_api/recursos/pedidos_epofw.py`). Na volta os dois formatos
   sao aceitos; vindo os dois, vale o `starhub`, sem duplicar.
-- **Servico somado fora do item no GET** (`pedidos_saida.pedido_para_woo`): o servico
-  que o hub somou no item (`"somado": true`, linha propria no Shopify/Suri) sai do
-  `subtotal`, `total` e `price` daquele item, porque o ERP soma o servico do EPOFW ao
-  item e contava duas vezes. So nesses casos: servico so informado no item (sem
-  `somado`) e automatico nao mudam nada. O `total` do pedido continua o pago. No PUT o
-  hub soma o servico de volta no `subtotal`/`total` recebido do item e mantem a marca
-  `somado` (`pedidos_meta._manter_somado`), entao reenviar o que o GET deu nao baixa o
-  total. O envio a loja WooCommerce (`pedidos_legado.py`) usa `servico_no_item=True`.
+- **Servico no subtotal do item** (`pedidos_saida.pedido_para_woo`): switch
+  `ConfiguracaoIntegracao.servico_no_subtotal` em Integracoes > WooCommerce, card
+  "Pedidos na API Woo (ERP)", **ligado por padrao** (conta sem configuracao tambem).
+  Ligado, o servico que o hub somou no item (`"somado": true`, linha propria no
+  Shopify/Suri) fica no `subtotal`, `total` e `price` do item, e o PUT grava o que vier
+  sem somar de novo. Desligado, esse valor sai do item no GET (para ERP que soma o
+  servico do EPOFW ao item e contaria duas vezes) e o PUT soma de volta no
+  `subtotal`/`total` recebido, mantendo a marca `somado` (`pedidos_meta._manter_somado`),
+  entao reenviar o que o GET deu nao baixa o total. Servico so informado no item (sem
+  `somado`) nao muda nada nos dois modos. O `total` do pedido e sempre o pago. O envio a
+  loja WooCommerce (`pedidos_legado.py`) usa `servico_no_item=True`.
 - Cada servico sai com `id`, `nome`, `sku`, `preco` e `opcao`. `id` e `sku` sao do
   **cadastro de Servicos** (`Servico`, Loja > Servicos), nao de Produto (produto
   vai para a loja como item a venda). Servico sem cadastro nasce na hora
@@ -621,8 +624,8 @@ loja" com a requisicao e a resposta. Codigo: `apps/woo_api/views/encaminhar.py` 
 no `initial` das views de pedido) e `apps/woocommerce/encaminhar.py` (o repasse HTTP).
 Produtos, clientes e categorias nao sao encaminhados.
 
-**Base do id do pedido** (`ConfiguracaoIntegracao.base_id_pedido`, no mesmo card, so
-superusuario, padrao 0): nas rotas de pedido da API do hub (v1 e v3), id da API = id do hub
+**Base do id do pedido** (`ConfiguracaoIntegracao.base_id_pedido`, card "Pedidos na API
+Woo (ERP)", o usuario da conta com permissao de alterar a integracao muda, padrao 0): nas rotas de pedido da API do hub (v1 e v3), id da API = id do hub
 + base. Com 13000, o pedido 1 sai como `id: 13001` e `number: "13001"`, e o ERP o chama por
 `/orders/13001`, no lote e em `include`/`exclude`. Id ate a base da 404: e pedido antigo do
 ERP. Serve ao ERP legado, que importa em sequencia pelo id. Mudar a base renumera todos os

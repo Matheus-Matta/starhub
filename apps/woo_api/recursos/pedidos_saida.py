@@ -6,7 +6,7 @@ from apps.loja.services.extras_pedido import somados_por_item
 from apps.loja.services.pedidos import transacao
 from apps.woo_api import datas
 from apps.woo_api.recursos import enderecos
-from apps.woo_api.recursos.pedidos_id import base_da_conta
+from apps.woo_api.recursos.pedidos_id import opcoes_da_conta
 from apps.woo_api.recursos.pedidos_servicos import meta_do_item, servicos_por_item
 from apps.woo_api.recursos.pedidos_starhub import meta_do_pedido
 
@@ -40,14 +40,16 @@ def item_para_woo(item, servicos=None, fora=ZERO):
     }
 
 
-def pedido_para_woo(pedido, servico_no_item=False, base_id=None):
-    """O ERP soma o servico (meta EPOFW) ao item: o valor que o hub somou no item sai
-    dele, senao o ERP contava duas vezes. O total do pedido nao muda (o cliente pagou).
-    `servico_no_item=True` devolve o item como o hub guarda (envio a loja WooCommerce).
-    `base_id`: a listagem passa pronta, para nao consultar a base a cada pedido."""
-    if base_id is None:
-        base_id = base_da_conta(pedido.account_id)
-    id_api = pedido.pk + base_id
+def pedido_para_woo(pedido, servico_no_item=None, opcoes=None):
+    """`servico_no_item`: o item sai como o hub guarda, com o servico somado. Vazio, vem
+    do switch "servico no subtotal" da conta; desligado, o valor somado sai do item (ERP
+    que soma o EPOFW contaria duas vezes). O total do pedido nao muda (o cliente pagou).
+    `opcoes`: a listagem passa pronta, para nao consultar a conta a cada pedido."""
+    if opcoes is None:
+        opcoes = opcoes_da_conta(pedido.account_id)
+    if servico_no_item is None:
+        servico_no_item = opcoes.servico_no_subtotal
+    id_api = pedido.pk + opcoes.base_id
     pago = pedido.status in ("processing", "completed")
     servicos = servicos_por_item(pedido)
     fora = {} if servico_no_item else somados_por_item(pedido)
