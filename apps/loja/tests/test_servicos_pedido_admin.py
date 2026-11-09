@@ -115,3 +115,20 @@ def test_excluir_item_com_servico_avisa_para_religar(admin_logado, pedido):
 
     assert not ItemPedido.objects.filter(pk=mesa.pk).exists()
     assert "ficaram sem item" in resposta.content.decode()
+
+
+def test_post_sem_o_campo_de_servicos_salva_e_mantem_os_servicos(admin_logado, pedido):
+    """Formulario sem o card (montado a mao, tela antiga em cache) era recusado com
+    "Os servicos mudaram": o campo ausente parecia uma lista vazia nova."""
+    obj, sofa, *_ = pedido
+    url = f"/admin/loja/pedido/{obj.pk}/change/"
+    campos = _Campos()
+    campos.feed(admin_logado.get(url).content.decode())
+    antes = _servicos(obj)
+    sem_card = {k: v for k, v in campos.dados.items()
+                if k not in ("servicos_do_pedido", "servicos_versao")}
+
+    resposta = admin_logado.post(url, {**sem_card, "_save": "Salvar"})
+
+    assert resposta.status_code == 302, resposta.content.decode()[:3000]
+    assert _servicos(obj) == antes and _totais(sofa) == [Decimal("1580.00")]

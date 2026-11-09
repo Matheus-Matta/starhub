@@ -38,8 +38,18 @@ def _colunas(pedido):
     ]
 
 
+def _mexeu(form):
+    """Campo fora do POST (form montado a mao, tela antiga) nao e "lista vazia nova":
+    sem isto o Django o via como mudado e a checagem de versao recusava o pedido."""
+    return (form.add_prefix("servicos_do_pedido") in form.data
+            and "servicos_do_pedido" in form.changed_data)
+
+
 class ServicosDoPedidoForm(forms.ModelForm):
-    servicos_do_pedido = CampoJSON(label="Servicos do pedido", required=False, help_text=AJUDA)
+    # Widget do tema ja na classe: os testes de tema (JSON cru, placeholder) olham o
+    # campo declarado; o __init__ so troca pelas colunas deste pedido.
+    servicos_do_pedido = CampoJSON(label="Servicos do pedido", required=False,
+                                   help_text=AJUDA, widget=ListaTema([]))
     servicos_versao = forms.CharField(required=False, widget=forms.HiddenInput)
 
     def __init__(self, *args, **kwargs):
@@ -53,10 +63,9 @@ class ServicosDoPedidoForm(forms.ModelForm):
     def clean(self):
         dados = super().clean()
         linhas = dados.get("servicos_do_pedido") or []
-        if not self.instance.pk:
+        if not self.instance.pk or self.add_prefix("servicos_do_pedido") not in self.data:
             return dados
-        mudou = "servicos_do_pedido" in self.changed_data
-        if mudou and dados.get("servicos_versao") != servicos_pedido.versao(self.instance):
+        if _mexeu(self) and dados.get("servicos_versao") != servicos_pedido.versao(self.instance):
             self.add_error("servicos_do_pedido", "Os servicos mudaram depois que a tela abriu "
                            "(webhook ou outra aba). Recarregue a pagina e refaca a alteracao.")
             return dados
@@ -78,7 +87,7 @@ def _avisar_sem_item(request, pedido):
 
 def salvar_servicos(request, form):
     """Depois dos itens (save_related): o servico aponta para o item ja gravado."""
-    if "servicos_do_pedido" in form.changed_data:
+    if _mexeu(form):
         try:
             servicos_pedido.aplicar(form.instance.pk, form.cleaned_data["servicos_do_pedido"] or [],
                                     form.cleaned_data["servicos_versao"])
