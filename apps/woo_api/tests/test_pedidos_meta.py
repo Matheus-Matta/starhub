@@ -94,8 +94,8 @@ def test_formato_antigo_do_md_vira_um_so_campo_starhub(api, pedido, produto):
     assert meta_item[0] == {"id": 1, "key": "starhub", "value": {"servicos": [{
         "id": cadastro.pk, "nome": "Impermeabilização da poltrona",
         "sku": "SERV-IMPERMEABILIZACAO-DA-POLTRONA", **servico}]}}
-    # O mesmo servico volta tambem como EPOFW (ver test_pedidos_epofw_saida.py).
-    assert [m["key"] for m in meta_item[1:]] == ["epofw_field_1"]
+    # So o "starhub": o EPOFW nao sai mais (ver test_pedidos_epofw_saida.py).
+    assert len(meta_item) == 1
     assert _gravados(pedido) == [{"item_id": item_id, "sku": "POLTRONA-001",
                                   "servico": "Impermeabilização da poltrona", **servico,
                                   "servico_id": cadastro.pk}]

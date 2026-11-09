@@ -9,16 +9,16 @@ e o SKU do cadastro (o que o ERP usa para reconhecer o servico):
         {"id": 3, "nome": "Montagem", "sku": "SERV-MONTAGEM", "preco": "80.00",
          "opcao": "Sim"}]}}
 
-Ao lado sai o mesmo servico no formato EPOFW (pedidos_epofw.py), que e o que o
-ERP antigo le. Na volta (PUT) o mesmo formato e aceito ("nome", ou "servico" do
-formato anterior) e vira servico daquele item; id e sku vem do cadastro, nao do
-corpo, entao o ERP pode reenviar o que recebeu sem duplicar nem trocar nada.
+O formato EPOFW (epofw_field_<n>) nao sai: o ERP somava o epofw_price no item que
+ja tinha o servico somado e o total dobrava. Na volta (PUT) o "starhub" e aceito
+("nome", ou "servico" do formato anterior) e vira servico daquele item; id e sku
+vem do cadastro, nao do corpo, entao o ERP pode reenviar o que recebeu sem
+duplicar nem trocar nada.
 """
 
 from apps.loja.services.extras_pedido import CHAVE, extras
 from apps.loja.services.servicos import cadastros, do_cadastro
 from apps.woo_api.erros import parametro_invalido
-from apps.woo_api.recursos.pedidos_epofw import metas_epofw
 from apps.woo_api.recursos.pedidos_meta import servico_valido
 
 # Vem do cadastro ou do item, nunca do corpo da requisicao.
@@ -47,14 +47,13 @@ def servicos_por_item(pedido):
 
 
 def meta_do_item(item, servicos):
-    """meta_data do item com starhub e EPOFW montados na hora a partir dos servicos."""
+    """meta_data do item com o starhub montado na hora a partir dos servicos."""
     lista = item.metadados or []
     # Um "starhub" gravado no item por versao antiga nao e a fonte: o pedido e.
     saida = [dict(meta) for meta in lista if meta.get("key") != CHAVE]
     if servicos:
         proximo = max((meta.get("id", 0) for meta in lista), default=0) + 1
         saida.append({"id": proximo, "key": CHAVE, "value": {"servicos": servicos}})
-        saida.extend(metas_epofw(item, servicos, proximo + 1))
     return saida
 
 

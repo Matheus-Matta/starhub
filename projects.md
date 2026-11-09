@@ -514,17 +514,18 @@ na variante padrao, como antes. O lote (`batch`) continua recusando `create`.
   ERP que ja o conhecia (ex.: mandando o cancelamento) nao fica registrando erro.
 - Servicos do pedido (montagem, impermeabilizacao...) ficam em
   `starhub.servicos` do pedido. No GET de `orders` cada servico sai no
-  `line_items[].meta_data` do seu item duas vezes: `{"key": "starhub", ...}` e
-  `epofw_field_<n>` no formato do plugin EPOFW (value em texto JSON), que e o que
-  o ERP le (`apps/woo_api/recursos/pedidos_epofw.py`). Na volta os dois formatos
-  sao aceitos; vindo os dois, vale o `starhub`, sem duplicar.
+  `line_items[].meta_data` do seu item como `{"key": "starhub", ...}`. O formato
+  EPOFW (`epofw_field_<n>`) **nao sai** no GET: o ERP soma o `epofw_price` no item, e
+  o item ja traz o servico somado (switch abaixo), entao o total dobrava o servico.
+  Na volta (PUT) os dois formatos sao aceitos; vindo os dois, vale o `starhub`.
 - **Servico no subtotal do item** (`pedidos_saida.pedido_para_woo`): switch
   `ConfiguracaoIntegracao.servico_no_subtotal` em Integracoes > WooCommerce, card
   "Pedidos na API Woo (ERP)", **ligado por padrao** (conta sem configuracao tambem).
   Ligado, o servico que o hub somou no item (`"somado": true`, linha propria no
   Shopify/Suri) fica no `subtotal`, `total` e `price` do item, e o PUT grava o que vier
-  sem somar de novo. Desligado, esse valor sai do item no GET (para ERP que soma o
-  servico do EPOFW ao item e contaria duas vezes) e o PUT soma de volta no
+  sem somar de novo. Desligado, esse valor sai do item no GET (para ERP que some o
+  servico do `starhub` ao item por conta propria; sem isso o ERP fica sem o servico
+  no total, entao com o ERP atual deixe ligado) e o PUT soma de volta no
   `subtotal`/`total` recebido, mantendo a marca `somado` (`pedidos_meta._manter_somado`),
   entao reenviar o que o GET deu nao baixa o total. Servico so informado no item (sem
   `somado`) nao muda nada nos dois modos. O `total` do pedido e sempre o pago. O envio a

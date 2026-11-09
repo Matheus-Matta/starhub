@@ -132,16 +132,6 @@
               }
             ]
           }
-        },
-        {
-          "id": 2,
-          "key": "epofw_field_1",
-          "value": "{\"epofw_field_1\": {\"epofw_field_quantity\": \"1\", \"epofw_label\": \"IMPERMEABILIZAÇÃO DA POLTRONA:\", \"product_id\": \"1\", \"epofw_type\": \"radiogroup\", \"epofw_name\": \"epofw_field_1\", \"epofw_value\": \"Sim\", \"epofw_price\": \"499.99\", \"epofw_original_price\": \"499.99\", \"epofw_price_type\": \"fixed\", \"epofw_form_data\": {\"field_status\": \"on\", \"field\": {\"type\": \"radiogroup\", \"name\": \"1\", \"id\": \"1\", \"class\": \"1\"}, \"label\": {\"title\": \"IMPERMEABILIZAÇÃO DA POLTRONA:\", \"class\": \"epofw_label_1\", \"subtitle\": \"\", \"subtitle_class\": \"\"}, \"epofw_field_settings\": {\"options\": {\"Sim\": \"Sim||fixed||499,99\", \"Não\": \"Não||fixed||0,00\"}}}}}"
-        },
-        {
-          "id": 3,
-          "key": "epofw_field_2",
-          "value": "{\"epofw_field_2\": {\"epofw_field_quantity\": \"1\", \"epofw_label\": \"MONTAGEM:\", \"product_id\": \"1\", \"epofw_type\": \"radiogroup\", \"epofw_name\": \"epofw_field_2\", \"epofw_value\": \"Sim\", \"epofw_price\": \"120.00\", \"epofw_original_price\": \"120.00\", \"epofw_price_type\": \"fixed\", \"epofw_form_data\": {\"field_status\": \"on\", \"field\": {\"type\": \"radiogroup\", \"name\": \"2\", \"id\": \"2\", \"class\": \"2\"}, \"label\": {\"title\": \"MONTAGEM:\", \"class\": \"epofw_label_2\", \"subtitle\": \"\", \"subtitle_class\": \"\"}, \"epofw_field_settings\": {\"options\": {\"Sim\": \"Sim||fixed||120,00\", \"Não\": \"Não||fixed||0,00\"}}}}}"
         }
       ],
       "sku": "POLTRONA-001",

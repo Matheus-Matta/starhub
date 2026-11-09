@@ -1,15 +1,14 @@
-"""Servicos do item no formato do plugin EPOFW, como o Woo real devolve.
+"""Servicos do item no formato do plugin EPOFW, so no envio legado a loja WooCommerce.
 
-O ERP foi feito para uma loja Woo com o EPOFW e le o servico de
-line_items[].meta_data[].key == "epofw_field_<n>". O value vai como texto JSON,
+No legado o servico sai do valor do item e o ERP, lendo a loja, soma o epofw_price
+de line_items[].meta_data[].key == "epofw_field_<n>". O value vai como texto JSON,
 igual ao que o Woo grava:
 
     {"key": "epofw_field_1", "value": "{\"epofw_field_1\": {\"epofw_label\":
         \"IMPERMEABILIZAÇÃO DA POLTRONA:\", \"epofw_value\": \"Sim\", ...}}"}
 
-E montado na hora a partir dos servicos do pedido (a fonte unica). Na volta,
-pedidos_meta.separar_servicos le esse mesmo formato, entao o ERP pode reenviar
-o que recebeu sem mudar nem duplicar o servico.
+A API Woo do hub nao manda EPOFW: la o item ja traz o servico somado e o ERP somaria
+de novo. Na volta, woo_api/recursos/pedidos_meta.separar_servicos ainda le o formato.
 """
 
 import json

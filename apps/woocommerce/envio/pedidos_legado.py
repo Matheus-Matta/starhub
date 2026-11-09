@@ -7,7 +7,7 @@ que o POST aceita. O switch "pedido no formato legado" da configuracao escolhe:
   item) e os servicos tambem no meta do item;
 - legado (ligado), como docs/exemplos/pedido-completo.json: o valor do servico que o hub
   somou no item ("somado") sai do subtotal e do total do item, e o servico fica so no
-  meta (starhub.servicos + EPOFW).
+  meta (starhub.servicos + EPOFW, que so sai aqui; a API Woo do hub nao manda).
 
 Nos dois:
 - cada item com o produto/variacao da loja (vinculo) e a quantidade;
@@ -23,7 +23,9 @@ from decimal import Decimal
 from apps.loja.dinheiro import texto
 from apps.loja.services.extras_pedido import somados_por_item
 from apps.woo_api.recursos.pedidos_saida import pedido_para_woo
+from apps.woo_api.recursos.pedidos_servicos import servicos_por_item
 from apps.woocommerce import vinculos
+from apps.woocommerce.envio.pedidos_epofw import metas_epofw
 
 # Marca do pedido criado pelo hub: a importacao do Woo (webhook order.*, sincronizacao)
 # o ignora; senao o eco duplicava o pedido ou trocava os valores do hub pelos da loja.
@@ -37,11 +39,11 @@ def _sem_id(metas):
     return [{"key": m["key"], "value": m["value"]} for m in metas or []]
 
 
-def _item(item, saida, fora):
+def _item(item, saida, fora, epofw):
     linha = {"name": item.nome, "quantity": item.quantidade,
              "subtotal": texto(Decimal(saida["subtotal"]) - fora),
              "total": texto(Decimal(saida["total"]) - fora),
-             "meta_data": _sem_id(saida["meta_data"])}
+             "meta_data": _sem_id(saida["meta_data"]) + _sem_id(epofw)}
     produto = vinculos.externo_id("produtos", item.produto_id) if item.produto_id else None
     if produto:
         linha["product_id"] = int(produto)
@@ -57,6 +59,9 @@ def _item(item, saida, fora):
 def corpo(pedido, legado):
     saida = pedido_para_woo(pedido, servico_no_item=True)
     fora = somados_por_item(pedido) if legado else {}
+    # So no legado: o servico saiu do valor do item e o ERP o soma pelo EPOFW. No
+    # padrao o item ja tem o servico e o EPOFW o contaria duas vezes.
+    servicos = servicos_por_item(pedido) if legado else {}
     itens = {item.pk: item for item in pedido.itens.all()}
     cliente = vinculos.externo_id("clientes", pedido.cliente_id) if pedido.cliente_id else None
     corpo = {
@@ -68,7 +73,8 @@ def corpo(pedido, legado):
         "set_paid": False,  # o status vem do hub; set_paid mudaria para "processing"
         "meta_data": [*_sem_id(saida["meta_data"]),
                       {"key": META_DO_HUB, "value": str(pedido.uuid)}],
-        "line_items": [_item(itens[linha["id"]], linha, fora.get(linha["id"], Decimal("0")))
+        "line_items": [_item(itens[linha["id"]], linha, fora.get(linha["id"], Decimal("0")),
+                             metas_epofw(itens[linha["id"]], servicos.get(linha["id"]), 1))
                        for linha in saida["line_items"]],
         "shipping_lines": [{"method_id": f.get("method_id", ""),
                             "method_title": f.get("method_title", ""), "total": f.get("total")}

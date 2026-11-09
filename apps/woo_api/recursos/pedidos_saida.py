@@ -42,8 +42,8 @@ def item_para_woo(item, servicos=None, fora=ZERO):
 
 def pedido_para_woo(pedido, servico_no_item=None, opcoes=None):
     """`servico_no_item`: o item sai como o hub guarda, com o servico somado. Vazio, vem
-    do switch "servico no subtotal" da conta; desligado, o valor somado sai do item (ERP
-    que soma o EPOFW contaria duas vezes). O total do pedido nao muda (o cliente pagou).
+    do switch "servico no subtotal" da conta; desligado, o valor somado sai do item (para
+    ERP que soma o servico do meta por conta propria). O total do pedido nao muda.
     `opcoes`: a listagem passa pronta, para nao consultar a conta a cada pedido."""
     if opcoes is None:
         opcoes = opcoes_da_conta(pedido.account_id)

@@ -82,6 +82,8 @@ def test_formato_padrao_manda_o_valor_do_servico_somado_no_item(
     assert (item["subtotal"], item["total"]) == ("1580.00", "1580.00")
     meta_item = {m["key"]: m["value"] for m in item["meta_data"]}
     assert meta_item["starhub"]["servicos"][0]["nome"] == "Montagem"
+    # O ERP soma o epofw_price no item: com a Montagem ja dentro, cobraria duas vezes.
+    assert not any(chave.startswith("epofw_field_") for chave in meta_item)
 
 
 def test_criar_pedido_depende_so_da_matriz_e_nao_do_switch(conta, monkeypatch, pedido_shopify):
