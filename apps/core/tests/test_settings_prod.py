@@ -46,7 +46,7 @@ def test_prod_carrega_com_o_env_de_producao():
     s = _prod()
     assert s["debug"] is False and s["thread"] is False
     assert s["banco"] == {"HOST": "banco.interno", "NAME": "starhub",
-                          "OPTIONS": {"sslmode": "prefer"}, "CONN_MAX_AGE": 60}
+                          "OPTIONS": {"sslmode": "prefer"}, "CONN_MAX_AGE": 0}
     assert s["broker"] == "redis://redis:6379/0"
     # WhiteNoise logo depois do SecurityMiddleware: uvicorn nao serve /static/.
     assert s["middleware"][1] == "whitenoise.middleware.WhiteNoiseMiddleware"
@@ -67,10 +67,18 @@ def test_cors_geral_vem_do_env_sem_controlar_avaliacoes():
 
 
 def test_banco_ssl_e_media_vem_do_env():
-    s = _prod(POSTGRES_SSLMODE="require", POSTGRES_CONN_MAX_AGE="0", DJANGO_SSL_REDIRECT="0",
+    s = _prod(POSTGRES_SSLMODE="require", DJANGO_SSL_REDIRECT="0",
               SERVIR_MEDIA="0", LOG_LEVEL="WARNING")
-    assert s["banco"]["OPTIONS"] == {"sslmode": "require"} and s["banco"]["CONN_MAX_AGE"] == 0
+    assert s["banco"]["OPTIONS"] == {"sslmode": "require"}
     assert s["ssl"] is False and s["hsts"] == 0 and s["media"] is False and s["log"] == "WARNING"
+
+
+def test_conexao_nunca_fica_aberta_entre_requisicoes_no_uvicorn():
+    """Com CONN_MAX_AGE > 0 o uvicorn vazava uma conexao por requisicao ate o Postgres
+    recusar todas ("too many clients already"): cada requisicao ASGI roda numa thread
+    nova, e a conexao dela fica aberta sem ninguem para reaproveitar. O .env antigo com
+    POSTGRES_CONN_MAX_AGE=60 nao pode trazer o vazamento de volta."""
+    assert _prod(POSTGRES_CONN_MAX_AGE="60")["banco"]["CONN_MAX_AGE"] == 0
 
 
 @pytest.mark.parametrize("faltando", ["DJANGO_SECRET_KEY", "POSTGRES_PASSWORD", "REDIS_URL"])

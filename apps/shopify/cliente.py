@@ -45,11 +45,13 @@ class ShopifyClient:
             raise ShopifyErro(mensagens)
         return dados.get("data", {})
 
-    def listar(self, recurso):
+    def listar(self, recurso, busca=None):
+        """`busca`: filtro da Shopify (so pedidos declaram $query na consulta)."""
         raiz, query = CONSULTAS[recurso]
         cursor = None
         while True:
-            conexao = self.graphql(query, {"cursor": cursor})[raiz]
+            variaveis = {"cursor": cursor, **({"query": busca} if busca else {})}
+            conexao = self.graphql(query, variaveis)[raiz]
             yield from conexao.get("nodes", [])
             pagina = conexao.get("pageInfo", {})
             if not pagina.get("hasNextPage"):

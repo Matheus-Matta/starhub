@@ -144,12 +144,12 @@ def test_orders_updated_atualiza_status_endereco_e_extras_do_pedido(poltrona):
 
 
 @pytest.mark.django_db
-def test_orders_updated_de_pedido_desconhecido_sem_permissao_nao_cria(poltrona):
-    """Update fora de ordem respeita a permissao de criar desmarcada."""
+def test_orders_updated_de_pedido_desconhecido_cria_mesmo_sem_criar_ligado(poltrona):
+    """O create perdido deixava o pedido fora do hub: a loja ja vendeu, o ERP nao via."""
     mensagem = _webhook("update", pedido_shopify())
 
-    assert mensagem == "Registro nao encontrado."
-    assert not Pedido.objects.exists()
+    assert mensagem == "Registro criado a partir da atualizacao."
+    assert Pedido.objects.count() == 1
 
 
 @pytest.mark.django_db

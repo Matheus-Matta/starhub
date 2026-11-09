@@ -75,3 +75,17 @@ def test_busca_ja_na_fila_nao_cria_outra(client, conta):
     for _ in range(3):
         assert _postar(client, cfg, {"type": "order-paid", "payload": {}}).status_code == 202
     assert len(_buscas()) == 1
+
+
+def test_pedido_novo_com_so_atualizar_ligado_e_criado(conta, monkeypatch):
+    """O Suri nao diz se o evento e de criacao: com Criar desligado o pedido novo se perdia."""
+    from apps.loja.models import Pedido
+    from apps.suri.tests.loja_falsa import SuriFalso, pedido
+    from apps.suri.webhooks import processar_webhook
+
+    SuriFalso(pedidos=[pedido()]).instalar(monkeypatch)
+    cfg = configuracao(conta, receber=(("pedidos", "update"),))
+
+    mensagem = processar_webhook(cfg, "51807", lambda *_: None)
+
+    assert "criado" in mensagem and Pedido.objects.count() == 1

@@ -6,7 +6,7 @@ import pytest
 from django.urls import reverse
 
 from apps.integracoes.models import ExecucaoIntegracao
-from apps.loja.models import Produto
+from apps.loja.models import Pedido, Produto
 from apps.woocommerce.tests import exemplos
 from apps.woocommerce.tests.loja_falsa import LojaFalsa, configuracao
 from apps.woocommerce.views import assinatura
@@ -73,6 +73,17 @@ def test_update_de_registro_desconhecido_so_cria_com_criar_ligado(conta, monkeyp
                                  lambda *_: None)
 
     assert "Receber > Criar" in mensagem and not Produto.objects.exists()
+
+
+def test_update_de_pedido_desconhecido_cria_mesmo_sem_criar_ligado(conta, monkeypatch):
+    """O order.created perdido deixava o pedido fora do hub ate alguem sincronizar a mao."""
+    LojaFalsa().instalar(monkeypatch)
+    so_update = configuracao(conta, receber=(("pedidos", "update"),))
+
+    mensagem = processar_webhook(so_update, "pedidos", "update", exemplos.pedido(),
+                                 lambda *_: None)
+
+    assert mensagem == "Registro criado." and Pedido.objects.count() == 1
 
 
 def test_delete_desativa_o_produto(conta, monkeypatch):

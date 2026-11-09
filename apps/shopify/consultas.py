@@ -38,7 +38,8 @@ CONSULTAS = {
         province provinceCode zip country countryCodeV2 phone company }
       fragment Alocacao on DiscountAllocation {
         allocatedAmountSet { ...Dinheiro } discountApplication { index } }
-      query($cursor: String) { orders(first: 3, after: $cursor) {
+      query($cursor: String, $query: String) {
+        orders(first: 3, after: $cursor, query: $query) {
         nodes { id legacyResourceId name email phone createdAt updatedAt processedAt
           cancelledAt cancelReason note customAttributes { key value }
           displayFinancialStatus displayFulfillmentStatus paymentGatewayNames currencyCode

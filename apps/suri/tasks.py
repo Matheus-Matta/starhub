@@ -16,9 +16,10 @@ def sincronizar_suri(execucao_id):
     parametros = ExecucaoIntegracao.all_objects.filter(pk=execucao_id).values_list(
         "parametros", flat=True).first() or {}
     recursos = parametros.get("recursos")  # None: todos os permitidos
+    janela = parametros.get("janela")  # conferencia do beat: so o que mudou nela
 
     def sincronizar(configuracao, progresso):
-        return sincronizar_loja(configuracao, progresso, recursos=recursos)
+        return sincronizar_loja(configuracao, progresso, recursos=recursos, janela=janela)
 
     return _executar(execucao_id, sincronizar)
 

@@ -57,8 +57,9 @@ def test_tarefa_passa_os_recursos_pedidos_na_tela(monkeypatch):
     )
     recebidos = []
 
-    def sincronizar(_configuracao, _progresso, recursos=None):
+    def sincronizar(_configuracao, _progresso, recursos=None, janela=None):
         recebidos.append(recursos)
+        assert janela is None, "sincronizacao da tela busca tudo, sem janela"
         return "ok"
 
     monkeypatch.setattr("apps.shopify.tasks.sincronizar_loja", sincronizar)

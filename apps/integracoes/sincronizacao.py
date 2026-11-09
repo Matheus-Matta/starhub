@@ -137,7 +137,8 @@ def liberar_travada(execucao, sem_sinal_antes_de=None):
     ))
 
 
-def iniciar(configuracao, direcao, recursos):
+def iniciar(configuracao, direcao, recursos, janela=None):
+    """`janela`: so os itens criados/alterados nela (conferencia do beat, conferencia.py)."""
     _validar_direcao(direcao)
     recursos = _validar_recursos(configuracao, direcao, recursos)
     tarefa = _tarefa(configuracao, direcao)
@@ -155,7 +156,8 @@ def iniciar(configuracao, direcao, recursos):
                 account_id=configuracao.account_id,
                 configuracao=configuracao,
                 tipo=TIPOS[direcao],
-                parametros={"direcao": direcao, "recursos": recursos},
+                parametros={"direcao": direcao, "recursos": recursos,
+                            **({"janela": janela} if janela else {})},
             )
     except IntegrityError:
         existente = em_andamento(configuracao)

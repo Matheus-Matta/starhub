@@ -9,6 +9,7 @@ import logging
 
 from django.db import transaction
 
+from apps.integracoes.conferencia import limites
 from apps.integracoes.falhas import motivo_legivel
 from apps.woocommerce.cliente import WooClient, WooErro
 from apps.woocommerce.contexto import avisar
@@ -21,6 +22,7 @@ from apps.woocommerce.sincronizar_produtos import importar_completo
 
 logger = logging.getLogger(__name__)
 SINAL_A_CADA = 10  # mesmo ritmo do Shopify: a barra anda e a tarefa nao parece morta
+FORMATO_GMT = "%Y-%m-%dT%H:%M:%S"
 
 # recurso do hub -> (rota da API, filtros da listagem)
 ROTAS = {
@@ -76,11 +78,23 @@ def _etapa(recurso, feitos, total):
     return f"{nome}: {feitos} de {total}" if total is not None else f"{nome}: {feitos} processados"
 
 
-def sincronizar_loja(configuracao, progresso, recursos=None):
+def _filtros(recurso, janela):
+    rota, filtros = ROTAS[recurso]
+    if janela and recurso == "pedidos":
+        # modified cobre o pedido novo e o alterado; datas em UTC (dates_are_gmt).
+        inicio, fim = limites(janela)
+        filtros = {**filtros, "modified_after": inicio.strftime(FORMATO_GMT),
+                   "modified_before": fim.strftime(FORMATO_GMT), "dates_are_gmt": "true"}
+    return rota, filtros
+
+
+def sincronizar_loja(configuracao, progresso, recursos=None, janela=None):
     cliente = WooClient(configuracao)
     recursos = recursos_para_buscar(configuracao, recursos)
-    totais = {recurso: cliente.contar(ROTAS[recurso][0], **ROTAS[recurso][1])
-              for recurso in recursos}
+    totais = {}
+    for recurso in recursos:
+        rota, filtros = _filtros(recurso, janela)
+        totais[recurso] = cliente.contar(rota, **filtros)
     geral = sum(total or 0 for total in totais.values())
     # A categoria pai pode vir depois da filha na lista: todas ficam a mao por id.
     categorias = ({c["id"]: c for c in cliente.listar("products/categories")}
@@ -88,7 +102,7 @@ def sincronizar_loja(configuracao, progresso, recursos=None):
     funcoes = importadores(cliente, configuracao, categorias)
     processados = criados = 0
     for recurso in recursos:
-        rota, filtros = ROTAS[recurso]
+        rota, filtros = _filtros(recurso, janela)
         do_recurso = 0
         progresso(processados, max(geral, processados), _etapa(recurso, 0, totais[recurso]))
         itens = categorias.values() if recurso == "categorias" else cliente.listar(rota, **filtros)

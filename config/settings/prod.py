@@ -32,8 +32,10 @@ DATABASES = {
         "PASSWORD": obrigatoria("POSTGRES_PASSWORD"),
         "HOST": env("POSTGRES_HOST", "localhost"),
         "PORT": env("POSTGRES_PORT", "5432"),
-        # Conexao reaproveitada entre requisicoes; 0 fecha a cada uma (pgbouncer).
-        "CONN_MAX_AGE": int(env("POSTGRES_CONN_MAX_AGE", "60")),
+        # Sempre 0, sem variavel: no uvicorn (ASGI) cada requisicao roda numa thread nova,
+        # e conexao mantida aberta fica orfa quando a thread acaba. Com 60 elas se
+        # acumulavam ate o Postgres recusar todas ("too many clients already").
+        "CONN_MAX_AGE": 0,
         # Banco gerenciado (RDS, Supabase...) costuma exigir SSL: require.
         "OPTIONS": {"sslmode": env("POSTGRES_SSLMODE", "prefer")},
     }

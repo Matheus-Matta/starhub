@@ -4,8 +4,9 @@
 
 create e update usam o mesmo importador da sincronizacao, sem sobrescrever o texto
 que o lojista ajustou no hub. update de registro que o hub nao conhece so cria se
-Receber > Criar estiver ligado. delete desativa (o hub nunca apaga pedido nem produto
-por causa da loja: historico e financeiro ficam).
+Receber > Criar estiver ligado, menos pedido: a loja ja vendeu, entao ele sempre entra.
+delete desativa (o hub nunca apaga pedido nem produto por causa da loja: historico e
+financeiro ficam).
 """
 
 from apps.loja.models import Cliente, Cupom, Pedido, Produto
@@ -43,7 +44,8 @@ def processar_webhook(configuracao, recurso, operacao, dados, progresso):
         mensagem = "Recurso sem webhook no WooCommerce."
     elif operacao == "delete":
         mensagem = _desativar(recurso, dados.get("id"))
-    elif (operacao == "update" and not vinculos.objeto_id(recurso, dados.get("id"))
+    elif (operacao == "update" and recurso != "pedidos"
+          and not vinculos.objeto_id(recurso, dados.get("id"))
           and not configuracao.habilitado("receber", recurso, "create")):
         mensagem = "Registro nao encontrado; ligue Receber > Criar para cadastrar."
     else:

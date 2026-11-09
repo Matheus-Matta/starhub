@@ -163,5 +163,13 @@ SIMPLE_JWT = {
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
+# Webhook perdido nao deixa pedido fora do hub: confere a janela recente de cada loja
+# (apps/integracoes/conferencia.py). A subida do beat confere na hora (config/celery.py).
+CELERY_BEAT_SCHEDULE = {
+    "conferir-pedidos-das-lojas": {
+        "task": "apps.integracoes.conferencia.conferir_pedidos_das_lojas",
+        "schedule": timedelta(minutes=30),
+    },
+}
 
 from .menu import *  # noqa: E402, F403 - menu lateral (config/settings/menu.py)

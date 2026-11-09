@@ -76,7 +76,7 @@ services:
 
   beat:
     <<: *app
-    # Hoje nao ha tarefa agendada; fica pronto para quando houver (CELERY_BEAT_SCHEDULE).
+    # Agenda em CELERY_BEAT_SCHEDULE: conferencia de pedidos a cada 30 min e na subida.
     command: celery -A config beat -l info --schedule /tmp/celerybeat-schedule
     depends_on:
       redis:

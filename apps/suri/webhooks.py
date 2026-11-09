@@ -97,9 +97,13 @@ def cadastrar_webhooks(configuracao, progresso):
 def processar_webhook(configuracao, pedido_id, progresso):
     progresso(0, 1, f"Pedido {pedido_id}")
     conhecido = vinculos.existente("pedidos", Pedido, pedido_id) is not None
-    operacao = "update" if conhecido else "create"
-    if not configuracao.habilitado("receber", "pedidos", operacao):
-        return f"Receber > Pedidos > {'Atualizar' if conhecido else 'Criar'} esta desligado."
+    # O Suri nao diz se o evento e de criacao: pedido novo entra com Criar ou Atualizar
+    # ligado (como o update desconhecido das outras lojas); o conhecido so com Atualizar.
+    if conhecido and not configuracao.habilitado("receber", "pedidos", "update"):
+        return "Receber > Pedidos > Atualizar esta desligado."
+    if not conhecido and not (configuracao.habilitado("receber", "pedidos", "create")
+                              or configuracao.habilitado("receber", "pedidos", "update")):
+        return "Receber > Pedidos > Criar e Atualizar estao desligados."
     dados = SuriClient(configuracao).get(f"shop/orders/{pedido_id}")
     if precisa_orcamento(dados) and frete_ligado(configuracao):
         mensagem = responder_orcamento(configuracao, dados)

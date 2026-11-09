@@ -106,7 +106,10 @@ def processar_webhook(configuracao, recurso, operacao, dados, progresso):
             mensagem = AVISO_WEBHOOK
         elif alterou:
             mensagem = "Registro atualizado."
-        elif configuracao and configuracao.habilitado("receber", recurso, "create"):
+        # Pedido que a loja ja vendeu cria sempre (o create pode ter se perdido); o resto
+        # respeita Receber > Criar. A view ja barrou integracao inativa e Atualizar desligado.
+        elif recurso == "pedidos" or (
+                configuracao and configuracao.habilitado("receber", recurso, "create")):
             obj, criado = SINCRONIZADORES[recurso](normalizado)
             if obj is None:
                 mensagem = "Registro nao encontrado."

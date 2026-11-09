@@ -3,6 +3,7 @@ from functools import partial
 
 from django.db import transaction
 
+from apps.integracoes.conferencia import limites
 from apps.integracoes.falhas import motivo_legivel
 from apps.shopify import recursos
 from apps.shopify.cliente import ShopifyClient, ShopifyErro
@@ -77,12 +78,22 @@ def _etapa(recurso, feitos, total):
     return f"{nome}: {feitos} de {total}" if total is not None else f"{nome}: {feitos} processados"
 
 
-def sincronizar_loja(configuracao, progresso, recursos=None):
+def busca_da_janela(recurso, janela):
+    """Criado ou alterado na janela: o updated_at da Shopify muda nos dois casos."""
+    if not janela or recurso != "pedidos":
+        return None
+    inicio, fim = (data.strftime("%Y-%m-%dT%H:%M:%SZ") for data in limites(janela))
+    return f"updated_at:>='{inicio}' AND updated_at:<='{fim}'"
+
+
+def sincronizar_loja(configuracao, progresso, recursos=None, janela=None):
     cliente = ShopifyClient(configuracao)
     recursos = recursos_para_buscar(configuracao, recursos)
     # Com o total de cada recurso a barra anda por item ("Produtos: 350 de 1200"); sem
     # ele (contagem falhou ou nao existe para o recurso) anda por recurso, como antes.
-    totais = {recurso: cliente.contar(recurso) for recurso in recursos}
+    # Com janela a contagem seria a da loja inteira: a barra anda por recurso.
+    totais = {recurso: None if busca_da_janela(recurso, janela) else cliente.contar(recurso)
+              for recurso in recursos}
     por_item = bool(recursos) and None not in totais.values()
     geral = sum(totais.values()) if por_item else len(recursos)
     processados = criados = 0
@@ -93,7 +104,9 @@ def sincronizar_loja(configuracao, progresso, recursos=None):
         feitos, total = (processados, max(geral, processados)) if por_item else (posicao - 1, geral)
         progresso(feitos, total, _etapa(recurso, 0, totais[recurso]))
         converter = CONVERSORES.get(recurso)
-        for dados in cliente.listar(recurso):
+        busca = busca_da_janela(recurso, janela)
+        for dados in (cliente.listar(recurso, busca=busca) if busca
+                      else cliente.listar(recurso)):
             resultado = _importar_item(recurso, dados, converter)
             processados += 1
             criados += int(bool(resultado and resultado[1]))

@@ -77,7 +77,7 @@ docker compose run --rm web python manage.py criar_conta_inicial   # primeira ve
 | --- | --- |
 | `web-blue`, `web-green` | os dois backends, iguais: ao subir, `criar_banco` (cria o `POSTGRES_DB` do `.env` se faltar) e `migrar` (migrate com trava no PostgreSQL, um por vez); se passar, `uvicorn config.asgi:application` (HTTP + WebSocket), `WEB_WORKERS` processos, portas `WEB_PORT_BLUE` (8001) e `WEB_PORT_GREEN` (8002) |
 | `worker` | `celery -A config worker` (`CELERY_CONCURRENCY` tarefas); espera Redis saudavel e o container `web-blue` iniciar |
-| `beat` | `celery -A config beat` (hoje sem tarefa agendada); espera Redis saudavel e o container `web-blue` iniciar |
+| `beat` | `celery -A config beat` (conferencia de pedidos a cada 30 min e na subida, secao 7.1); espera Redis saudavel e o container `web-blue` iniciar |
 | `redis` | fila do Celery, cache e channel layer (volume `redis`) |
 | `postgres` | PostgreSQL 16 (volume `postgres`); cria o usuario e o `POSTGRES_DB` na primeira subida |
 
@@ -566,6 +566,19 @@ na variante padrao, como antes. O lote (`batch`) continua recusando `create`.
   produto. Exemplo: montagem gratis "em todo item" e ignorada no Suri e na Shopify
   chega em todo pedido sem o cliente precisar marcar. O ERP recebe o automatico como
   qualquer servico do item (id, nome, SKU, preco).
+- **Servicos na tela do pedido** (card "Servicos do pedido", `apps/loja/admin/pedidos_servicos.py`
+  + `apps/loja/services/servicos_pedido.py`): uma linha por servico (item, servico do
+  cadastro, opcao, preco) para adicionar, trocar ou remover. Servico novo ou alterado
+  na tela soma no item (marca `somado`, igual ao que veio da loja): Sofa 1500 + Montagem
+  80 = item 1580; remover tira os 80; mudar o preco aplica a diferenca. Servico so
+  informado pela loja (sem `somado`) muda sem mexer no total. Grava com lock no pedido e
+  nos itens; se os servicos mudaram depois que a tela abriu (webhook, outra aba), recusa
+  e pede para recarregar. Servico automatico removido volta na proxima importacao
+  enquanto a regra do servico o incluir. Item novo precisa ser salvo antes de ganhar
+  servico. **O vinculo com o item e obrigatorio**: linha nova comeca em "Escolha o
+  item", e servico cujo item saiu do pedido aparece vazio; o pedido so salva depois de
+  escolher o item (ou remover o servico). Item excluido na tela com servico ligado gera
+  aviso para religar.
 - **Planilha de servicos** (Loja > Servicos, `apps/loja/services/servicos_planilha.py`):
   **Exportar planilha** baixa um .xlsx com uma linha por regra (o servico se repete;
   servico sem regra sai com as colunas da regra vazias). **Importar planilha** le o
@@ -705,7 +718,27 @@ o segredo do app e devolve `202` depois de enfileirar o processamento. Assim a
 requisicao do Shopify nao espera a gravacao do catalogo. A matriz **Enviar** e
 usada pelo envio do hub para os marketplaces (secao 7.2).
 Se chegar `update` antes do `create`, o item ausente e criado e vinculado somente
-quando `Receber > Criar` estiver habilitado para aquele recurso.
+quando `Receber > Criar` estiver habilitado para aquele recurso. **Pedido e excecao**
+nas tres lojas (Shopify, WooCommerce, Suri): `update` de pedido que o hub nao conhece
+sempre cria, com a integracao ativa e `Receber > Pedidos > Atualizar` ligado, porque a
+loja ja vendeu e o `create` perdido deixava o pedido fora do hub e do ERP.
+
+**Conferencia de pedidos pelo beat** (`apps/integracoes/conferencia.py`): a cada 30 min
+(`CELERY_BEAT_SCHEDULE`) e logo que o beat sobe (`beat_init` em `config/celery.py`),
+cada loja ativa com `Receber > Pedidos > Buscar` ganha uma "Sincronizar loja" so de
+pedidos (aparece em Tarefas, uma por vez por loja; se ja houver uma rodando, a loja e
+pulada). Ela busca os pedidos **criados ou alterados** na janela e passa pelo mesmo
+importador da sincronizacao (casa pelo id externo e pelo SKU, cria o que falta,
+atualiza o resto; pedido desativado no hub nao muda). Janela: inicio = onde a ultima
+conferencia concluida parou - 5 min (na primeira: ultimo pedido recebido daquela loja
+- 5 min; sem nenhum, o ultimo dia); fim = agora + 5 min. Conferencia que falhou nao
+avanca a janela, e o sistema que ficou fora recupera tudo na primeira rodada. Filtro por
+loja: Shopify `updated_at` na query GraphQL; WooCommerce `modified_after/before` com
+`dates_are_gmt` (WooCommerce 5.8 ou mais novo; versao antiga ignora o filtro e devolve
+todos); Suri nao filtra por alteracao, entao busca os 30 dias padrao e confere aqui a
+data de criacao, recebimento, finalizacao ou cancelamento. Em dev (`runserver`) nao ha
+beat: a conferencia so roda em prod ou chamando
+`conferir_pedidos_das_lojas()` no shell.
 Produtos novos sao adaptados ao catalogo canonico com todas as variantes, opcoes,
 SKU, preco, promocao, estoque e codigo de barras. Imagens de `create` e `update`
 sao validadas, baixadas do CDN Shopify para `/media/produtos/` e vinculadas as

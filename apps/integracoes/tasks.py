@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from apps.core.origem import origem
 from apps.core.tenant.context import tenant_context
+from apps.integracoes import conferencia  # noqa: F401 - registra a tarefa do beat no worker
 from apps.integracoes import exportar as exportador
 from apps.integracoes.envio import registro
 from apps.integracoes.envio.base import EnvioNaoSuportado

@@ -6,16 +6,18 @@ Suri manda no texto do produto. Pedidos: os dos ultimos 30 dias (padrao da API).
 """
 
 import logging
+from datetime import UTC
 
 from django.db import transaction
 
+from apps.integracoes.conferencia import limites
 from apps.integracoes.falhas import motivo_legivel
 from apps.loja.models import Produto, VarianteProduto
 from apps.suri import vinculos
 from apps.suri.cliente import SuriClient, SuriErro
 from apps.suri.contexto import avisar
 from apps.suri.importar_catalogo import importar_categorias, importar_produto
-from apps.suri.importar_pedidos import PedidoIgnorado, importar_pedido
+from apps.suri.importar_pedidos import PedidoIgnorado, data, importar_pedido
 
 logger = logging.getLogger(__name__)
 RECURSOS = ("categorias", "produtos", "estoque", "pedidos")
@@ -58,7 +60,20 @@ def _importar_item(recurso, importar, dados):
         return None
 
 
-def sincronizar_loja(configuracao, progresso, recursos=None):
+# Datas do pedido no Suri: a API nao tem "alterado em", entao vale a mais recente delas.
+DATAS_DO_PEDIDO = ("createdDate", "receivedDate", "finalizedDate", "canceledDate")
+
+
+def na_janela(dados, janela):
+    """Criado ou com pagamento/finalizacao/cancelamento dentro da janela."""
+    inicio, fim = limites(janela)
+    datas = (data(dados.get(campo)) for campo in DATAS_DO_PEDIDO)
+    # Data sem fuso tratada como UTC: comparar com a janela (com fuso) daria TypeError.
+    return any(inicio <= (quando if quando.tzinfo else quando.replace(tzinfo=UTC)) <= fim
+               for quando in datas if quando)
+
+
+def sincronizar_loja(configuracao, progresso, recursos=None, janela=None):
     cliente = SuriClient(configuracao)
     recursos = recursos_para_buscar(configuracao, recursos)
     importadores = {
@@ -75,6 +90,9 @@ def sincronizar_loja(configuracao, progresso, recursos=None):
             processados += len(mapa)
             continue
         itens = cliente.pedidos() if recurso == "pedidos" else cliente.produtos()
+        if janela and recurso == "pedidos":
+            # Sem o filtro de alteracao na API: busca os 30 dias padrao e confere aqui.
+            itens = (dados for dados in itens if na_janela(dados, janela))
         do_recurso = 0
         for dados in itens:
             resultado = _importar_item(recurso, importadores[recurso], dados)

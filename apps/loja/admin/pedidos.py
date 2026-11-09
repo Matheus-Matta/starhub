@@ -23,6 +23,7 @@ from apps.loja.admin.pedidos_ativos import desativar_pedidos, reativar_pedidos
 from apps.loja.admin.pedidos_cpf import buscar_cpf_no_shopify, reimportar_do_shopify
 from apps.loja.admin.pedidos_inlines import EntregaInline, ItemPedidoInline, PagamentoInline
 from apps.loja.admin.pedidos_json import PedidoJsonMixin
+from apps.loja.admin.pedidos_servicos import ServicosDoPedidoForm, salvar_servicos
 from apps.loja.admin.pedidos_status import ACOES_STATUS
 from apps.loja.models import Pedido
 from apps.loja.services.pedidos import (
@@ -45,7 +46,7 @@ TONS_PAGAMENTO = {
 }
 
 
-class PedidoForm(EnderecosForm):
+class PedidoForm(ServicosDoPedidoForm, EnderecosForm):
     class Meta:
         model = Pedido
         fields = "__all__"
@@ -98,6 +99,7 @@ class PedidoAdmin(PedidoJsonMixin, TemaModelAdmin):
             ("fulfilled_at", "cancelled_at"), "shipping_method",
         ]}),
         ("Totais", {"fields": [("total_desconto", "total_frete"), ("total_impostos", "total")]}),
+        ("Servicos do pedido", {"fields": ["servicos_do_pedido", "servicos_versao"]}),
         secao_endereco("cobranca", "Endereco de cobranca", ["collapse"]),
         secao_endereco("entrega", "Endereco de entrega", ["collapse"]),
         ("Avancado", {"classes": ["collapse"], "fields": [
@@ -178,5 +180,6 @@ class PedidoAdmin(PedidoJsonMixin, TemaModelAdmin):
 
     def save_related(self, request, form, formsets, change):
         super().save_related(request, form, formsets, change)
+        salvar_servicos(request, form)
         # Os itens so existem depois do inline salvo; so entao o total fecha.
         recalcular_totais(form.instance)

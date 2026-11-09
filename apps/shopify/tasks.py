@@ -27,11 +27,12 @@ def sincronizar_shopify(execucao_id):
         "parametros", flat=True
     ).first() or {}
     recursos = parametros.get("recursos")
+    janela = parametros.get("janela")  # conferencia do beat: so o que mudou nela
     if recursos is None:  # execucao sem escolha na tela: todos os permitidos
         return _executar(execucao_id, sincronizar_loja)
 
     def sincronizar(configuracao, progresso):
-        return sincronizar_loja(configuracao, progresso, recursos=recursos)
+        return sincronizar_loja(configuracao, progresso, recursos=recursos, janela=janela)
 
     return _executar(execucao_id, sincronizar)
 
