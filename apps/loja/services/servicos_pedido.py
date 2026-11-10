@@ -22,6 +22,7 @@ from django.db import transaction
 from apps.loja.dinheiro import ZERO, ValorInvalido, dinheiro
 from apps.loja.models import Pedido, Servico
 from apps.loja.services.extras_pedido import extras, mesclar_extras
+from apps.loja.services.servicos import cadastros, do_cadastro
 from apps.loja.totais import recalcular_totais
 
 
@@ -42,12 +43,21 @@ def versao(pedido):
     return hashlib.sha256(texto.encode()).hexdigest()
 
 
+def _id_do_cadastro(servico, mapa):
+    cadastro = do_cadastro(servico, mapa)
+    return str(cadastro.pk) if cadastro else ""
+
+
 def linhas_da_tela(pedido):
     # Item que saiu do pedido vira vazio: a tela obriga a ligar de novo (ver _novo).
     itens = set(pedido.itens.values_list("pk", flat=True)) if pedido.pk else set()
+    atuais = [s for s in _atuais(pedido) if isinstance(s, dict)]
+    # O cadastro e achado como na API Woo (id, senao nome): o da Shopify vem so com o
+    # nome, e um id de cadastro apagado mandava ao select um valor fora da lista.
+    mapa = cadastros(atuais)
     return [{"origem": posicao,
              "item_id": str(s["item_id"]) if s.get("item_id") in itens else "",
-             "servico_id": str(s.get("servico_id") or ""), "opcao": s.get("opcao") or "",
+             "servico_id": _id_do_cadastro(s, mapa), "opcao": s.get("opcao") or "",
              "preco": s.get("preco") or "0.00"}
             for posicao, s in enumerate(_atuais(pedido)) if isinstance(s, dict)]
 

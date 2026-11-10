@@ -9,7 +9,8 @@ from html.parser import HTMLParser
 
 import pytest
 
-from apps.loja.models import ItemPedido, Pedido
+from apps.loja.models import ItemPedido, Pedido, Servico
+from apps.loja.services.extras_pedido import mesclar_extras
 from apps.loja.tests.test_servicos_pedido_tela import (
     _orfao,
     _servicos,
@@ -132,3 +133,28 @@ def test_post_sem_o_campo_de_servicos_salva_e_mantem_os_servicos(admin_logado, p
 
     assert resposta.status_code == 302, resposta.content.decode()[:3000]
     assert _servicos(obj) == antes and _totais(sofa) == [Decimal("1580.00")]
+
+
+@pytest.mark.parametrize("servico_id", [None, 999999], ids=["sem-id", "id-apagado"])
+def test_servico_da_loja_sem_cadastro_pelo_id_salva_pela_tela(admin_logado, pedido, servico_id):
+    """Servico da Shopify gravado so com o nome (ou com id de cadastro apagado) chegava na
+    tela com um valor fora da lista: o select mostrava o primeiro servico e o salvar
+    recusava com "Servico: escolha uma das opcoes". A API ja achava o cadastro pelo nome."""
+    obj, sofa, *_ = pedido
+    atual = Pedido.objects.get(pk=obj.pk)
+    servicos = _servicos(obj)
+    servicos[0].pop("servico_id")
+    if servico_id:
+        servicos[0]["servico_id"] = servico_id
+    mesclar_extras(atual, {"servicos": servicos})
+    atual.save()
+    url = f"/admin/loja/pedido/{obj.pk}/change/"
+    campos = _Campos()
+    campos.feed(admin_logado.get(url).content.decode())
+
+    linhas = json.loads(campos.dados["servicos_do_pedido"])
+    assert linhas[0]["servico_id"] == str(Servico.objects.get(nome="Montagem").pk)
+    resposta = admin_logado.post(url, {**campos.dados, "_save": "Salvar"})
+
+    assert resposta.status_code == 302, resposta.content.decode()[:3000]
+    assert _totais(sofa) == [Decimal("1580.00")]

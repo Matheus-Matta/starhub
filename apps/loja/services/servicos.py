@@ -34,8 +34,9 @@ def vincular(servicos):
 def cadastros(servicos):
     """{servico_id ou nome normalizado: Servico} para os servicos de um pedido."""
     ids = {s.get("servico_id") for s in servicos if isinstance(s, dict) and s.get("servico_id")}
+    # Nome de todos, nao so dos sem id: id de cadastro apagado cai no nome (do_cadastro).
     nomes = {_chave(s.get("servico")) for s in servicos
-             if isinstance(s, dict) and not s.get("servico_id")}
+             if isinstance(s, dict) and s.get("servico")}
     achados = Servico.objects.filter(pk__in=ids) if ids else []
     por_nome = Servico.objects.filter(nome_normalizado__in=nomes) if nomes else []
     return {**{s.pk: s for s in achados}, **{s.nome_normalizado: s for s in por_nome}}
