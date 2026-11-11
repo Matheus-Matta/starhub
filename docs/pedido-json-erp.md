@@ -144,9 +144,9 @@ alteração foram fixados.
       "variation_id": 0,
       "quantity": 1,
       "tax_class": "",
-      "subtotal": "1499.90",
+      "subtotal": "879.91",
       "subtotal_tax": "0.00",
-      "total": "1349.91",
+      "total": "729.92",
       "total_tax": "0.00",
       "taxes": [],
       "meta_data": [
@@ -174,7 +174,7 @@ alteração foram fixados.
         }
       ],
       "sku": "POLTRONA-001",
-      "price": 1349.91,
+      "price": 729.92,
       "image": {
         "id": "",
         "src": ""
@@ -337,9 +337,9 @@ vazio.
 | `product_id` | número | Id do produto no StarHub (`/products/<id>`); `0` se o produto não está cadastrado. |
 | `variation_id` | número | Id da variação; `0` sem variação. |
 | `quantity` | número | Quantidade. |
-| `subtotal` | dinheiro | Preço × quantidade, antes do desconto. |
-| `total` | dinheiro | Valor da linha depois do desconto. |
-| `price` | número | `total / quantity`. |
+| `subtotal` | dinheiro | Preço do produto × quantidade, antes do desconto, **sem os serviços**. |
+| `total` | dinheiro | Valor do produto na linha depois do desconto, **sem os serviços**. |
+| `price` | número | `total / quantity` (também sem os serviços). |
 | `subtotal_tax`, `total_tax`, `taxes`, `tax_class` | | Impostos da linha. |
 | `image` | objeto | `{"id", "src"}` da primeira foto do produto. |
 | `meta_data` | lista | Serviços contratados para este item (abaixo). Item sem serviço vem com a lista vazia. |
@@ -368,10 +368,20 @@ cliente comprou. Por isso ele vem no `meta_data` **do item**, com a mesma chave
 
 Só vem serviço contratado. Quando o cliente escolhe "Não", o serviço não aparece.
 
-O serviço **não** vem no formato do plugin EPOFW (`epofw_field_<n>`). O item já
-traz o valor do serviço que veio somado da loja, e quem somasse o `epofw_price` por
-cima contaria o serviço duas vezes. Leia o serviço só pelo `starhub` e não some o
-`preco` dele no item: o `total` do pedido já é o que o cliente pagou.
+O item vem **só com o valor do produto**: o serviço que a loja somou na linha sai do
+`subtotal`, do `total` e do `price` do item. O `total` do pedido continua cheio, com o
+serviço. Some o `preco` de cada serviço do `starhub` ao item para fechar a conta:
+
+| Pedido 2379 | Valor |
+|---|---|
+| Item (`line_items[0].total`, só o sofá) | 2199.99 |
+| + Serviço (`starhub.servicos[0].preco`) | 499.99 |
+| + Frete (`shipping_lines`) | 39.90 |
+| = `total` do pedido | 2739.88 |
+
+O serviço **não** vem no formato do plugin EPOFW (`epofw_field_<n>`): leia só o
+`starhub`. O formato é fixo; não há opção na conta para mandar o serviço dentro do
+item.
 
 ## Devolvendo o pedido (PUT)
 

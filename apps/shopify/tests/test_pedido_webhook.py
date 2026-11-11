@@ -99,6 +99,9 @@ def test_pedido_do_shopify_guarda_extras_num_unico_metadado_starhub(poltrona):
             "servico": "Impermeabilização da poltrona", "opcao": "Sim", "preco": "499.99",
             # Sem cadastro, o servico nasce na importacao e fica vinculado.
             "servico_id": Servico.objects.get(nome="Impermeabilização da poltrona").pk,
+            # O Shopify ja poe o preco da opcao no preco da linha: sem a marca, a API da
+            # FDC mandava o item com o servico dentro e o ERP somava de novo (pedido 2379).
+            "somado": True,
         }],
     }
 

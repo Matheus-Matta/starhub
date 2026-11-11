@@ -54,15 +54,6 @@ class ConfiguracaoIntegracao(BaseModel):
                   "Ligado, cada chamada de pedido do ERP vai para a loja WooCommerce e a "
                   "resposta dela volta ao ERP; cada uma fica em Tarefas, com a requisicao "
                   "e a resposta.")
-    # So WooCommerce; o usuario da conta muda: mudar renumera os pedidos que o ERP ja viu.
-    base_id_pedido = models.PositiveIntegerField(
-        "base do ID do pedido na API", default=0, blank=True,
-        help_text="Somada ao ID do pedido na API Woo do hub: com 13000, o pedido 1 sai como "
-                  "13001. Use um numero acima do ultimo pedido do ERP e nao mude depois.")
-    servico_no_subtotal = models.BooleanField("servico no subtotal do pedido", default=True,
-        help_text="Ligado (padrao), o item sai com o servico no subtotal e no total. "
-                  "Desligue so se o ERP somar o servico do meta starhub por conta propria.")
-
     # Servicos do hub (Loja > Servicos) na loja. Suri: cada servico vira variante do
     # produto (apps/suri/servicos.py). Shopify: cada servico vira um produto escondido,
     # que o tema poe no carrinho junto do produto (apps/shopify/servicos*.py).

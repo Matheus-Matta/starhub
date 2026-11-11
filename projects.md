@@ -518,18 +518,17 @@ na variante padrao, como antes. O lote (`batch`) continua recusando `create`.
   EPOFW (`epofw_field_<n>`) **nao sai** no GET: o ERP soma o `epofw_price` no item, e
   o item ja traz o servico somado (switch abaixo), entao o total dobrava o servico.
   Na volta (PUT) os dois formatos sao aceitos; vindo os dois, vale o `starhub`.
-- **Servico no subtotal do item** (`pedidos_saida.pedido_para_woo`): switch
-  `ConfiguracaoIntegracao.servico_no_subtotal` em Integracoes > WooCommerce, card
-  "Pedidos na API Woo (ERP)", **ligado por padrao** (conta sem configuracao tambem).
-  Ligado, o servico que o hub somou no item (`"somado": true`, linha propria no
-  Shopify/Suri) fica no `subtotal`, `total` e `price` do item, e o PUT grava o que vier
-  sem somar de novo. Desligado, esse valor sai do item no GET (para ERP que some o
-  servico do `starhub` ao item por conta propria; sem isso o ERP fica sem o servico
-  no total, entao com o ERP atual deixe ligado) e o PUT soma de volta no
-  `subtotal`/`total` recebido, mantendo a marca `somado` (`pedidos_meta._manter_somado`),
-  entao reenviar o que o GET deu nao baixa o total. Servico so informado no item (sem
-  `somado`) nao muda nada nos dois modos. O `total` do pedido e sempre o pago. O envio a
-  loja WooCommerce (`pedidos_legado.py`) usa `servico_no_item=True`.
+- **Servico fora do item, formato fixo da FDC Sistemas** (`pedidos_saida.pedido_para_woo`,
+  sem switch): o servico que o hub somou no item (`"somado": true`: linha propria no
+  Shopify/Suri, opcao com preco nas propriedades do item no Shopify e servico posto na
+  tela) sai do `subtotal`, `total` e `price` do item no GET; o `total` do pedido continua
+  cheio e a FDC soma o `preco` do `starhub`. Pedido 2379: item 2199.99 + servico 499.99
+  + frete 39.90 = total 2739.88. O PUT soma de volta no `subtotal`/`total` recebido,
+  mantendo a marca `somado` (`pedidos_meta._manter_somado`), entao reenviar o que o GET
+  deu nao baixa o total. Servico so informado (sem `somado`, ex.: automatico) nao muda o
+  item. O envio a loja WooCommerce (`pedidos_legado.py`) pede `servico_no_item=True`.
+  Pedido do Shopify importado antes da 1.3.41 tem o servico das propriedades sem
+  `somado`: reimporte-o (acao "Reimportar do Shopify") para o item sair sem o servico.
 - Cada servico sai com `id`, `nome`, `sku`, `preco` e `opcao`. `id` e `sku` sao do
   **cadastro de Servicos** (`Servico`, Loja > Servicos), nao de Produto (produto
   vai para a loja como item a venda). Servico sem cadastro nasce na hora
@@ -645,8 +644,10 @@ loja" com a requisicao e a resposta. Codigo: `apps/woo_api/views/encaminhar.py` 
 no `initial` das views de pedido) e `apps/woocommerce/encaminhar.py` (o repasse HTTP).
 Produtos, clientes e categorias nao sao encaminhados.
 
-**Base do id do pedido** (`ConfiguracaoIntegracao.base_id_pedido`, card "Pedidos na API
-Woo (ERP)", o usuario da conta com permissao de alterar a integracao muda, padrao 0): nas rotas de pedido da API do hub (v1 e v3), id da API = id do hub
+**Base do id do pedido** (`ConfiguracaoFdc.base_id_pedido`, tela Integracoes > FDC
+Sistemas, uma por conta, criada ao abrir; o usuario da conta com permissao de alterar
+"FDC Sistemas" muda, padrao 0; a migracao `woo_api.0009` copiou a base que estava na
+configuracao WooCommerce): nas rotas de pedido da API do hub (v1 e v3), id da API = id do hub
 + base. Com 13000, o pedido 1 sai como `id: 13001` e `number: "13001"`, e o ERP o chama por
 `/orders/13001`, no lote e em `include`/`exclude`. Id ate a base da 404: e pedido antigo do
 ERP. Serve ao ERP legado, que importa em sequencia pelo id. Mudar a base renumera todos os

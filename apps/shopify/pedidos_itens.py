@@ -104,8 +104,10 @@ def gravar_itens(pedido, dados):
         primeiro = primeiro or item
         por_vinculo.setdefault(do_tema.vinculo(linha), item)
         for servico in servicos_do_item(linha.get("properties")):
+            # A opcao com preco ("Sim [+ R$ 499,99]") ja vem no preco da linha: "somado"
+            # e o que deixa a API da FDC tirar o servico do item.
             servicos.append({"item_id": item.pk, "sku": item.sku, **servico,
-                             "preco": f"{servico['preco']:.2f}"})
+                             "preco": f"{servico['preco']:.2f}", "somado": True})
     # Depois dos itens: o servico soma no item ja gravado com o valor do produto.
     for linha, servico in linhas_servico:
         chave_tema = do_tema.vinculo(linha)

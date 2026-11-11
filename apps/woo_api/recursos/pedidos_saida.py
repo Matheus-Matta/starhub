@@ -40,15 +40,14 @@ def item_para_woo(item, servicos=None, fora=ZERO):
     }
 
 
-def pedido_para_woo(pedido, servico_no_item=None, opcoes=None):
-    """`servico_no_item`: o item sai como o hub guarda, com o servico somado. Vazio, vem
-    do switch "servico no subtotal" da conta; desligado, o valor somado sai do item (para
-    ERP que soma o servico do meta por conta propria). O total do pedido nao muda.
-    `opcoes`: a listagem passa pronta, para nao consultar a conta a cada pedido."""
+def pedido_para_woo(pedido, servico_no_item=False, opcoes=None):
+    """Formato fixo da FDC Sistemas: o servico somado sai do subtotal, do total e do price
+    do item (a FDC soma o do meta starhub) e o total do pedido continua cheio.
+    `servico_no_item`: so o envio a loja WooCommerce (pedidos_legado.py) pede o item como
+    o hub guarda. `opcoes`: a listagem passa pronta, para nao consultar a conta a cada
+    pedido."""
     if opcoes is None:
         opcoes = opcoes_da_conta(pedido.account_id)
-    if servico_no_item is None:
-        servico_no_item = opcoes.servico_no_subtotal
     id_api = pedido.pk + opcoes.base_id
     pago = pedido.status in ("processing", "completed")
     servicos = servicos_por_item(pedido)

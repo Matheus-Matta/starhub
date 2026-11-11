@@ -28,10 +28,15 @@ def _gerar(conta, *extras):
     return saida.getvalue()
 
 
+def _uma_por_conta(modelo):
+    # Configuracao unica (ex.: FDC Sistemas): o banco nao deixa ter 10 na mesma conta.
+    return any(tuple(getattr(r, "fields", ())) == ("account",) for r in modelo._meta.constraints)
+
+
 def _modelos_com_conta():
     return [m for m in apps.get_models()
             if m._meta.app_label in ("core", "loja", "woo_api") and hasattr(m, "all_objects")
-            and not m.__name__.startswith("Historical")]
+            and not m.__name__.startswith("Historical") and not _uma_por_conta(m)]
 
 
 def test_gera_ao_menos_dez_de_cada_model_com_imagens(conta):

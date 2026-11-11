@@ -164,7 +164,7 @@ class PedidoRecurso(Recurso):
         obj.save()
         # Servicos depois dos itens: o campo starhub guarda o item_id de cada um.
         if "line_items" in dados and gravar_servicos(obj, gravar_itens(
-                obj, dados, self.opcoes.servico_no_subtotal)):
+                obj, dados, servico_no_item=False)):
             obj.save(update_fields=["metadados", "updated_at"])
         recalcular_totais(obj)
         if "transaction_id" in dados:

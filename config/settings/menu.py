@@ -32,12 +32,16 @@ STARHUB_MENU_ICONES = {
     "starchats.conjuntoenvio": "sliders-horizontal",
     "starchats.enviostarchats": "mail",
     "woo_api.chaveapi": "key-round",
+    "woo_api.configuracaofdc": "plug",
 }
 # Models de um app que aparecem na secao de outro: {"app_origem": "app_destino"} move o
 # app inteiro; {"app.model": "app_destino"} move so aquele model.
 # As chaves da API Woo sao credencial de acesso da conta, entao ficam junto de
 # contas, usuarios e perfis de acesso (app core).
 STARHUB_MENU_AGRUPAR = {
+    # Antes do "woo_api" inteiro: as regras rodam em ordem e o app ja teria saido.
+    # O ERP da FDC Sistemas e uma integracao como a loja WooCommerce e a Suri.
+    "woo_api.configuracaofdc": "integracoes",
     "woo_api": "core",
     # Tarefas rodam integracoes e importacoes de planilha: ficam no Nucleo; a secao
     # Integracoes fica so com a configuracao de cada plataforma.

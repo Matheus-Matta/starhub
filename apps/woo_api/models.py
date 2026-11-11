@@ -5,6 +5,24 @@ from apps.core.models import BaseModel
 from apps.woo_api import chaves
 
 
+class ConfiguracaoFdc(BaseModel):
+    """Integracao com o ERP da FDC Sistemas, que le o hub pela API Woo (uma por conta)."""
+
+    # O usuario da conta muda: mudar renumera os pedidos que o ERP ja viu.
+    base_id_pedido = models.PositiveIntegerField(
+        "base do ID do pedido na API", default=0, blank=True,
+        help_text="Somada ao ID do pedido na API: com 13000, o pedido 1 sai como 13001. Use "
+                  "um numero acima do ultimo pedido do ERP e nao mude depois.")
+
+    class Meta:
+        verbose_name = verbose_name_plural = "FDC Sistemas"
+        constraints = [models.UniqueConstraint(fields=["account"],
+                                               name="configuracao_fdc_uma_por_conta")]
+
+    def __str__(self):
+        return "FDC Sistemas"
+
+
 class ChaveApi(BaseModel):
     class Permissao(models.TextChoices):
         LEITURA = "read", "Leitura"

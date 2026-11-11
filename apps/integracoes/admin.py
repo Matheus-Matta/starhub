@@ -36,8 +36,7 @@ Plataforma = ConfiguracaoIntegracao.Plataforma
 CAMPOS_API = ("dominio_loja", "token_acesso", "segredo_app", "segredo_avaliacoes",
               "url_webhook", "nome_frete", "exibir_prazo_frete", "id_vendedor", "active")
 CAMPOS_SERVICOS = ("enviar_servicos", "receber_servicos", "pedido_legado", "servicos_no_tema")
-# Pedidos na API Woo: a conta decide (o ERP e dela); encaminhar a loja so o superusuario.
-CAMPOS_PEDIDOS = ("base_id_pedido", "servico_no_subtotal")
+# Encaminhar pedidos a loja so o superusuario. A base do ID e da FDC Sistemas (woo_api).
 CAMPOS_SUPERUSUARIO = ("encaminhar_pedidos",)
 # O que muda de uma plataforma para outra na mesma tela de configuracao.
 TELAS = {
@@ -160,7 +159,7 @@ class ConfiguracaoIntegracaoAdmin(TemaModelAdmin):
             "plataforma_nome": tela["nome"],
             **{f"campos_{grupo}": [form[n] for n in nomes if n in form.fields] for grupo, nomes
                in (("api", CAMPOS_API), ("servicos", CAMPOS_SERVICOS),
-                   ("pedidos", CAMPOS_PEDIDOS), ("superusuario", CAMPOS_SUPERUSUARIO))},
+                   ("superusuario", CAMPOS_SUPERUSUARIO))},
             "guia_servicos": plataforma == Plataforma.SHOPIFY and configuracao is not None,
             "cupons_shopify": plataforma == Plataforma.SHOPIFY,
             "url_cupons": reverse("admin:loja_cupom_changelist"),

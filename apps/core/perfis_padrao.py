@@ -43,6 +43,7 @@ GRUPOS = [
     ]),
     ("gerente", "Gerente", "Opera a loja inteira, sem excluir; ve usuarios e logs.", [
         ("loja", TODOS, EDITAR), ("woo_api", ["chaveapi"], VER),
+        ("woo_api", ["configuracaofdc"], EDITAR),
         ("core", ["address", *INTEGRACOES_ANTIGAS], EDITAR),
         ("integracoes", TODOS, EDITAR),
         ("logistica", TODOS, EDITAR),

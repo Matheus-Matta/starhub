@@ -15,7 +15,8 @@ pytestmark = pytest.mark.django_db
 
 # Configuracao unica por conta: a "lista" redireciona direto para o formulario.
 SEM_LISTA = {"integracoes.ConfiguracaoIntegracao", "notificacoes.ConfiguracaoEmail",
-             "notificacoes.ConfiguracaoNotificacao", "starchats.ConfiguracaoStarChats"}
+             "notificacoes.ConfiguracaoNotificacao", "starchats.ConfiguracaoStarChats",
+             "woo_api.ConfiguracaoFdc"}
 ADMINS_DO_TEMA = sorted(
     modelo._meta.label for modelo, model_admin in admin.site._registry.items()
     if isinstance(model_admin, TemaMixin) and modelo._meta.label not in SEM_LISTA

@@ -26,8 +26,7 @@ class ConfiguracaoWooCommerceForm(ConfiguracaoShopifyForm):
     )
 
     class Meta(ConfiguracaoShopifyForm.Meta):
-        fields = [*CAMPOS_COMUNS, "encaminhar_pedidos", "base_id_pedido",
-                  "servico_no_subtotal", "pedido_legado"]
+        fields = [*CAMPOS_COMUNS, "encaminhar_pedidos", "pedido_legado"]
         widgets = {
             "dominio_loja": forms.URLInput(attrs={"placeholder": "https://sualoja.com.br"}),
             "url_webhook": forms.URLInput(attrs={
@@ -51,11 +50,6 @@ class ConfiguracaoWooCommerceForm(ConfiguracaoShopifyForm):
         if endereco and (partes.scheme not in ("http", "https") or not partes.hostname):
             raise forms.ValidationError("Use o endereco completo da loja: https://sualoja.com.br.")
         return endereco
-
-    def clean_base_id_pedido(self):
-        # Vazio mantem a base: zerar sem querer mudaria o id de todos os pedidos para o ERP.
-        valor = self.cleaned_data["base_id_pedido"]
-        return self.instance.base_id_pedido if valor is None else valor
 
     def clean(self):
         dados = forms.ModelForm.clean(self)

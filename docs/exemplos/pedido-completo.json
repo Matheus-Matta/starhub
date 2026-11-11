@@ -105,9 +105,9 @@
       "variation_id": 0,
       "quantity": 1,
       "tax_class": "",
-      "subtotal": "1499.90",
+      "subtotal": "879.91",
       "subtotal_tax": "0.00",
-      "total": "1349.91",
+      "total": "729.92",
       "total_tax": "0.00",
       "taxes": [],
       "meta_data": [
@@ -135,7 +135,7 @@
         }
       ],
       "sku": "POLTRONA-001",
-      "price": 1349.91,
+      "price": 729.92,
       "image": {
         "id": "",
         "src": ""

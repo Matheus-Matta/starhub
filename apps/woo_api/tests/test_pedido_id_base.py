@@ -8,20 +8,24 @@ import pytest
 from django.urls import reverse
 
 from apps.core.tenant.context import tenant_context
-from apps.integracoes.models import ConfiguracaoIntegracao
 from apps.loja.models import Pedido
+from apps.woo_api.models import ConfiguracaoFdc
 from apps.woo_api.recursos.pedidos_saida import pedido_para_woo
 from apps.woo_api.tests.conftest import criar_pedido
 
 BASE = 13000
 VERSOES = ["v1", "v3"]
-TELA = "admin:integracoes_configuracaointegracao_woocommerce"
+LISTA = "admin:woo_api_configuracaofdc_changelist"
 
 
 @pytest.fixture
 def loja(conta):
-    return ConfiguracaoIntegracao.objects.create(
-        account=conta, plataforma="woocommerce", base_id_pedido=BASE)
+    return ConfiguracaoFdc.objects.create(account=conta, base_id_pedido=BASE)
+
+
+def _tela(conta):
+    return reverse("admin:woo_api_configuracaofdc_change",
+                   args=[ConfiguracaoFdc.objects.get(account=conta).pk])
 
 
 def _pedido():
@@ -107,7 +111,7 @@ def test_sem_configuracao_o_id_e_o_do_hub(api):
 def test_desligar_a_integracao_nao_renumera_os_pedidos(api, loja):
     """Inativa, a base sumia e o ERP via os mesmos pedidos com outro id: duplicava tudo."""
     pedido = _pedido()
-    ConfiguracaoIntegracao.objects.filter(pk=loja.pk).update(active=False)
+    ConfiguracaoFdc.objects.filter(pk=loja.pk).update(active=False)
 
     assert api.get(f"/wp-json/wc/v3/orders/{pedido.pk + BASE}").json()["id"] == pedido.pk + BASE
 
@@ -128,21 +132,25 @@ def test_tela_do_json_mostra_o_id_que_o_erp_recebe(admin_logado, loja):
     assert f"GET /wc/v3/orders/{pedido.pk + BASE}" in html
 
 
-DADOS_TELA = {"dominio_loja": "https://loja.test", "token_acesso": "ck_1", "segredo_app": "cs_1",
-              "acao": "salvar"}
+def test_menu_fdc_abre_a_configuracao_da_conta_criada_na_hora(admin_logado, conta):
+    """Sem configuracao a conta nao tinha onde por a base: a tela cria a dela."""
+    resposta = admin_logado.get(reverse(LISTA))
+
+    assert resposta.status_code == 302 and resposta.url == _tela(conta)
 
 
-def test_superusuario_grava_a_base_na_tela(admin_logado):
-    admin_logado.post(reverse(TELA), {**DADOS_TELA, "base_id_pedido": str(BASE)})
+def test_superusuario_grava_a_base_na_tela(admin_logado, conta):
+    admin_logado.get(reverse(LISTA))
+    admin_logado.post(_tela(conta), {"base_id_pedido": str(BASE)})
 
-    assert ConfiguracaoIntegracao.objects.get().base_id_pedido == BASE
+    assert ConfiguracaoFdc.objects.get().base_id_pedido == BASE
 
 
-def test_salvar_com_a_base_vazia_nao_renumera_os_pedidos(admin_logado, loja):
+def test_salvar_com_a_base_vazia_nao_renumera_os_pedidos(admin_logado, conta, loja):
     """Campo apagado sem querer zeraria a base e mudaria o id de todos os pedidos."""
-    admin_logado.post(reverse(TELA), {**DADOS_TELA, "base_id_pedido": ""})
+    admin_logado.post(_tela(conta), {"base_id_pedido": ""})
 
-    assert ConfiguracaoIntegracao.objects.get().base_id_pedido == BASE
+    assert ConfiguracaoFdc.objects.get().base_id_pedido == BASE
 
 
 def test_usuario_da_conta_ve_e_muda_a_base(client, conta, loja):
@@ -154,11 +162,11 @@ def test_usuario_da_conta_ve_e_muda_a_base(client, conta, loja):
     operador = User.objects.create_user("operador", "op@x.test", "senha-forte-123",
                                         account=conta, is_staff=True)
     operador.user_permissions.add(*Permission.objects.filter(
-        codename__in=["view_configuracaointegracao", "change_configuracaointegracao"]))
+        codename__in=["view_configuracaofdc", "change_configuracaofdc"]))
     client.force_login(operador)
 
-    tela = client.get(reverse(TELA)).content.decode()
-    client.post(reverse(TELA), {**DADOS_TELA, "base_id_pedido": "20000"})
+    tela = client.get(_tela(conta)).content.decode()
+    client.post(_tela(conta), {"base_id_pedido": "20000"})
 
     assert 'name="base_id_pedido"' in tela
-    assert ConfiguracaoIntegracao.objects.get().base_id_pedido == 20000
+    assert ConfiguracaoFdc.objects.get().base_id_pedido == 20000

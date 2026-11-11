@@ -1,15 +1,14 @@
-"""Com o switch "servico no subtotal" DESLIGADO, o servico somado sai do item no GET.
+"""API da FDC Sistemas: o servico somado sai do item no GET, sem switch.
 
-Sofa R$ 1500 + Montagem R$ 80 (linha propria no Shopify, somada no item): o hub guarda
-o item com 1580; o ERP que soma o servico (EPOFW) recebia 1580 + 80. O modo ligado (o
-padrao) esta em test_pedido_servico_no_subtotal.py.
+Sofa R$ 1500 + Montagem R$ 80 (somada no item pela loja): o hub guarda o item com 1580;
+a FDC recebe o item com 1500 e soma a Montagem do meta starhub. O total do pedido
+continua cheio. Com o servico no item, a FDC somava de novo (pedido 2379: 3239,87).
 """
 
 from decimal import Decimal
 
 import pytest
 
-from apps.integracoes.models import ConfiguracaoIntegracao
 from apps.loja.models import ItemPedido, Pedido, Servico
 from apps.loja.services.extras_pedido import extras, mesclar_extras
 from apps.loja.services.variantes import criar_produto
@@ -20,8 +19,6 @@ URL = "/wp-json/wc/v3/orders"
 
 @pytest.fixture
 def pedido(conta):
-    ConfiguracaoIntegracao.objects.create(account=conta, plataforma="woocommerce",
-                                          servico_no_subtotal=False)
     sofa = criar_produto("Sofa", sku="SOF-1", price=Decimal("1500.00"))
     montagem = Servico.objects.create(nome="Montagem", sku="SERV-MONT", preco=Decimal("80"))
     pedido = Pedido.objects.create(status="processing", total=Decimal("1650.00"))
@@ -45,7 +42,7 @@ def _linhas(resposta):
     return {linha["id"]: linha for linha in resposta.json()["line_items"]}
 
 
-def test_get_tira_do_item_so_o_servico_que_o_hub_somou(api, pedido):
+def test_get_sem_configuracao_nenhuma_tira_do_item_so_o_servico_somado(api, pedido):
     obj, com, sem = pedido
     resposta = api.get(f"{URL}/{obj.pk}")
 
