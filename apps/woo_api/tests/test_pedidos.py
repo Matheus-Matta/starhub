@@ -28,6 +28,17 @@ def test_pedido_calcula_totais_pelo_preco_do_produto(api, produto):
     assert corpo["number"] == str(corpo["id"])
 
 
+def test_item_mantem_a_estrutura_de_resposta_do_woocommerce(api, produto):
+    item = criar_pedido({"line_items": [{"product_id": produto.pk}]})["line_items"][0]
+
+    assert set(item) == {
+        "id", "name", "product_id", "variation_id", "quantity", "tax_class",
+        "subtotal", "subtotal_tax", "total", "total_tax", "taxes", "meta_data",
+        "sku", "price", "image", "parent_name",
+    }
+    assert item["sku"] == "CAN-1"
+
+
 def test_desconto_por_item_entra_no_total(api, produto):
     corpo = criar_pedido({"line_items": [
         {"product_id": produto.pk, "quantity": 1, "subtotal": "10.05", "total": "9.05"},

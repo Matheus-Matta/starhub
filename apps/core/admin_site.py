@@ -4,6 +4,7 @@ from django.contrib.admin.forms import AdminAuthenticationForm
 from django.template.response import TemplateResponse
 from django.urls import path
 
+from apps.core.admin_autocomplete import AutocompleteTema
 from apps.core.busca import TAMANHO_MINIMO, buscar
 from apps.core.perfil import perfil_view
 from apps.core.ui.menu import agrupar_apps, com_minha_conta
@@ -23,6 +24,9 @@ class StarHubAdminSite(admin.AdminSite):
     index_title = "Painel"
     # O menu lateral do Django da lugar ao nosso (templates/components/sidebar.html).
     enable_nav_sidebar = False
+
+    def autocomplete_view(self, request):
+        return AutocompleteTema.as_view(admin_site=self)(request)
 
     def index(self, request, extra_context=None):
         # Import tardio: o admin site carrega antes dos models estarem prontos.

@@ -580,6 +580,13 @@ na variante padrao, como antes. O lote (`batch`) continua recusando `create`.
   item", e servico cujo item saiu do pedido aparece vazio; o pedido so salva depois de
   escolher o item (ou remover o servico). Item excluido na tela com servico ligado gera
   aviso para religar.
+- **Preco do item na tela do pedido** (`apps/loja/admin/pedidos_inlines.py`): item ja
+  gravado nao muda subtotal nem total (e o que o cliente pagou). Mudar a quantidade
+  recalcula pelo preco pago por unidade, nao pelo de hoje (1 x 59,90 -> 3 = 179,70); o
+  servico somado no item fica fora da conta (Sofa 1580 com Montagem 80 -> 2 = 3080).
+  Item novo vem com o
+  preco em branco ("Automatico") e o hub calcula pelo preco da variante. SKU e nome
+  vem da variante.
 - **Planilha de servicos** (Loja > Servicos, `apps/loja/services/servicos_planilha.py`):
   **Exportar planilha** baixa um .xlsx com uma linha por regra (o servico se repete;
   servico sem regra sai com as colunas da regra vazias). **Importar planilha** le o
@@ -651,9 +658,12 @@ responde e a loja e a base nao entra. Codigo: `apps/woo_api/recursos/pedidos_id.
 Switch em Integracoes > WooCommerce > Servicos (`ConfiguracaoIntegracao.pedido_legado`,
 padrao desligado). Ligado, cada pedido novo que chega de outra loja (Shopify, Suri) e
 criado na loja Woo (`POST orders`) como `docs/exemplos/pedido-completo.json`: item com o
-produto e a variacao da loja (vinculo), servicos so no meta do item (`starhub.servicos` +
-EPOFW) e o valor do servico que o hub somou no item (`"somado"`) fora do item e do total;
-meta `starhub` do pedido com origem, `entrega.agendamento` (dd-mm-aaaa), cupons e
+produto e a variacao da loja (vinculo); o valor do servico que o hub somou no item
+(`"somado"`) sai do preco do produto e vai como linha de taxa (`fee_lines`, "Montagem
+(Sofa)" 80.00), entao o total do pedido tem o servico uma vez so (o Woo soma itens +
+taxas). Servico so informado pela loja (sem `"somado"`) nao vira taxa. O servico continua
+no meta do item (`starhub.servicos`) so para consulta; EPOFW nao sai (o ERP somaria o
+`epofw_price` em cima da taxa). Meta `starhub` do pedido com origem, `entrega.agendamento` (dd-mm-aaaa), cupons e
 `idVendedor`; frete e taxas como linhas; sem `coupon_lines` (o Woo aplicaria o cupom de
 novo). O switch vale no lugar de Enviar > Pedidos > Criar da matriz (o distribuidor
 pergunta ao marketplace, `distribuidor._habilitado`). O pedido leva o meta

@@ -4,6 +4,7 @@ import re
 from decimal import Decimal
 
 import pytest
+from django.conf import settings
 
 from apps.loja.admin.pedidos_inlines import ItemPedidoForm
 from apps.loja.models import Cliente, ItemPedido, Pedido
@@ -33,16 +34,19 @@ def test_item_do_pedido_mostra_um_unico_seletor_de_produto(admin_logado, pedido_
     assert 'name="itens-0-produto"' not in inline
     assert 'name="itens-0-nome"' not in inline
     assert re.search(r'class="column-variante[^>]*>Produto</th>', inline)
+    campo_sku = re.search(r'<input[^>]+name="itens-0-sku"[^>]*>', inline).group()
+    assert "disabled" in campo_sku
+    assert "starhub/js/pedido-itens.js" in html
 
 
-def test_trocar_variante_atualiza_produto_e_nome_automaticamente(pedido_com_item):
+def test_trocar_variante_atualiza_produto_nome_e_sku_automaticamente(pedido_com_item):
     pedido = pedido_com_item
     item = pedido.itens.get()
     nova_variante = criar_produto(
         "Mesa nova", sku="MESA-2", price=Decimal("125.00")).variante_padrao
     form = ItemPedidoForm(data={
         "variante": nova_variante.pk,
-        "sku": nova_variante.sku,
+        "sku": "SKU-ADULTERADO",
         "quantidade": 2,
         "subtotal": "",
         "total": "",
@@ -53,3 +57,25 @@ def test_trocar_variante_atualiza_produto_e_nome_automaticamente(pedido_com_item
 
     assert salvo.produto == nova_variante.produto
     assert salvo.nome == "Mesa nova"
+    assert salvo.sku == "MESA-2"
+
+
+def test_autocomplete_do_item_informa_sku_para_preencher_a_tela(
+    admin_logado, pedido_com_item,
+):
+    resposta = admin_logado.get("/admin/autocomplete/", {
+        "app_label": "loja",
+        "model_name": "itempedido",
+        "field_name": "variante",
+        "term": "BAL-1",
+    })
+
+    assert resposta.status_code == 200
+    assert resposta.json()["results"][0]["sku"] == "BAL-1"
+
+
+def test_preenchimento_do_sku_espera_jquery_do_admin():
+    js = (settings.BASE_DIR / "static/starhub/js/pedido-itens.js").read_text(
+        encoding="utf-8")
+
+    assert "DOMContentLoaded" in js

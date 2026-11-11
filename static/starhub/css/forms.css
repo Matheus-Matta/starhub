@@ -100,6 +100,16 @@ select[multiple] option:checked {
   color: var(--primary);
 }
 
+/* Campo que o sistema preenche ou que travou depois de gravado: da para ler, nao editar. */
+input:disabled,
+select:disabled,
+textarea:disabled {
+  background: var(--muted);
+  color: var(--muted-foreground);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
 input:focus,
 select:focus,
 textarea:focus {

@@ -60,8 +60,8 @@ class ConfiguracaoIntegracao(BaseModel):
         help_text="Somada ao ID do pedido na API Woo do hub: com 13000, o pedido 1 sai como "
                   "13001. Use um numero acima do ultimo pedido do ERP e nao mude depois.")
     servico_no_subtotal = models.BooleanField("servico no subtotal do pedido", default=True,
-        help_text="Ligado, a API Woo manda o item com o valor do servico no subtotal e no "
-                  "total. Desligue se o ERP somar o servico (EPOFW) por conta propria.")
+        help_text="Ligado (padrao), o item sai com o servico no subtotal e no total. "
+                  "Desligue so se o ERP somar o servico do meta starhub por conta propria.")
 
     # Servicos do hub (Loja > Servicos) na loja. Suri: cada servico vira variante do
     # produto (apps/suri/servicos.py). Shopify: cada servico vira um produto escondido,
@@ -79,9 +79,9 @@ class ConfiguracaoIntegracao(BaseModel):
     # pedidos_legado.py); desligado, o formato padrao.
     pedido_legado = models.BooleanField(
         "pedido no formato legado", default=False,
-        help_text="Ligado, o pedido enviado a esta loja leva o servico so no meta do item "
-                  "(starhub e EPOFW), fora do valor do item e do total, e o agendamento e a "
-                  "origem no meta do pedido. Desligado, vai no formato padrao: o valor do "
+        help_text="Ligado, o pedido enviado a esta loja leva o servico como taxa (Montagem "
+                  "(Sofa) 80,00), fora do preco do produto e dentro do total, e o agendamento "
+                  "e a origem no meta do pedido. Desligado, vai no formato padrao: o valor do "
                   "servico ja somado no item. Quem manda criar o pedido e Enviar > Pedidos > "
                   "Criar, na matriz abaixo.")
     servicos_no_tema = models.BooleanField(

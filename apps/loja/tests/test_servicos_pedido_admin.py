@@ -35,7 +35,8 @@ class _Campos(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
-        nome = a.get("name")
+        # O navegador nao manda campo desabilitado; o Django usa o valor gravado.
+        nome = None if "disabled" in a else a.get("name")
         if tag == "input" and nome and a.get("type") not in ("submit", "button", "file"):
             if a.get("type") in ("checkbox", "radio") and "checked" not in a:
                 return

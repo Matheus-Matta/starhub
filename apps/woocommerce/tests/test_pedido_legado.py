@@ -7,7 +7,7 @@ import pytest
 from apps.core.models import ExternalReference
 from apps.core.origem import origem
 from apps.loja.models import ItemPedido, Pedido, Servico
-from apps.loja.services.extras_pedido import mesclar_extras
+from apps.loja.services.extras_pedido import extras, mesclar_extras
 from apps.loja.services.variantes import criar_produto
 from apps.loja.totais import recalcular_totais
 from apps.woocommerce.envio.marketplace import WooCommerceMarketplace
@@ -53,24 +53,38 @@ def _item(loja):
     return corpo, corpo["line_items"][0]
 
 
-def test_formato_legado_leva_o_servico_no_meta_e_fora_do_valor(
+def test_formato_legado_leva_o_servico_como_taxa_fora_do_preco_do_produto(
         conta, monkeypatch, pedido_shopify):
-    """Switch ligado, como o pedido-completo.json: o ERP le o servico no meta e soma
-    sozinho; com o valor no item ele cobraria a Montagem duas vezes."""
+    """Switch ligado: o Woo soma o total pelas linhas. Servico so no meta ficava fora do
+    total (1500); dentro do item e tambem no EPOFW, o ERP contava duas vezes (1660)."""
     mensagem, loja = _enviar(conta, monkeypatch, pedido_shopify, legado=True)
 
     corpo, item = _item(loja)
     assert loja.chamadas[-1][1] == "orders" and mensagem.startswith("criado")
     assert (item["product_id"], item["subtotal"], item["total"]) == (20, "1500.00", "1500.00")
+    assert corpo["fee_lines"] == [
+        {"name": "Montagem (Sofa)", "total": "80.00", "tax_status": "none"}]
     meta_item = {m["key"]: m["value"] for m in item["meta_data"]}
     assert meta_item["starhub"]["servicos"][0]["preco"] == "80.00"
-    assert "epofw_field_1" in meta_item
+    assert not any(chave.startswith("epofw_field_") for chave in meta_item)
     meta = {m["key"]: m["value"] for m in corpo["meta_data"]}
     assert meta["starhub"]["entrega"]["agendamento"] == "30-10-2026"
     assert meta["starhub_pedido"] == str(pedido_shopify.uuid)
     assert corpo["status"] == "processing" and "coupon_lines" not in corpo
     assert ExternalReference.objects.filter(platform="woocommerce",
                                             entity_type="pedidos").exists()
+
+
+def test_servico_so_informado_pela_loja_nao_vira_taxa(conta, monkeypatch, pedido_shopify):
+    """Garantia sem "somado": o cliente nao pagou por ela, a taxa aumentaria o total."""
+    garantia = {"item_id": pedido_shopify.itens.get().pk, "sku": "SOF-1",
+                "servico": "Garantia", "opcao": "Sim", "preco": "50.00"}
+    mesclar_extras(pedido_shopify, {"servicos": extras(pedido_shopify)["servicos"] + [garantia]})
+    pedido_shopify.save()
+
+    _, loja = _enviar(conta, monkeypatch, pedido_shopify, legado=True)
+
+    assert [taxa["name"] for taxa in loja.chamadas[-1][2]["fee_lines"]] == ["Montagem (Sofa)"]
 
 
 def test_formato_padrao_manda_o_valor_do_servico_somado_no_item(

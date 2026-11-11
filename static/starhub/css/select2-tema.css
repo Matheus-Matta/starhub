@@ -58,3 +58,14 @@
   background: var(--primary-soft);
   color: var(--primary);
 }
+
+/* Produto de item ja gravado: travado como os outros campos desabilitados (forms.css). */
+.select2-container--admin-autocomplete.select2-container--disabled .select2-selection {
+  background: var(--muted);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.select2-container--admin-autocomplete.select2-container--disabled .select2-selection__rendered {
+  color: var(--muted-foreground);
+}
