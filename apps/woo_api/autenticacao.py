@@ -16,7 +16,7 @@ from apps.woo_api import chaves
 from apps.woo_api.models import ChaveApi
 
 
-def _credenciais(request):
+def _credenciais_basic(request):
     cabecalho = authentication.get_authorization_header(request).split()
     if cabecalho and cabecalho[0].lower() == b"basic" and len(cabecalho) == 2:
         try:
@@ -24,6 +24,13 @@ def _credenciais(request):
         except (binascii.Error, UnicodeDecodeError) as erro:
             raise exceptions.AuthenticationFailed("Cabecalho Basic invalido.") from erro
         return usuario, senha
+    return None, None
+
+
+def _credenciais(request):
+    chave, segredo = _credenciais_basic(request)
+    if chave:
+        return chave, segredo
     params = request.query_params
     if "consumer_key" in params:
         return params.get("consumer_key"), params.get("consumer_secret", "")
@@ -37,6 +44,7 @@ class UsuarioDaChave:
     is_authenticated = True
     is_anonymous = False
     is_active = True
+    is_staff = False
     is_superuser = False
     pk = id = None
 
@@ -52,8 +60,11 @@ class UsuarioDaChave:
 
 
 class ChaveConsumidorAuthentication(authentication.BaseAuthentication):
+    def obter_credenciais(self, request):
+        return _credenciais(request)
+
     def authenticate(self, request):
-        chave, segredo = _credenciais(request)
+        chave, segredo = self.obter_credenciais(request)
         if not chave or not chave.startswith("ck_"):
             return None  # nao e chave do Woo: deixa o proximo metodo tentar
         # all_objects de proposito: a conta ainda nao e conhecida, e a chave que a define.
@@ -74,3 +85,13 @@ class ChaveConsumidorAuthentication(authentication.BaseAuthentication):
 
     def authenticate_header(self, request):
         return 'Basic realm="WooCommerce API"'
+
+
+class ChaveCatalogoAuthentication(ChaveConsumidorAuthentication):
+    """A leitura do catalogo recusa segredo na URL, onde proxies o registrariam."""
+
+    def obter_credenciais(self, request):
+        return _credenciais_basic(request)
+
+    def authenticate_header(self, request):
+        return 'Basic realm="Catalogo StarHub"'

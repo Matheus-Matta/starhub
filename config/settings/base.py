@@ -136,8 +136,12 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_AUTHENTICATION_CLASSES": [],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
-    # avaliacoes: por IP, so o POST do tema; 1 avaliacao por produto ja e regra do banco.
-    "DEFAULT_THROTTLE_RATES": {"jwt_login": "20/min", "avaliacoes": "10/hour"},
+    # Avaliacoes limitam o IP; o catalogo limita cada chave exclusiva da IA.
+    "DEFAULT_THROTTLE_RATES": {
+        "jwt_login": "20/min",
+        "avaliacoes": "10/hour",
+        "catalogo_ia": "120/min",
+    },
 }
 
 # Endereco publico do hub (https://hub.suaempresa.com.br): o e-mail de notificacao leva o

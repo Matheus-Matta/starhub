@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import RedirectView
 
+from apps.loja.catalogo_ia import CatalogoIaView
 from apps.woo_api.views.recursos import RaizView
 
 urlpatterns = [
@@ -12,6 +13,7 @@ urlpatterns = [
     path("integracoes/woocommerce/", include("apps.woocommerce.urls")),
     path("integracoes/suri/", include("apps.suri.urls")),
     path("notificacoes/", include("apps.notificacoes.urls")),
+    path("catalogo/ia/", CatalogoIaView.as_view(), name="catalogo_ia"),
     # Mesmo prefixo do WordPress: o ERP aponta para este dominio como se fosse a loja.
     path("wp-json/", include("apps.woo_api.urls")),
     path("wp-json", RaizView.as_view()),

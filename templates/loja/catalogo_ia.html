@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
+  <title>Catalogo de produtos - pagina {{ pagina.number }}</title>
+  {% if pagina.has_previous %}<link rel="prev" href="?page={{ pagina.previous_page_number }}&amp;per_page={{ por_pagina }}">{% endif %}
+  {% if pagina.has_next %}<link rel="next" href="?page={{ pagina.next_page_number }}&amp;per_page={{ por_pagina }}">{% endif %}
+</head>
+<body>
+  <main>
+    <h1>Catalogo de produtos</h1>
+    <p>Pagina {{ pagina.number }} de {{ pagina.paginator.num_pages }}. {{ pagina.paginator.count }} itens.</p>
+    <table>
+      <caption>Produtos, variacoes e kits</caption>
+      <thead>
+        <tr>
+          <th scope="col">Nome</th>
+          <th scope="col">Tipo</th>
+          <th scope="col">Variacao</th>
+          <th scope="col">SKU</th>
+          <th scope="col">Preco atual</th>
+          <th scope="col">Preco normal</th>
+          <th scope="col">Preco promocional</th>
+          <th scope="col">Estoque</th>
+          <th scope="col">Situacao do estoque</th>
+          <th scope="col">Categorias</th>
+          <th scope="col">Composicao do kit</th>
+          <th scope="col">Descricao curta</th>
+          <th scope="col">Descricao</th>
+          <th scope="col">Imagem</th>
+          <th scope="col">URL externa</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in itens %}
+          <tr data-item>
+            <td>{{ item.nome }}</td>
+            <td>{{ item.tipo }}</td>
+            <td>{{ item.variacao }}</td>
+            <td>{{ item.sku }}</td>
+            <td>{{ item.preco }}</td>
+            <td>{{ item.preco_regular }}</td>
+            <td>{{ item.preco_promocional }}</td>
+            <td>{{ item.estoque }}</td>
+            <td>{{ item.situacao_estoque }}</td>
+            <td>{{ item.categorias }}</td>
+            <td>{% for componente in item.componentes %}{{ componente }}{% if not forloop.last %}; {% endif %}{% endfor %}</td>
+            <td>{{ item.descricao_curta }}</td>
+            <td>{{ item.descricao }}</td>
+            <td>{{ item.imagem }}</td>
+            <td>{{ item.url_externa }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="15">Nenhum produto publicavel.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <nav aria-label="Paginacao">
+      {% if pagina.has_previous %}<a rel="prev" href="?page={{ pagina.previous_page_number }}&amp;per_page={{ por_pagina }}">Pagina anterior</a>{% endif %}
+      {% if pagina.has_next %}<a rel="next" href="?page={{ pagina.next_page_number }}&amp;per_page={{ por_pagina }}">Proxima pagina</a>{% endif %}
+    </nav>
+  </main>
+</body>
+</html>

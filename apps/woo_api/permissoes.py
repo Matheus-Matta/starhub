@@ -12,6 +12,10 @@ class PodeUsarApiWoo(permissions.BasePermission):
         if not usuario or not usuario.is_authenticated:
             return False
         if isinstance(request.auth, ChaveApi):
+            if request.auth.tem_escopo("catalogo_ia"):
+                raise exceptions.AuthenticationFailed(
+                    "Esta chave e exclusiva do catalogo para IA."
+                )
             if not request.auth.permite(request.method):
                 # Mesmo codigo e status (401) que o Woo devolve nesse caso.
                 raise exceptions.AuthenticationFailed(
