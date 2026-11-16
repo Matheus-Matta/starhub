@@ -64,6 +64,3 @@ class ChaveApi(BaseModel):
         if metodo in ("GET", "HEAD", "OPTIONS"):
             return self.permissao in (self.Permissao.LEITURA, self.Permissao.LEITURA_ESCRITA)
         return self.permissao in (self.Permissao.ESCRITA, self.Permissao.LEITURA_ESCRITA)
-
-    def tem_escopo(self, escopo):
-        return escopo.casefold() in {str(item).casefold() for item in self.scopes}

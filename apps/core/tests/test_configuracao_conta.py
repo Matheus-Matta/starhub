@@ -51,6 +51,8 @@ def test_administrador_ve_a_configuracao_da_propria_conta(administrador, conta):
     assert 'name="email"' in pagina
     assert 'name="phone"' in pagina
     assert 'name="dominio_avaliacoes"' in pagina
+    assert 'name="catalogo_publico"' in pagina
+    assert f"/{conta.pk}/catalogo/public/" in pagina
 
 
 def test_administrador_nao_altera_dados_essenciais_nem_por_post(administrador, conta):
@@ -61,6 +63,7 @@ def test_administrador_nao_altera_dados_essenciais_nem_por_post(administrador, c
         "legal_name": "Outra Empresa", "document": "52998224725", "active": "",
         "email": "novo@loja.test", "phone": "+55 11 99999-9999",
         "dominio_avaliacoes": "nova-loja.test", "timezone": "UTC", "currency": "USD",
+        "catalogo_publico": "on",
         "_save": "Salvar",
     })
 
@@ -69,6 +72,7 @@ def test_administrador_nao_altera_dados_essenciais_nem_por_post(administrador, c
     assert (conta.email, conta.phone, conta.dominio_avaliacoes) == (
         "novo@loja.test", "+55 11 99999-9999", "nova-loja.test",
     )
+    assert conta.catalogo_publico is True
     assert (conta.name, conta.slug, conta.legal_name, conta.document) == (
         "Loja Teste", "loja-teste", "", "",
     )

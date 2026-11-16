@@ -136,11 +136,11 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_AUTHENTICATION_CLASSES": [],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
-    # Avaliacoes limitam o IP; o catalogo limita cada chave exclusiva da IA.
+    # Avaliacoes e catalogo publico limitam o IP de quem faz a leitura.
     "DEFAULT_THROTTLE_RATES": {
         "jwt_login": "20/min",
         "avaliacoes": "10/hour",
-        "catalogo_ia": "120/min",
+        "catalogo_publico": "120/min",
     },
 }
 

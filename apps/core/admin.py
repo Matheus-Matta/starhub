@@ -6,9 +6,12 @@ filtro pela conta ativa e feito aqui. O superusuario ve todas as contas no admin
 (ver apps/core/admin_conta.py).
 """
 
+from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import Group
+from django.urls import reverse
+from django.utils.html import format_html
 
 from apps.core.admin_base import TemaMixin
 from apps.core.admin_logs import LogEntry, LogsAdmin
@@ -88,7 +91,10 @@ class UsuarioAdmin(TemaMixin, UserAdmin):
 
 @admin.register(Account)
 class AccountAdmin(TemaMixin, admin.ModelAdmin):
-    campos_editaveis_pela_conta = {"email", "phone", "dominio_avaliacoes"}
+    campos_editaveis_pela_conta = {
+        "email", "phone", "dominio_avaliacoes", "catalogo_publico",
+    }
+    readonly_fields = ["endpoint_catalogo_publico"]
     list_display = ["name", "slug", "email", "currency", "active", "updated_at"]
     search_fields = ["name", "slug", "legal_name", "document", "email"]
     list_filter = ["active", "currency"]
@@ -97,8 +103,20 @@ class AccountAdmin(TemaMixin, admin.ModelAdmin):
     fieldsets = [
         ("Conta", {"fields": [("name", "slug"), ("legal_name", "document"), "active"]}),
         ("Contato", {"fields": [("email", "phone"), "dominio_avaliacoes"]}),
+        ("Catalogo publico para IA", {
+            "fields": ["catalogo_publico", "endpoint_catalogo_publico"],
+        }),
         ("Regiao", {"fields": [("timezone", "currency")]}),
     ]
+
+    @admin.display(description="endpoint publico")
+    def endpoint_catalogo_publico(self, obj):
+        if obj is None:
+            return "Salve a conta para gerar o endereco."
+        caminho = reverse("catalogo_publico", args=[obj.pk])
+        base = settings.STARHUB_URL_PUBLICA.rstrip("/")
+        url = f"{base}{caminho}?page=1&per_page=1000"
+        return format_html('<a href="{}" target="_blank" rel="noopener">{}</a>', url, url)
 
     def get_queryset(self, request):
         # Cadastro de contas e fluxo administrativo explicito do superusuario; os
@@ -107,14 +125,16 @@ class AccountAdmin(TemaMixin, admin.ModelAdmin):
         return qs if request.user.is_superuser else qs.filter(pk=get_current_account_id())
 
     def get_readonly_fields(self, request, obj=None):
+        campos = list(super().get_readonly_fields(request, obj))
         if request.user.is_superuser:
-            return super().get_readonly_fields(request, obj)
+            return campos
         # Identidade, situacao e regiao da conta afetam todo o tenant. O administrador
         # da loja pode manter apenas os dados operacionais de contato e dominio.
-        return [
+        restritos = [
             campo.name for campo in self.model._meta.fields
             if campo.editable and campo.name not in self.campos_editaveis_pela_conta
         ]
+        return campos + [campo for campo in restritos if campo not in campos]
 
     def get_prepopulated_fields(self, request, obj=None):
         # O slug nao faz parte do formulario restrito e nao pode ser dependencia JS.

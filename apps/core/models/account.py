@@ -32,6 +32,13 @@ class Account(models.Model):
             "separados por virgula, sem https:// ou caminho."
         ),
     )
+    catalogo_publico = models.BooleanField(
+        "publicar catalogo para IA", default=False, db_default=False,
+        help_text=(
+            "Libera sem senha somente os produtos publicados. O endereco usa o UUID "
+            "desta conta e aparece abaixo."
+        ),
+    )
     timezone = models.CharField("fuso horario", max_length=50, default="America/Sao_Paulo")
     currency = models.CharField("moeda", max_length=3, default="BRL")
     active = models.BooleanField("ativa", default=True)
