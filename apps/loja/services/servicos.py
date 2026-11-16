@@ -2,7 +2,8 @@
 
 Os servicos do pedido ficam em starhub.servicos ({"item_id", "sku" do item,
 "servico", "opcao", "preco"}). Ao gravar, cada um ganha "servico_id"; servico sem
-cadastro nasce na hora, com SKU SERV-<NOME>. Na leitura, servico antigo (sem
+cadastro nasce na hora, com SKU SERV-<NOME>. Servico que chega com "_sku" (Easify,
+no Shopify) e achado e criado pelo SKU. Na leitura, servico antigo (sem
 servico_id) e achado pelo nome.
 """
 
@@ -19,6 +20,12 @@ def vincular(servicos):
     """Mesma lista com servico_id em cada servico; cria o cadastro que faltar."""
     saida = []
     for servico in servicos or []:
+        if isinstance(servico, dict) and servico.get("_sku"):
+            cadastro = _pelo_sku(servico)
+            limpo = {k: v for k, v in servico.items() if k != "_sku"}
+            # O nome do cadastro vence: o operador renomeia e o pedido acompanha.
+            saida.append({**limpo, "servico": cadastro.nome, "servico_id": cadastro.pk})
+            continue
         if not isinstance(servico, dict) or not _chave(servico.get("servico")):
             saida.append(servico)
             continue
@@ -29,6 +36,22 @@ def vincular(servicos):
             nome_normalizado=_chave(nome), defaults={"nome": nome})
         saida.append({**servico, "servico_id": cadastro.pk})
     return saida
+
+
+def _pelo_sku(servico):
+    """Cadastro do SKU que a loja mandou (Easify); nasce com o nome e o preco do pedido."""
+    sku = str(servico["_sku"]).strip()
+    nome = str(servico.get("servico") or "").strip() or sku
+    if Servico.objects.filter(nome_normalizado=_chave(nome)).exclude(sku=sku).exists():
+        # O nome e unico na conta e outro SKU ja tem este: sem o sufixo o insert
+        # quebrava e o pedido inteiro voltava.
+        nome = f"{nome} ({sku})"
+    padrao = {"nome": nome}
+    preco = _preco_valido(servico.get("preco"))
+    if preco:
+        padrao["preco"] = preco
+    # get_or_create pelo indice unico de SKU: dois pedidos juntos caem no mesmo cadastro.
+    return Servico.objects.get_or_create(sku=sku, defaults=padrao)[0]
 
 
 def cadastros(servicos):

@@ -8,17 +8,23 @@ from apps.shopify.pedidos_servicos import servicos_do_item
 from apps.shopify.pedidos_status import status_do_pedido
 
 
-def test_servico_pago_vira_servico_com_rotulo_amigavel_e_preco_decimal():
+def test_servico_pago_vira_servico_com_sku_e_preco_decimal():
     """O preco "[+ R$ 1.499,99]" em texto brasileiro nao pode virar 1.49999."""
     servicos = servicos_do_item([
-        {"name": "_garantia_789", "value": "12 meses [+ R$ 1.499,99]"},
-        {"name": "_montagem_456", "value": "Sim (+ R$ 80.00)"},
+        {"name": "_GARANTIA 12M_789", "value": "12 meses [+ R$ 1.499,99]"},
+        {"name": "_MONTAGEM_456", "value": "Sim (+ R$ 80.00)"},
     ])
 
     assert servicos == [
-        {"servico": "Garantia estendida", "opcao": "12 meses", "preco": Decimal("1499.99")},
-        {"servico": "Montagem", "opcao": "Sim", "preco": Decimal("80.00")},
+        {"servico": "GARANTIA 12M", "_sku": "789", "opcao": "12 meses",
+         "preco": Decimal("1499.99")},
+        {"servico": "MONTAGEM", "_sku": "456", "opcao": "Sim", "preco": Decimal("80.00")},
     ]
+
+
+def test_propriedade_sem_sku_no_nome_continua_achada_pelo_nome():
+    assert servicos_do_item([{"name": "Montagem", "value": "Sim [+ R$ 80,00]"}]) == [
+        {"servico": "Montagem", "opcao": "Sim", "preco": Decimal("80.00")}]
 
 
 def test_servico_recusado_vazio_ou_sem_preco_fica_de_fora():

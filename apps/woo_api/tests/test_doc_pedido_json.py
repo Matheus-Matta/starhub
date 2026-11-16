@@ -37,9 +37,10 @@ def _pedido_da_loja():
     dados = pedido_shopify()
     poltrona = dados["line_items"][0]
     poltrona["properties"] = [
-        {"name": "_impermeabilizacao_123", "value": "Sim [+ R$ 499,99]"},
-        {"name": "_montagem_456", "value": "Sim [+ R$ 120,00]"},
-        {"name": "_garantia_789", "value": "Não"},
+        {"name": "_IMPER ATÉ 2,5M_2432", "value": "IMPERMEABILIZAÇÃO [ +R$ 499,99 ]"},
+        {"name": "_MONTAGEM_456", "value": "MONTAGEM [ +R$ 120,00 ]"},
+        {"name": "_GARANTIA_789", "value": "Não"},
+        {"name": "_tpo_add_by", "value": "easify"},
     ]
     return dados
 

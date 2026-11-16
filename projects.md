@@ -533,7 +533,12 @@ na variante padrao, como antes. O lote (`batch`) continua recusando `create`.
   **cadastro de Servicos** (`Servico`, Loja > Servicos), nao de Produto (produto
   vai para a loja como item a venda). Servico sem cadastro nasce na hora
   (`apps/loja/services/servicos.vincular`, SKU `SERV-<NOME>`) na importacao do
-  Shopify e no PUT; o servico guardado leva `servico_id`, e o antigo sem ele e
+  Shopify e no PUT. Propriedade do item do Shopify no formato do app Easify
+  (`{"name": "_IMPER ATÉ 2,5M_2432", "value": "IMPERMEABILIZAÇÃO [ +R$ 499,99 ]"}`,
+  `apps/shopify/pedidos_servicos.py`) traz o SKU depois do ultimo `_`: o servico e
+  achado pelo SKU (`servicos._pelo_sku`) e, sem cadastro, nasce com esse SKU, o nome
+  e o preco do pedido; nome ja usado por outro SKU ganha o sufixo ` (2432)`. O
+  servico guardado leva `servico_id`, e o antigo sem ele e
   achado pelo nome (a migration `loja.0019` cadastrou os dos pedidos existentes).
 - **Preco e regras do servico** (`Servico.preco`, `RegraServico`, Loja > Servicos): o
   preco padrao veio do ultimo preco pago em pedido (migration `loja.0021`; nunca

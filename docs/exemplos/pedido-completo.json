@@ -118,17 +118,17 @@
             "servicos": [
               {
                 "id": 1,
-                "nome": "Impermeabilização da poltrona",
-                "sku": "SERV-IMPERMEABILIZACAO-DA-POLTRONA",
+                "nome": "IMPER ATÉ 2,5M",
+                "sku": "2432",
                 "preco": "499.99",
-                "opcao": "Sim"
+                "opcao": "IMPERMEABILIZAÇÃO"
               },
               {
                 "id": 2,
-                "nome": "Montagem",
-                "sku": "SERV-MONTAGEM",
+                "nome": "MONTAGEM",
+                "sku": "456",
                 "preco": "120.00",
-                "opcao": "Sim"
+                "opcao": "MONTAGEM"
               }
             ]
           }

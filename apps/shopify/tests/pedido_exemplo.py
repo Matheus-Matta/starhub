@@ -70,8 +70,10 @@ _PEDIDO = {
             "requires_shipping": True,
             "tax_lines": [],
             "properties": [
-                {"name": "_impermeabilizacao_123", "value": "Sim [+ R$ 499,99]"},
-                {"name": "_montagem_456", "value": "Não"},
+                # Formato do app Easify: "_<nome>_<sku>" e "<opcao> [ +R$ <preco> ]".
+                {"name": "_IMPER ATÉ 2,5M_2432", "value": "IMPERMEABILIZAÇÃO [ +R$ 499,99 ]"},
+                {"name": "_MONTAGEM_456", "value": "Não"},
+                {"name": "_tpo_add_by", "value": "easify"},
             ],
         },
         {

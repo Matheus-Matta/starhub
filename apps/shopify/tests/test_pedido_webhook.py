@@ -96,9 +96,9 @@ def test_pedido_do_shopify_guarda_extras_num_unico_metadado_starhub(poltrona):
         "cupons": ["PROMO10"],
         "servicos": [{
             "item_id": item.pk, "sku": "POLTRONA-001",
-            "servico": "Impermeabilização da poltrona", "opcao": "Sim", "preco": "499.99",
-            # Sem cadastro, o servico nasce na importacao e fica vinculado.
-            "servico_id": Servico.objects.get(nome="Impermeabilização da poltrona").pk,
+            "servico": "IMPER ATÉ 2,5M", "opcao": "IMPERMEABILIZAÇÃO", "preco": "499.99",
+            # Sem cadastro, o servico nasce na importacao com o SKU do Easify.
+            "servico_id": Servico.objects.get(sku="2432").pk,
             # O Shopify ja poe o preco da opcao no preco da linha: sem a marca, a API da
             # FDC mandava o item com o servico dentro e o ERP somava de novo (pedido 2379).
             "somado": True,

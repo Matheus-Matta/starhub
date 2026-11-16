@@ -157,17 +157,17 @@ alteração foram fixados.
             "servicos": [
               {
                 "id": 1,
-                "nome": "Impermeabilização da poltrona",
-                "sku": "SERV-IMPERMEABILIZACAO-DA-POLTRONA",
+                "nome": "IMPER ATÉ 2,5M",
+                "sku": "2432",
                 "preco": "499.99",
-                "opcao": "Sim"
+                "opcao": "IMPERMEABILIZAÇÃO"
               },
               {
                 "id": 2,
-                "nome": "Montagem",
-                "sku": "SERV-MONTAGEM",
+                "nome": "MONTAGEM",
+                "sku": "456",
                 "preco": "120.00",
-                "opcao": "Sim"
+                "opcao": "MONTAGEM"
               }
             ]
           }
@@ -352,9 +352,9 @@ cliente comprou. Por isso ele vem no `meta_data` **do item**, com a mesma chave
 
 ```json
 {"key": "starhub", "value": {"servicos": [
-  {"id": 1, "nome": "Impermeabilização da poltrona",
-   "sku": "SERV-IMPERMEABILIZACAO-DA-POLTRONA", "preco": "499.99", "opcao": "Sim"},
-  {"id": 2, "nome": "Montagem", "sku": "SERV-MONTAGEM", "preco": "120.00", "opcao": "Sim"}
+  {"id": 1, "nome": "IMPER ATÉ 2,5M", "sku": "2432", "preco": "499.99",
+   "opcao": "IMPERMEABILIZAÇÃO"},
+  {"id": 2, "nome": "MONTAGEM", "sku": "456", "preco": "120.00", "opcao": "MONTAGEM"}
 ]}}
 ```
 
@@ -362,7 +362,7 @@ cliente comprou. Por isso ele vem no `meta_data` **do item**, com a mesma chave
 |---|---|---|
 | `id` | número | Id do serviço no cadastro de Serviços do StarHub. Não muda. |
 | `nome` | texto | Nome do serviço. |
-| `sku` | texto | SKU do serviço. Serviço que chega pela primeira vez é cadastrado na hora com `SERV-<NOME>`; a loja pode trocar pelo código do ERP no cadastro, e a troca vale para todos os pedidos. |
+| `sku` | texto | SKU do serviço. No Shopify ele vem do app Easify, no fim do nome da propriedade do item (`_IMPER ATÉ 2,5M_2432` dá nome `IMPER ATÉ 2,5M` e SKU `2432`), e o serviço é achado por ele. Serviço que chega pela primeira vez é cadastrado na hora com esse SKU (sem SKU na origem, com `SERV-<NOME>`); a loja pode trocar pelo código do ERP no cadastro, e a troca vale para todos os pedidos. |
 | `preco` | dinheiro | Quanto o cliente pagou pelo serviço **neste item**. |
 | `opcao` | texto | O que o cliente escolheu (`"Sim"`, `"12 meses"`...). |
 
