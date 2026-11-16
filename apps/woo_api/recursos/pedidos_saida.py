@@ -2,12 +2,11 @@
 
 from apps.loja.dinheiro import ZERO
 from apps.loja.dinheiro import texto as dinheiro_texto
-from apps.loja.services.extras_pedido import somados_por_item
 from apps.loja.services.pedidos import transacao
 from apps.woo_api import datas
 from apps.woo_api.recursos import enderecos
 from apps.woo_api.recursos.pedidos_id import opcoes_da_conta
-from apps.woo_api.recursos.pedidos_servicos import meta_do_item, servicos_por_item
+from apps.woo_api.recursos.pedidos_servicos import dados_por_item, meta_do_item
 from apps.woo_api.recursos.pedidos_starhub import meta_do_pedido
 
 SIMBOLOS = {"BRL": "R$", "USD": "$", "EUR": "€"}
@@ -50,8 +49,9 @@ def pedido_para_woo(pedido, servico_no_item=False, opcoes=None):
         opcoes = opcoes_da_conta(pedido.account_id)
     id_api = pedido.pk + opcoes.base_id
     pago = pedido.status in ("processing", "completed")
-    servicos = servicos_por_item(pedido)
-    fora = {} if servico_no_item else somados_por_item(pedido)
+    plataforma = None if servico_no_item else "fdc"
+    servicos, somados = dados_por_item(pedido, plataforma)
+    fora = {} if servico_no_item else somados
     return {
         "id": id_api,
         "parent_id": pedido.id_pai,

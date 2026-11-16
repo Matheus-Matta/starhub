@@ -1,6 +1,9 @@
 import logging
 from decimal import Decimal
+from unittest.mock import Mock
 
+from apps.integracoes.envio import lote
+from apps.integracoes.models import ConfiguracaoIntegracao
 from apps.loja.models import Produto
 from apps.loja.services.variantes import criar_produto
 
@@ -49,6 +52,38 @@ def test_v3_atualiza_produto_e_exibe_o_corpo_recebido(api, caplog):
     assert variante.inventory_quantity == 25
     assert "Woo v3 recebeu atualizacao do produto" in caplog.text
     assert "Caneca grande" in caplog.text
+
+
+def test_v3_acumula_envio_sem_publicar_no_broker_dentro_da_requisicao(
+    api, django_capture_on_commit_callbacks, monkeypatch
+):
+    """Redis lento nao pode voltar a prender o PUT ate o timeout do ERP."""
+    produto = criar_produto("Caneca", sku="1490", price="10.00")
+    configuracao = ConfiguracaoIntegracao.objects.create(
+        nome="Shopify",
+        plataforma="shopify",
+        permissoes={"enviar": {"produtos": {"update": True}}},
+    )
+    publicar = Mock()
+    monkeypatch.setattr("apps.integracoes.tasks.enviar_alteracao.delay", publicar)
+    lote.limpar()
+
+    with django_capture_on_commit_callbacks(execute=True):
+        resposta = api.put(
+            f"{URL}/{produto.pk}", {"regular_price": "29.90"}, format="json"
+        )
+
+    token, eventos = lote.iniciar()
+    try:
+        assert resposta.status_code == 200
+        assert publicar.call_count == 0
+        assert [(evento.configuracao_id, evento.recurso, evento.operacao, evento.pk)
+                for evento in eventos] == [
+            (str(configuracao.pk), "produtos", "update", str(produto.pk))
+        ]
+    finally:
+        lote.finalizar(token)
+        lote.limpar()
 
 
 def test_v3_nao_cria_produto_sem_sku(api):

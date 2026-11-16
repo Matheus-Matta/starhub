@@ -164,10 +164,9 @@ def _normalizar(campo, valor):
 
 
 def _enfileirar(configuracao_id, recurso, operacao, pk):
-    from apps.core.tarefas import enfileirar
-    from apps.integracoes.tasks import enviar_alteracao
+    from apps.integracoes.envio import lote
 
-    enfileirar(enviar_alteracao, str(configuracao_id), recurso, operacao, str(pk))
+    lote.acumular(str(configuracao_id), recurso, operacao, str(pk))
 
 
 distribuidor = None

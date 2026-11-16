@@ -137,3 +137,21 @@ def test_id_vendedor_devolvido_pelo_erp_nao_e_gravado(api, pedido, conta):
     config.save()
 
     assert "idVendedor" not in _meta(api.get(f"{URL}/{pedido.pk}").json()["meta_data"])
+
+
+def test_formato_antigo_tambem_nao_localiza_servico_ignorado_na_fdc(api, pedido):
+    """O starhub.servicos no nivel do pedido nao pode contornar o bloqueio do item."""
+    pedido, item = pedido
+    montagem = Servico.objects.create(
+        nome="Montagem", sku="ERP-MONT", fora_das_integracoes=["fdc"]
+    )
+
+    resposta = api.put(f"{URL}/{pedido.pk}", {"meta_data": [{"key": "starhub", "value": {
+        "servicos": [{"item_id": item.pk, "servico_id": montagem.pk,
+                       "servico": montagem.nome, "preco": "120.00"}]
+    }}]}, format="json")
+
+    assert resposta.status_code == 400
+    assert "nao esta disponivel para FDC Sistemas" in resposta.json()["data"]["params"][
+        "meta_data"
+    ]

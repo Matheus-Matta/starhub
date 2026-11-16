@@ -149,3 +149,52 @@ def exportar_dados(execucao_id):
         _gravar(execucao, status=status, etapa=status.label, progresso=100, mensagem=mensagem,
                 falhas=resumo.detalhes, concluida_em=timezone.now())
         return {"status": str(status), "message": mensagem}
+
+
+@shared_task(bind=True, ignore_result=True)
+def despachar_envios_pendentes(self, token=None, eventos=None):
+    """Processa a rajada inteira usando uma mensagem do broker."""
+    from apps.integracoes.envio import lote
+
+    if eventos is None:
+        token, eventos = lote.iniciar()
+    else:
+        eventos = [lote.Evento(**evento) for evento in eventos]
+    if not token:
+        return {"processados": 0, "pendentes": 0}
+    processados, falharam, finalizar = 0, [], True
+    try:
+        for evento in eventos:
+            try:
+                # Chamada local: o lote inteiro ocupa uma mensagem do broker. A tarefa
+                # individual continua existindo para Retomar e para compatibilidade.
+                resultado = enviar_alteracao.run(
+                    evento.configuracao_id, evento.recurso, evento.operacao, evento.pk
+                )
+            except Exception:
+                logger.exception(
+                    "Envio em lote falhou antes de registrar o resultado: %s %s",
+                    evento.recurso, evento.pk,
+                )
+                falharam.append(evento)
+                continue
+            if resultado.get("status") == "failed":
+                falharam.append(evento)
+                continue
+            lote.confirmar(token, evento)
+            processados += 1
+        if falharam and deve_repetir(self.request):
+            # Uma mensagem repete todas as falhas do lote; os sucessos ja foram
+            # confirmados e nao voltam. A trava impede o beat de pegar as mesmas falhas.
+            finalizar = False
+            raise self.retry(
+                args=(token, [vars(evento) for evento in falharam]),
+                countdown=30 * 2 ** self.request.retries,
+            )
+        for evento in falharam:
+            lote.confirmar(token, evento)
+            processados += 1
+    finally:
+        if finalizar:
+            lote.finalizar(token)
+    return {"processados": processados, "pendentes": len(eventos) - processados}

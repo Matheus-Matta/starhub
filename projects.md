@@ -77,7 +77,7 @@ docker compose run --rm web python manage.py criar_conta_inicial   # primeira ve
 | --- | --- |
 | `web-blue`, `web-green` | os dois backends, iguais: ao subir, `criar_banco` (cria o `POSTGRES_DB` do `.env` se faltar) e `migrar` (migrate com trava no PostgreSQL, um por vez); se passar, `uvicorn config.asgi:application` (HTTP + WebSocket), `WEB_WORKERS` processos, portas `WEB_PORT_BLUE` (8001) e `WEB_PORT_GREEN` (8002) |
 | `worker` | `celery -A config worker` (`CELERY_CONCURRENCY` tarefas); espera Redis saudavel e o container `web-blue` iniciar |
-| `beat` | `celery -A config beat` (conferencia de pedidos a cada 30 min e na subida, secao 7.1); espera Redis saudavel e o container `web-blue` iniciar |
+| `beat` | `celery -A config beat` (envios acumulados a cada 3s e conferencia de pedidos a cada 30 min e na subida); espera Redis saudavel e o container `web-blue` iniciar |
 | `redis` | fila do Celery, cache e channel layer (volume `redis`) |
 | `postgres` | PostgreSQL 16 (volume `postgres`); cria o usuario e o `POSTGRES_DB` na primeira subida |
 
@@ -565,12 +565,13 @@ na variante padrao, como antes. O lote (`batch`) continua recusando `create`.
   loja e o total do pedido continua o dela (por isso sem `"somado"`, e o pedido legado
   nao desconta nada). A parte automatica e refeita a cada importacao (reimportar nao
   duplica; item que saiu perde o servico). *Ignorar nas integracoes* (multi-select,
-  lista de plataformas no JSON): no Suri o servico nao vira variacao (o reenvio a
-  remove); na Shopify some do bloco do tema e o produto escondido dele vai como
-  rascunho. O WooCommerce nao esta na lista: a loja Woo nao recebe servico como
-  produto. Exemplo: montagem gratis "em todo item" e ignorada no Suri e na Shopify
-  chega em todo pedido sem o cliente precisar marcar. O ERP recebe o automatico como
-  qualquer servico do item (id, nome, SKU, preco).
+  lista de plataformas no JSON): na FDC o servico nao sai no `starhub` do item e, se
+  estava somado, permanece no valor do item; PUT da API tambem nao o localiza por ID,
+  SKU ou nome. No Suri nao vira variacao (o reenvio a remove); na Shopify some do
+  bloco do tema e o produto escondido dele vai como rascunho. O WooCommerce nao esta
+  na lista: a loja Woo nao recebe servico como produto. Exemplo: montagem gratis "em
+  todo item" pode ser ignorada na FDC, no Suri e na Shopify sem apagar o vinculo que
+  veio no webhook.
 - **Servicos na tela do pedido** (card "Servicos do pedido", `apps/loja/admin/pedidos_servicos.py`
   + `apps/loja/services/servicos_pedido.py`): uma linha por servico (item, servico do
   cadastro, opcao, preco) para adicionar, trocar ou remover. Servico novo ou alterado
@@ -814,11 +815,15 @@ categorias/tags do produto) chamam o `Distribuidor`
    com `Enviar > recurso > operacao` ligado. O que veio do Shopify vai para os outros,
    nunca volta ao Shopify; o que nasceu no admin, na API Woo ou num comando vai para
    todos.
-4. **Depois do commit, um por registro:** `envio/transacao.py` agenda com
+4. **Depois do commit, acumula no cache:** `envio/transacao.py` agenda com
    `transaction.on_commit` (rollback nao envia) e junta varias gravacoes do mesmo
    registro na mesma transacao num envio so (create + update = create; + delete =
-   delete).
-5. **Tarefa:** `apps/integracoes/tasks.py::enviar_alteracao` roda na conta da
+   delete). `envio/lote.py` tambem junta as requisicoes de `web-blue` e `web-green`
+   pela chave configuracao + recurso + registro. O beat entrega ate 1.000 eventos a
+   cada 3 segundos numa unica tarefa; uma versao nova que chega durante o envio fica
+   para o proximo lote. Assim cada PUT nao publica uma mensagem no broker.
+5. **Tarefa:** `apps/integracoes/tasks.py::despachar_envios_pendentes` pega o lote e
+   chama `enviar_alteracao` para cada estado final. Ela roda na conta da
    configuracao e com a origem = plataforma de destino (o que ela gravar no hub nao
    volta para ela), confere de novo a matriz e chama o marketplace. O rastro fica em
    **Tarefas** (menu Nucleo) (tipo *Enviar alteracao*): `produtos update 15:

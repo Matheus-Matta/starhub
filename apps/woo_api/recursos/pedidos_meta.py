@@ -14,6 +14,7 @@ import json
 import re
 
 from apps.loja.dinheiro import ValorInvalido, dinheiro
+from apps.loja.models import Servico
 from apps.loja.services.extras_pedido import CHAVE, RECUSAS, extras, mesclar_extras, rotulo_servico
 from apps.loja.services.servicos import vincular
 from apps.woo_api import metadados
@@ -96,7 +97,16 @@ def gravar_meta(pedido, meta_data):
         elif chave not in _NO_ENDERECO:
             resto.append(item)
     if isinstance(secoes.get("servicos"), list):
-        secoes["servicos"] = vincular([servico_valido(s) for s in secoes["servicos"]])
+        vinculados = vincular([servico_valido(s) for s in secoes["servicos"]])
+        ids = {s.get("servico_id") for s in vinculados if isinstance(s, dict)} - {None}
+        ignorado = next((s for s in Servico.objects.filter(pk__in=ids)
+                         if s.ignorado_em("fdc")), None)
+        if ignorado:
+            raise parametro_invalido(
+                "meta_data",
+                f'Servico "{ignorado.nome}" nao esta disponivel para FDC Sistemas.',
+            )
+        secoes["servicos"] = vinculados
     # Chave solta e UM campo: mescla dentro da secao em vez de trocar a secao toda.
     for secao, campos in soltas.items():
         base = secoes.get(secao, atual.get(secao))

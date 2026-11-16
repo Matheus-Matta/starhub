@@ -16,6 +16,7 @@ vem do cadastro, nao do corpo, entao o ERP pode reenviar o que recebeu sem
 duplicar nem trocar nada.
 """
 
+from apps.loja.dinheiro import somar
 from apps.loja.services.extras_pedido import CHAVE, extras
 from apps.loja.services.servicos import cadastros, do_cadastro
 from apps.woo_api.erros import parametro_invalido
@@ -35,15 +36,25 @@ def _para_erp(servico, cadastro):
     }
 
 
-def servicos_por_item(pedido):
-    """{item_id: [servico no formato do ERP]} lido do que o pedido guarda."""
+def dados_por_item(pedido, plataforma=None):
+    """Servicos visiveis e valores somados, ambos agrupados pelo item."""
     guardados = [s for s in extras(pedido).get("servicos") or [] if isinstance(s, dict)]
     mapa = cadastros(guardados)
-    por_item = {}
+    por_item, somados = {}, {}
     for servico in guardados:
+        cadastro = do_cadastro(servico, mapa)
+        if cadastro and plataforma and cadastro.ignorado_em(plataforma):
+            continue
         por_item.setdefault(servico.get("item_id"), []).append(
-            _para_erp(servico, do_cadastro(servico, mapa)))
-    return por_item
+            _para_erp(servico, cadastro))
+        if servico.get("somado"):
+            somados.setdefault(servico.get("item_id"), []).append(servico.get("preco"))
+    return por_item, {item_id: somar(precos) for item_id, precos in somados.items()}
+
+
+def servicos_por_item(pedido, plataforma=None):
+    """{item_id: [servico no formato do ERP]} lido do que o pedido guarda."""
+    return dados_por_item(pedido, plataforma)[0]
 
 
 def meta_do_item(item, servicos):

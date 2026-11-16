@@ -58,6 +58,23 @@ def test_servico_pelo_sku_do_cadastro(api, cenario):
     assert _saida(resposta)[0]["id"] == montagem.pk
 
 
+@pytest.mark.parametrize("referencia", ["id", "sku", "nome"])
+def test_servico_ignorado_na_fdc_nao_e_localizado_pela_api(api, cenario, referencia):
+    """Ocultar so no GET ainda deixava a FDC recolocar o servico pelo PUT."""
+    pedido, item, montagem = cenario
+    montagem.fora_das_integracoes = ["fdc"]
+    montagem.save()
+    valores = {"id": montagem.pk, "sku": montagem.sku, "nome": montagem.nome}
+
+    resposta = _put(api, V3, pedido, item, [{referencia: valores[referencia]}])
+
+    assert resposta.status_code == 400
+    assert "nao esta disponivel para FDC Sistemas" in resposta.json()["data"]["params"][
+        "line_items"
+    ]
+    assert extras(Pedido.objects.get(pk=pedido.pk)).get("servicos") is None
+
+
 @pytest.mark.parametrize("referencia", [{"id": 999999}, {"sku": "NAO-EXISTE"}])
 def test_id_ou_sku_que_nao_existe_e_recusado_dizendo_o_que_fazer(api, cenario, referencia):
     """Criar servico pelo id inventado gravaria lixo; o ERP precisa corrigir o envio."""

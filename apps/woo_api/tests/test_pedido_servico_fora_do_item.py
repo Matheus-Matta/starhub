@@ -70,6 +70,21 @@ def test_put_com_o_total_do_get_nao_tira_o_servico_do_pedido(api, pedido):
     assert servico["somado"] is True, "sem a marca o proximo GET contaria duas vezes"
 
 
+def test_servico_ignorado_na_fdc_nao_sai_no_json_e_fica_no_valor_do_item(api, pedido):
+    """Ignorar na FDC ocultava o meta, mas nao pode deixar o item R$ 80 mais barato."""
+    obj, com, _sem = pedido
+    montagem = Servico.objects.get(sku="SERV-MONT")
+    montagem.fora_das_integracoes = ["fdc"]
+    montagem.save()
+
+    linha = _linhas(api.get(f"{URL}/{obj.pk}"))[com.pk]
+
+    assert linha["subtotal"] == linha["total"] == "1580.00"
+    assert linha["price"] == 790.0
+    assert not any(meta.get("key") == "starhub" for meta in linha["meta_data"])
+    assert ("fdc", "FDC Sistemas") in Servico.INTEGRACOES
+
+
 def test_envio_a_loja_woocommerce_continua_com_o_servico_no_item(pedido):
     from apps.woocommerce.envio.pedidos_legado import corpo
 

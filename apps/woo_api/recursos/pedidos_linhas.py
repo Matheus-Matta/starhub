@@ -90,7 +90,7 @@ def _gravar_item(pedido, linha, item, somado=ZERO):
         if servicos is not None:
             # Antes do save: id/SKU errado nao pode deixar o item gravado pela metade.
             try:
-                servicos = do_erp(servicos, item.produto)
+                servicos = do_erp(servicos, item.produto, "fdc")
             except ServicoDesconhecido as erro:
                 raise parametro_invalido("line_items", str(erro)) from None
         item.metadados = metadados.mesclar(item.metadados, resto)

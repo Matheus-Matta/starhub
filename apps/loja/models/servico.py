@@ -74,11 +74,13 @@ class Servico(ComDatas):
                   "preco da regra (ou o padrao), sem mudar o total que o cliente pagou.")
     # So as integracoes que oferecem o servico ao cliente: o WooCommerce nao recebe
     # servico como produto, so dentro do pedido (pedido legado).
-    INTEGRACOES = [("shopify", "Shopify"), ("suri", "Suri Shop")]
+    INTEGRACOES = [
+        ("fdc", "FDC Sistemas"), ("shopify", "Shopify"), ("suri", "Suri Shop")
+    ]
     fora_das_integracoes = models.JSONField(
         "ignorar nas integracoes", default=list, blank=True,
-        help_text="Nas escolhidas o servico nao vira variacao (Suri) nem aparece no tema "
-                  "(Shopify). Use com Sempre para o servico que o cliente nao escolhe.")
+        help_text="Nas escolhidas o servico nao sai no JSON da FDC, nao vira variacao "
+                  "(Suri) nem aparece no tema (Shopify).")
 
     class Meta:
         verbose_name = "servico"

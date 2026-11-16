@@ -128,7 +128,7 @@ class ServicoDesconhecido(ValueError):
     pass
 
 
-def _cadastro_do_erp(servico):
+def _cadastro_do_erp(servico, plataforma=None):
     """Servico do cadastro pelo id, depois pelo SKU, depois pelo nome (cria se novo)."""
     if "_id" in servico:
         try:
@@ -139,24 +139,35 @@ def _cadastro_do_erp(servico):
             raise ServicoDesconhecido(
                 f'Servico id {servico["_id"]} nao existe. Use o id que o GET do pedido '
                 "devolve ou cadastre o servico em Loja > Servicos.")
-        return achado
+        return _disponivel(achado, plataforma)
     if "_sku" in servico:
         achado = Servico.objects.filter(sku=str(servico["_sku"]).strip()).first()
         if achado is None:
             raise ServicoDesconhecido(
                 f'Servico com SKU "{servico["_sku"]}" nao existe. Confira o SKU em '
                 "Loja > Servicos ou mande o nome do servico.")
-        return achado
+        return _disponivel(achado, plataforma)
     if not _chave(servico.get("servico")):
         raise ServicoDesconhecido(
             'Servico sem "id", "sku" nem "nome". Mande um deles; o cadastro fica em '
             "Loja > Servicos.")
     nome = str(servico["servico"]).strip()
-    return Servico.objects.get_or_create(nome_normalizado=_chave(nome),
-                                         defaults={"nome": nome})[0]
+    cadastro = Servico.objects.get_or_create(nome_normalizado=_chave(nome),
+                                              defaults={"nome": nome})[0]
+    return _disponivel(cadastro, plataforma)
 
 
-def do_erp(servicos, produto):
+def _disponivel(cadastro, plataforma):
+    if plataforma and cadastro.ignorado_em(plataforma):
+        nomes = dict(Servico.INTEGRACOES)
+        raise ServicoDesconhecido(
+            f'Servico "{cadastro.nome}" nao esta disponivel para '
+            f'{nomes.get(plataforma, plataforma)}.'
+        )
+    return cadastro
+
+
+def do_erp(servicos, produto, plataforma=None):
     """Servicos que o ERP mandou para um item, prontos para guardar.
 
     Cada um vira o cadastro dele (nome e servico_id). Sem preco, vale o da regra
@@ -165,7 +176,7 @@ def do_erp(servicos, produto):
     das_regras = None
     saida = []
     for servico in servicos or []:
-        cadastro = _cadastro_do_erp(servico)
+        cadastro = _cadastro_do_erp(servico, plataforma)
         limpo = {k: v for k, v in servico.items() if k not in ("_id", "_sku")}
         limpo.update(servico=cadastro.nome, servico_id=cadastro.pk)
         if not limpo.get("preco"):
