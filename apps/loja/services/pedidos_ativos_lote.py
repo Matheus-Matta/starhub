@@ -53,7 +53,7 @@ def executar(execucao_id):
     ids, ativo = sorted(parametros.get("pedidos") or []), bool(parametros.get("ativo"))
     # O operador que pediu fica como autor da alteracao no historico de cada pedido.
     with tenant_context(execucao.account_id, execucao.created_by), origem(
-            "admin", via=f"tarefa #{execucao.pk}"):
+            "admin", via=f"tarefa #{execucao.pk}", tarefa=execucao.pk):
         comecou = ExecucaoIntegracao.all_objects.filter(pk=execucao.pk, status__in=ABERTAS).update(
             status=Status.PROCESSANDO, etapa="Iniciando", iniciada_em=timezone.now(),
             updated_at=timezone.now())

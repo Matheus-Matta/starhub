@@ -13,6 +13,8 @@ from apps.integracoes.envio import registro
 from apps.integracoes.envio.base import EnvioNaoSuportado
 from apps.integracoes.models import ConfiguracaoIntegracao, ExecucaoIntegracao
 from apps.integracoes.progresso import registrar
+from apps.integracoes.registros_tarefa import vincular_objeto
+from apps.integracoes.tarefa_estado import _abrir, _concluir, _falhar, _gravar  # noqa: F401
 from apps.integracoes.tempo_real import publicar
 
 TENTATIVAS = 3
@@ -29,54 +31,6 @@ def deve_repetir(request):
     return request.retries < TENTATIVAS
 
 
-def _gravar(execucao, **campos):
-    # QuerySet.update() nao aplica auto_now: updated_at e o sinal de vida que a
-    # sincronizacao usa para liberar uma execucao cujo worker morreu. So grava na
-    # aberta: a liberada nao volta a andar nem troca o FALHOU por CONCLUIDA.
-    gravou = ExecucaoIntegracao.all_objects.filter(pk=execucao.pk, status__in=ABERTAS).update(
-        updated_at=timezone.now(), **campos
-    )
-    if gravou:
-        publicar(execucao.pk)
-    if not gravou and "status" in campos:
-        logger.warning(
-            "Execucao %s ja estava encerrada (liberada por falta de sinal?); "
-            "resultado nao gravado: %s", execucao.pk, campos.get("mensagem", ""),
-        )
-    return gravou
-
-
-def _abrir(configuracao, execucao_id, etapa, reenvio):
-    if execucao_id:
-        execucao = ExecucaoIntegracao.all_objects.filter(pk=execucao_id).first()
-        if execucao:
-            return execucao
-    return ExecucaoIntegracao.objects.create(
-        configuracao=configuracao,
-        tipo=ExecucaoIntegracao.Tipo.ENVIAR,
-        status=ExecucaoIntegracao.Status.PROCESSANDO,
-        etapa=etapa[:150],
-        total=1,
-        iniciada_em=timezone.now(),
-        # O que o botao Retomar precisa para mandar de novo (apps/integracoes/retomar.py).
-        parametros={"reenvio": reenvio},
-    )
-
-
-def _concluir(execucao, etapa, mensagem):
-    _gravar(
-        execucao, status=ExecucaoIntegracao.Status.CONCLUIDA, processados=1, progresso=100,
-        etapa="Concluida", mensagem=f"{etapa}: {mensagem}"[:4000], concluida_em=timezone.now(),
-    )
-
-
-def _falhar(execucao, etapa, erro):
-    _gravar(
-        execucao, status=ExecucaoIntegracao.Status.FALHOU, etapa="Falhou",
-        mensagem=f"{etapa}: {erro}"[:4000], concluida_em=timezone.now(),
-    )
-
-
 @shared_task(bind=True)
 def enviar_alteracao(self, configuracao_id, recurso, operacao, pk, execucao_id=None):
     configuracao = ConfiguracaoIntegracao.all_objects.filter(pk=configuracao_id).first()
@@ -90,26 +44,36 @@ def enviar_alteracao(self, configuracao_id, recurso, operacao, pk, execucao_id=N
     ):
         execucao = _abrir(configuracao, execucao_id, etapa,
                           {"recurso": recurso, "operacao": operacao, "pk": str(pk)})
-        classe = registro.obter(configuracao.plataforma)
-        try:
-            if classe is None:
-                raise EnvioNaoSuportado(
-                    f"nenhum enviador registrado para {configuracao.plataforma}"
-                )
-            mensagem = classe(configuracao).enviar(recurso, operacao, pk)
-        except EnvioNaoSuportado as erro:
-            mensagem = f"ignorado: {erro}"
-        except Exception as erro:  # rede/API: repete com espera; esgotou, fica no rastro
-            if deve_repetir(self.request):
-                _gravar(execucao, etapa=f"Nova tentativa ({self.request.retries + 1})")
-                raise self.retry(
-                    exc=erro, countdown=30 * 2 ** self.request.retries,
-                    kwargs={"execucao_id": str(execucao.pk)},
-                ) from erro
-            _falhar(execucao, etapa, erro)
-            return {"status": "failed", "message": str(erro)}
-        _concluir(execucao, etapa, mensagem)
-        return {"status": "completed", "message": mensagem}
+        # Com a tarefa no contexto, o que o envio gravar no hub aponta para ela.
+        with origem(configuracao.plataforma, via=configuracao.nome, tarefa=execucao.pk):
+            return _enviar(self, configuracao, execucao, (recurso, operacao, pk), etapa)
+
+
+def _enviar(task, configuracao, execucao, alvo, etapa):
+    recurso, operacao, pk = alvo
+    classe = registro.obter(configuracao.plataforma)
+    try:
+        if classe is None:
+            raise EnvioNaoSuportado(f"nenhum enviador registrado para {configuracao.plataforma}")
+        marketplace = classe(configuracao)
+        enviador = marketplace.enviador(recurso)
+        # O envio pode nao alterar nada no hub: sem isto a tarefa nao apareceria no
+        # botao "Tarefas" do produto enviado.
+        vincular_objeto(execucao.pk, getattr(enviador, "modelo", None), pk)
+        mensagem = marketplace.enviar(recurso, operacao, pk)
+    except EnvioNaoSuportado as erro:
+        mensagem = f"ignorado: {erro}"
+    except Exception as erro:  # rede/API: repete com espera; esgotou, fica no rastro
+        if deve_repetir(task.request):
+            _gravar(execucao, etapa=f"Nova tentativa ({task.request.retries + 1})")
+            raise task.retry(
+                exc=erro, countdown=30 * 2 ** task.request.retries,
+                kwargs={"execucao_id": str(execucao.pk)},
+            ) from erro
+        _falhar(execucao, etapa, erro)
+        return {"status": "failed", "message": str(erro)}
+    _concluir(execucao, etapa, mensagem)
+    return {"status": "completed", "message": mensagem}
 
 
 @shared_task
@@ -119,7 +83,7 @@ def exportar_dados(execucao_id):
     configuracao = execucao.configuracao
     recursos = (execucao.parametros or {}).get("recursos") or []
     with tenant_context(configuracao.account_id), origem(
-        configuracao.plataforma, via=configuracao.nome
+        configuracao.plataforma, via=configuracao.nome, tarefa=execucao.pk
     ):
         # So comeca a que ainda esta aberta: a liberada por falta de sinal ja tem outra
         # no lugar, e reabri-la bateria no indice (uma por vez por loja). "running"

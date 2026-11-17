@@ -1,9 +1,11 @@
-"""Logs (django-auditlog) no admin: botao "Logs" na edicao de cada registro e a
-lista "Entradas de log" filtrada so por ele.
+"""Logs (django-auditlog) no admin: botoes "Logs" e "Tarefas" na edicao de cada registro
+e a lista "Entradas de log" filtrada por ele (e pelo que pertence a ele).
 
 O botao (templates/admin/change_form.html, url_logs) abre
-/admin/auditlog/logentry/?registro=<content_type>-<pk>. O filtro "Registro" mostra
-de quem sao os logs e da para limpar na gaveta. Mais recentes primeiro.
+/admin/auditlog/logentry/?registro=<content_type>-<pk>; o filtro e o de
+apps/core/admin_registro_filtro.py, que inclui variantes, midias, itens e vinculos.
+Mais recentes primeiro. A tela de um log (log_detalhe.py) diz quem, por onde, a
+requisicao, a tarefa e o que mudou com o rotulo do campo.
 
 Conta: o log de model com conta guarda account_id em additional_data
 (BaseModel.get_additional_data); usuario comum so ve os logs da conta dele.
@@ -11,74 +13,31 @@ Origem (admin, woo_api, shopify...): tambem no additional_data (apps/core/origem
 mostrada na coluna "usuario" e no filtro "origem".
 """
 
-from urllib.parse import urlencode
-
 from auditlog.admin import LogEntryAdmin
 from auditlog.filters import CIDFilter, ResourceTypeFilter
-from auditlog.models import LogEntry
 from auditlog.registry import auditlog
 from django.contrib import admin
-from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
-from django.urls import reverse
 from django.utils.html import format_html
 
-from apps.core import origem
+from apps.core import log_detalhe, origem
+from apps.core.admin_registro_filtro import RegistroFilter, url_lista
+from apps.core.log_detalhe import ACOES, TONS_ORIGEM
 from apps.core.models import Origin
-
-PARAMETRO = "registro"
 
 
 def url_logs(request, obj):
-    """Lista de logs so deste registro; None sem permissao ou para model sem log."""
-    if obj is None or obj.pk is None or not auditlog.contains(type(obj)):
+    """Lista de logs deste registro; None sem permissao ou para model sem log."""
+    if obj is None or not auditlog.contains(type(obj)):
         return None
-    if not request.user.has_perm("auditlog.view_logentry"):
-        return None
-    tipo = ContentType.objects.get_for_model(type(obj))
-    chave = f"{tipo.pk}-{obj.pk}"
-    return f"{reverse('admin:auditlog_logentry_changelist')}?{urlencode({PARAMETRO: chave})}"
+    return url_lista(request, obj, "admin:auditlog_logentry_changelist",
+                     "auditlog.view_logentry")
 
 
-class RegistroFilter(admin.SimpleListFilter):
-    """Logs de um registro so. Aparece na gaveta apenas quando aplicado (pelo botao)."""
-
-    title = "registro"
-    parameter_name = PARAMETRO
-
-    def _partes(self):
-        # pk pode ter "-" (UUID): so o primeiro separa o tipo.
-        tipo, _, pk = (self.value() or "").partition("-")
-        return (int(tipo), pk) if tipo.isdigit() and pk else (None, None)
-
-    def lookups(self, request, model_admin):
-        if self.value() is None:
-            return []
-        tipo, pk = self._partes()
-        if tipo is None:
-            # Sem opcao o Django ignora o filtro e listaria tudo: mostra vazio.
-            return [(self.value(), "Registro invalido")]
-        modelo = ContentType.objects.filter(pk=tipo).first()
-        logs = model_admin.get_queryset(request)
-        ultimo = logs.filter(content_type_id=tipo, object_pk=pk).first()
-        nome = ultimo.object_repr if ultimo else f"#{pk}"
-        return [(self.value(), f"{modelo.name.capitalize() if modelo else 'Registro'}: {nome}")]
-
-    def queryset(self, request, queryset):
-        if self.value() is None:
-            return queryset
-        tipo, pk = self._partes()
-        if tipo is None:
-            return queryset.none()
-        return queryset.filter(content_type_id=tipo, object_pk=pk)
-
-
-def _coluna(metodo, rotulo):
-    """Coluna do auditlog com o titulo em portugues (o pacote nao traz pt-BR)."""
-    def coluna(self, obj):
-        return metodo(self, obj)
-    coluna.short_description = rotulo
-    return coluna
+def url_tarefas(request, obj):
+    """Lista de tarefas que tocaram este registro (ou o que pertence a ele)."""
+    return url_lista(request, obj, "admin:integracoes_execucaointegracao_changelist",
+                     "integracoes.view_execucaointegracao")
 
 
 class TipoFilter(ResourceTypeFilter):
@@ -86,13 +45,7 @@ class TipoFilter(ResourceTypeFilter):
 
 
 class CorrelacaoFilter(CIDFilter):
-    title = "id de correlacao"
-
-
-ACOES = {
-    LogEntry.Action.CREATE: "criacao", LogEntry.Action.UPDATE: "alteracao",
-    LogEntry.Action.DELETE: "exclusao", LogEntry.Action.ACCESS: "acesso",
-}
+    title = "requisicao ou tarefa"
 
 
 class AcaoFilter(admin.SimpleListFilter):
@@ -107,8 +60,7 @@ class AcaoFilter(admin.SimpleListFilter):
 
 
 # Codigos gravados pelo apps/core/origem.py; integracoes usam os do Origin (shopify...).
-ORIGENS = [origem.ADMIN, origem.WOO_API, *Origin.values, origem.SISTEMA]
-TONS = {origem.ADMIN: "secondary", origem.SISTEMA: "secondary"}
+ORIGENS = [origem.ADMIN, origem.WOO_API, *Origin.values, "importacao", origem.SISTEMA]
 
 
 class OrigemFilter(admin.SimpleListFilter):
@@ -129,34 +81,52 @@ class OrigemFilter(admin.SimpleListFilter):
 
 
 class LogsAdmin(LogEntryAdmin):
-    list_display = ["created", "resource_url", "acao", "msg_short", "user_url", "cid_url"]
+    change_form_template = "admin/auditlog/logentry/change_form.html"
+    list_display = ["quando", "registro", "acao", "campos", "usuario", "tarefa"]
+    list_display_links = ["quando"]
     list_filter = [RegistroFilter, OrigemFilter, AcaoFilter, TipoFilter, CorrelacaoFilter]
+    list_select_related = ["actor", "content_type"]
     ordering = ["-timestamp", "-id"]
-    readonly_fields = ["created", "resource_url", "acao", "user_url", "msg"]
-    fieldsets = [
-        (None, {"fields": ["created", "user_url", "resource_url", "cid"]}),
-        ("Alteracoes", {"fields": ["acao", "msg"]}),
-    ]
 
-    created = _coluna(LogEntryAdmin.created, "quando")
-    resource_url = _coluna(LogEntryAdmin.resource_url, "registro")
-    msg_short = _coluna(LogEntryAdmin.msg_short, "alteracoes")
-    msg = _coluna(LogEntryAdmin.msg, "alteracoes")
-    cid_url = _coluna(LogEntryAdmin.cid_url, "correlacao")
+    @admin.display(description="quando", ordering="timestamp")
+    def quando(self, obj):
+        return obj.timestamp.strftime("%d/%m/%Y %H:%M:%S")
+
+    @admin.display(description="registro")
+    def registro(self, obj):
+        tipo = str(obj.content_type.name).capitalize() if obj.content_type_id else ""
+        return format_html('<span class="table-identity-meta">{}</span> {}', tipo, obj.object_repr)
+
+    @admin.display(description="o que mudou")
+    def campos(self, obj):
+        return log_detalhe.campos_alterados(obj)
 
     @admin.display(description="usuario")
-    def user_url(self, obj):
+    def usuario(self, obj):
         """Quem fez e por onde: "admin" + usuario, "woo_api" + chave ou usuario do JWT."""
         dados = obj.additional_data or {}
         codigo = dados.get("origem") or origem.SISTEMA
-        quem = LogEntryAdmin.user_url(self, obj) if obj.actor_id else dados.get("via", "")
-        return format_html(
-            '<span class="badge badge-{}">{}</span> {}', TONS.get(codigo, "primary"), codigo, quem
-        )
+        nome, _ = log_detalhe.autor(obj)
+        quem = " - ".join(filter(None, [nome, dados.get("via", "")]))
+        return format_html('<span class="badge badge-{}">{}</span> {}',
+                           TONS_ORIGEM.get(codigo, "primary"), codigo, quem)
+
+    @admin.display(description="tarefa")
+    def tarefa(self, obj):
+        tarefa_id = (obj.additional_data or {}).get("tarefa_id")
+        return f"#{tarefa_id}" if tarefa_id else "-"
 
     @admin.display(description="acao", ordering="action")
     def acao(self, obj):
         return ACOES.get(obj.action, obj.action)
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        log = self.get_object(request, object_id)
+        contexto = dict(extra_context or {})
+        if log is not None:
+            contexto.update(log_detalhe.contexto(log))
+            contexto["title"] = f"{log.object_repr} - {ACOES.get(log.action, log.action)}"
+        return super().change_view(request, object_id, form_url, contexto)
 
     def get_queryset(self, request):
         logs = super().get_queryset(request)

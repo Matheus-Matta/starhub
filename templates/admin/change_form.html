@@ -38,6 +38,8 @@
                 <ul class="object-tools">{% block object-tools-items %}{% change_form_object_tools %}{% endblock %}
                   {# Logs do auditlog so deste registro, mais recentes primeiro (apps/core/admin_logs.py). #}
                   {% if url_logs %}<li><a href="{{ url_logs }}" class="historylink">{% icone "history" "icon-sm" %} Logs</a></li>{% endif %}
+                  {# Tarefas (integracao, API Woo, importacao) que tocaram o registro ou os itens dele. #}
+                  {% if url_tarefas %}<li><a href="{{ url_tarefas }}" class="historylink">{% icone "clipboard-list" "icon-sm" %} Tarefas</a></li>{% endif %}
                 </ul>
               {% endif %}
             {% endblock %}

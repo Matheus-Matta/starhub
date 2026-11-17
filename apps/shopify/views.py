@@ -12,6 +12,7 @@ from apps.core.tarefas import enfileirar
 from apps.core.tenant.context import tenant_context
 from apps.integracoes import log_corpo, trafego
 from apps.integracoes.models import ConfiguracaoIntegracao, ExecucaoIntegracao
+from apps.integracoes.recusas import registrar_recusa
 from apps.shopify.tasks import processar_webhook_shopify
 
 OPERACOES_TOPICO = {
@@ -99,6 +100,10 @@ def webhook(request, recurso, configuracao_uuid=None, configuracao_id=None):
     calculada = _assinatura_calculada(configuracao, request.body)
     if not _assinatura_valida(recebida, calculada):
         _registrar_rejeicao(request, configuracao, recurso, recebida, calculada)
+        registrar_recusa(configuracao, request, 401, (
+            "Assinatura do webhook nao confere (HMAC). Confira o segredo do app na "
+            "configuracao da integracao." if configuracao.segredo_app else
+            "Webhook recusado: a configuracao nao tem o segredo do app; preencha-o."))
         return HttpResponse(status=401)
     _registrar_recebido(request, configuracao, recurso)
     topico = request.headers.get("X-Shopify-Topic", "")
@@ -113,6 +118,7 @@ def webhook(request, recurso, configuracao_uuid=None, configuracao_id=None):
     try:
         dados = json.loads(request.body)
     except json.JSONDecodeError:
+        registrar_recusa(configuracao, request, 400, "Webhook recusado: o corpo nao e JSON valido.")
         return JsonResponse({"erro": "JSON invalido"}, status=400)
     with tenant_context(configuracao.account_id):
         execucao = ExecucaoIntegracao.objects.create(

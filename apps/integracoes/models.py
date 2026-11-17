@@ -140,6 +140,8 @@ class ExecucaoIntegracao(BaseModel):
         CPF_PEDIDOS = "fill_documents", "Buscar CPF dos pedidos"
         ATIVAR_PEDIDOS = "order_active", "Desativar/reativar pedidos"
         REIMPORTAR_PEDIDOS = "reimport_orders", "Reimportar pedidos do Shopify"
+        # Escrita (ou erro) recebida pela API Woo: requisicao e resposta ficam na tarefa.
+        API_WOO = "api_woo", "Requisicao da API Woo"
 
     class Status(models.TextChoices):
         PENDENTE = "pending", "Pendente"
@@ -189,3 +191,7 @@ class ExecucaoIntegracao(BaseModel):
 
     def __str__(self):
         return f"{self.get_tipo_display()} - {self.get_status_display()}"
+
+
+# Fica em arquivo proprio pelo limite de tamanho; importado aqui para o Django achar.
+from apps.integracoes.modelos_registro import TarefaRegistro  # noqa: E402, F401

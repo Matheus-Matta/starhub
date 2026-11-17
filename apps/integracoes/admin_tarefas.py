@@ -17,6 +17,7 @@ from apps.core.admin_base import TemaModelAdmin
 from apps.core.admin_utils import badge
 from apps.integracoes import progresso, retomar, sincronizacao, trafego
 from apps.integracoes.admin_sincronizacao import falhas_legiveis, parametros_legiveis
+from apps.integracoes.admin_tarefas_registros import RegistroDaTarefaFilter, contexto
 from apps.integracoes.models import ExecucaoIntegracao
 
 # Tarefas de planilha: a falha se corrige na planilha, nao na loja.
@@ -41,7 +42,7 @@ class ExecucaoIntegracaoAdmin(TemaModelAdmin):
         "id_fmt", "created_at", "configuracao", "tipo", "status_fmt", "progresso_fmt", "etapa",
     ]
     list_display_links = ["id_fmt"]
-    list_filter = ["status", "tipo", "configuracao__plataforma"]
+    list_filter = [RegistroDaTarefaFilter, "status", "tipo", "configuracao__plataforma"]
     search_fields = ["configuracao__nome", "mensagem", "celery_task_id"]
     # JSON cru nunca aparece: a tela mostra parametros e falhas legiveis.
     exclude = ["falhas", "parametros"]
@@ -99,10 +100,11 @@ class ExecucaoIntegracaoAdmin(TemaModelAdmin):
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
         execucao = self.get_object(request, object_id)
-        contexto = dict(extra_context or {})
+        extras = dict(extra_context or {})
         if execucao is not None:
             aberta = execucao.status in progresso.ABERTAS
-            contexto.update({
+            extras.update(contexto(request, execucao))
+            extras.update({
                 "title": f"Tarefa #{execucao.pk} - {execucao.get_tipo_display()}",
                 "tom_status": TONS.get(execucao.status, "secondary"),
                 "aberta": aberta,
@@ -123,7 +125,7 @@ class ExecucaoIntegracaoAdmin(TemaModelAdmin):
                     if execucao.tipo in IMPORTACOES
                     else "Corrija cada item na loja ou no hub e sincronize de novo."),
             })
-        return super().change_view(request, object_id, form_url, contexto)
+        return super().change_view(request, object_id, form_url, extras)
 
     def has_marcar_como_falhou_permission(self, request):
         # A pagina e somente leitura; quem libera uma travada e quem edita a integracao.

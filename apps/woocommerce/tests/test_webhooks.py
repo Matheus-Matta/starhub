@@ -38,12 +38,17 @@ def test_webhook_assinado_cria_a_tarefa_e_importa_o_produto(client, conta, monke
     assert Produto.objects.get().nome == "Sofa Azul"
 
 
-def test_assinatura_errada_e_recusada(client, conta):
+def test_assinatura_errada_e_recusada_e_fica_registrada_na_tela_de_tarefas(client, conta):
+    """Recusa so no log do servidor: o operador nao tinha onde ver que a loja mandou."""
     cfg = configuracao(conta, receber=RECEBE_PRODUTOS)
 
     resposta = _postar(client, cfg, exemplos.produto_simples(), segredo="outro")
 
-    assert resposta.status_code == 401 and not ExecucaoIntegracao.objects.exists()
+    assert resposta.status_code == 401 and not Produto.objects.exists()
+    recusa = ExecucaoIntegracao.objects.get()
+    assert recusa.status == ExecucaoIntegracao.Status.FALHOU
+    assert "Assinatura" in recusa.mensagem and recusa.parametros["resposta"]["status"] == 401
+    assert recusa.parametros["requisicao"]["corpo"]["name"] == "Sofa Azul"
 
 
 def test_ping_do_cadastro_responde_200_sem_assinatura(client, conta):

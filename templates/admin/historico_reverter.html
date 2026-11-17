@@ -1,0 +1,44 @@
+{% extends "admin/base_site.html" %}
+{% load admin_urls %}
+{# Confirmacao do reverter: mostra o que vai trocar antes de gravar (apps/core/admin_historico.py). #}
+
+{% block breadcrumbs %}
+  <div class="breadcrumbs"><a href="{% url 'admin:index' %}">Painel</a> &rsaquo;
+    <a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
+    <a href="{{ url_voltar }}">Historico</a> &rsaquo; Reverter</div>
+{% endblock %}
+
+{% block content_title %}
+  {% include "components/page_header.html" with titulo=title subtitulo="Confira o que muda antes de confirmar." %}
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="historico">
+  {% if restaurando %}
+    {% componente "alert" tom="warning" icone="triangle-alert" %}Este registro foi excluido. Confirmar recria ele com os dados desta versao e o mesmo id.{% endcomponente %}
+  {% endif %}
+
+  {% componente "card" titulo=titulo_versao subtitulo="Os campos abaixo voltam para o valor da versao" icone="undo-2" flush=True %}
+    {% if mudancas %}
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Campo</th><th>Agora</th><th>Vai ficar</th></tr></thead>
+          <tbody>
+            {% for campo, agora, depois in mudancas %}
+              <tr><td><strong>{{ campo }}</strong></td><td class="log-valor log-valor-antigo">{{ agora }}</td><td class="log-valor log-valor-novo">{{ depois }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="tarefa-mensagem">O registro ja esta igual a esta versao: nada vai mudar.</p>
+    {% endif %}
+  {% endcomponente %}
+
+  <form method="post" class="historico-barra">{% csrf_token %}
+    <p class="tarefa-etapa">A alteracao e gravada como uma edicao normal: entra no log, no historico e vai para as lojas conectadas que recebem este dado.</p>
+    {% if mudancas or restaurando %}<button type="submit" class="btn btn-primary">{% icone "undo-2" "icon-sm" %} Confirmar e reverter</button>{% endif %}
+    <a class="btn btn-outline" href="{{ url_voltar }}">Cancelar</a>
+  </form>
+</div>
+{% endblock %}

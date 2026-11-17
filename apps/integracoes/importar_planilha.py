@@ -67,7 +67,8 @@ def executar(execucao_id, importar_linha, *, objeto, recurso, quem, preparar=Non
     """Roda a importacao da execucao. `preparar(execucao, linhas)` roda antes das linhas."""
     execucao = ExecucaoIntegracao.all_objects.select_related("created_by").get(pk=execucao_id)
     nome = (execucao.parametros or {}).get("nome", "planilha")
-    with tenant_context(execucao.account_id), origem("importacao", via=nome):
+    with tenant_context(execucao.account_id), origem(
+            "importacao", via=nome, tarefa=execucao.pk):
         comecou = ExecucaoIntegracao.all_objects.filter(pk=execucao.pk, status__in=ABERTAS).update(
             status=Status.PROCESSANDO, etapa="Lendo a planilha", iniciada_em=timezone.now(),
             updated_at=timezone.now())

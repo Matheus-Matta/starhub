@@ -6,6 +6,7 @@ filtro pela conta ativa e feito aqui. O superusuario ve todas as contas no admin
 (ver apps/core/admin_conta.py).
 """
 
+from auditlog.models import LogEntry
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
@@ -14,7 +15,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 
 from apps.core.admin_base import TemaMixin
-from apps.core.admin_logs import LogEntry, LogsAdmin
+from apps.core.admin_logs import LogsAdmin
 from apps.core.models import (
     AccessProfile,
     Account,

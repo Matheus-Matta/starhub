@@ -1,0 +1,68 @@
+{% extends "admin/base_site.html" %}
+{% load admin_urls %}
+{% comment %}
+Historico de um registro (simple_history): apps/core/admin_historico.py. Inclui as versoes
+do que pertence a ele (variantes, itens) e tem "Reverter" em cada versao.
+{% endcomment %}
+
+{% block breadcrumbs %}
+  <div class="breadcrumbs"><a href="{% url 'admin:index' %}">Painel</a> &rsaquo;
+    <a href="{% url opts|admin_urlname:'changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a> &rsaquo;
+    <a href="{{ url_edicao }}">{{ original|truncatewords:12 }}</a> &rsaquo; Historico</div>
+{% endblock %}
+
+{% block content_title %}
+  {% include "components/page_header.html" with titulo=title subtitulo="Cada gravacao, venha do admin, da API, de webhook ou de tarefa, com o que mudou." %}
+{% endblock %}
+
+{% block content %}
+<div id="content-main" class="historico">
+  <div class="historico-barra">
+    {% if com_relacionados %}
+      <a class="btn btn-outline btn-sm" href="?so=1">Somente {{ opts.verbose_name }}</a>
+    {% else %}
+      <a class="btn btn-outline btn-sm" href="?">Incluir itens relacionados</a>
+    {% endif %}
+    <a class="btn btn-outline btn-sm" href="{{ url_edicao }}">Voltar para a edicao</a>
+  </div>
+
+  {% componente "card" titulo="Versoes" icone="history" flush=True %}
+    {% if linhas %}
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Quando</th><th>Registro</th><th>Acao</th><th>Quem / por onde</th><th>O que mudou</th><th></th></tr></thead>
+          <tbody>
+            {% for linha in linhas %}
+              <tr>
+                <td class="text-nowrap">{{ linha.versao.history_date|date:"d/m/Y H:i:s" }}</td>
+                <td><span class="table-identity-meta">{{ linha.tipo_registro }}</span> {{ linha.registro }} <span class="table-identity-meta">#{{ linha.pk }}</span></td>
+                <td>{% include "components/badge.html" with texto=linha.acao tom=linha.tom %}</td>
+                <td>
+                  {{ linha.autor|default:"Sem usuario" }}
+                  {% if linha.motivo %}<span class="table-identity-meta">{{ linha.motivo }}</span>{% endif %}
+                  {% if linha.tarefa_id %}<a href="{% url 'admin:integracoes_execucaointegracao_change' linha.tarefa_id %}">ver tarefa #{{ linha.tarefa_id }}</a>{% endif %}
+                </td>
+                <td>
+                  {% for campo, antes, depois in linha.mudancas %}
+                    <div class="log-valor"><strong>{{ campo }}:</strong> <span class="log-valor-antigo">{{ antes }}</span> &rarr; <span class="log-valor-novo">{{ depois }}</span></div>
+                  {% empty %}
+                    {% if linha.acao == "alteracao" %}<span class="text-muted">Gravado sem mudar campos visiveis</span>{% else %}-{% endif %}
+                  {% endfor %}
+                </td>
+                <td>{% if linha.url_reverter %}<a class="btn btn-outline btn-sm" href="{{ linha.url_reverter }}">{% icone "undo-2" "icon-sm" %} Reverter</a>{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="tarefa-mensagem">Este registro ainda nao tem versoes gravadas.</p>
+    {% endif %}
+  {% endcomponente %}
+
+  <div class="historico-barra">
+    {% if pagina > 1 %}<a class="btn btn-outline btn-sm" href="?p={{ pagina|add:'-1' }}{% if not com_relacionados %}&so=1{% endif %}">Mais recentes</a>{% endif %}
+    {% if tem_mais %}<a class="btn btn-outline btn-sm" href="?p={{ pagina|add:'1' }}{% if not com_relacionados %}&so=1{% endif %}">Mais antigas</a>{% endif %}
+  </div>
+</div>
+{% endblock %}

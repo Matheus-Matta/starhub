@@ -127,3 +127,18 @@
 }
 
 .tarefa-vazio { margin: 0; color: var(--muted-foreground); font-size: 0.8125rem; }
+
+/* Valor de log e de versao do historico: texto longo (descricao, JSON) quebra na celula. */
+.log-valor {
+  max-width: 32rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.8125rem;
+}
+
+.log-valor-novo { color: var(--success); }
+.log-valor-antigo { color: var(--muted-foreground); text-decoration: line-through; }
+
+/* Historico do registro (templates/admin/historico.html): barra de botoes acima e abaixo. */
+.historico { display: flex; flex-direction: column; gap: var(--gap-pagina); }
+.historico-barra { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }

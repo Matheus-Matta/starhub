@@ -153,7 +153,7 @@ def test_webhook_valido_enfileira_processamento_e_responde_rapido(client, conta)
 
 @pytest.mark.django_db
 def test_webhook_rejeita_assinatura_invalida(client, conta):
-    """Uma chamada forjada nao pode criar tarefa nem alterar os dados da loja."""
+    """Uma chamada forjada nao altera os dados da loja; so fica registrada como recusa."""
     configuracao = _configuracao(conta)
     url = f"/integracoes/shopify/webhook/{configuracao.uuid}/produtos/"
 
@@ -166,7 +166,9 @@ def test_webhook_rejeita_assinatura_invalida(client, conta):
     )
 
     assert resposta.status_code == 401
-    assert not ExecucaoIntegracao.objects.exists()
+    recusa = ExecucaoIntegracao.objects.get()
+    assert recusa.status == ExecucaoIntegracao.Status.FALHOU
+    assert "reenvio" not in recusa.parametros  # Retomar nao tem o que reprocessar
 
 
 @pytest.mark.django_db

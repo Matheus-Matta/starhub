@@ -18,6 +18,7 @@ from django.db import models
 
 from apps.core import admin_condicoes, admin_lista_modal, admin_logs
 from apps.core.admin_conta import ContaAdminMixin
+from apps.core.admin_historico import HistoricoMixin
 from apps.core.fields import TextoHTMLField
 from apps.core.filtros import FiltroPeriodo
 from apps.core.json_widgets import campo_json, widget_padrao
@@ -72,6 +73,7 @@ class TemaMixin(ContaAdminMixin):
             self, context.get("inline_admin_formsets", [])
         )
         context["url_logs"] = admin_logs.url_logs(request, kwargs.get("obj"))
+        context["url_tarefas"] = admin_logs.url_tarefas(request, kwargs.get("obj"))
         return super().render_change_form(request, context, *args, **kwargs)
 
     def response_add(self, request, obj, *args, **kwargs):
@@ -139,7 +141,7 @@ def _tem_uuid(modelo):
     return any(campo.name == "uuid" for campo in modelo._meta.concrete_fields)
 
 
-class TemaModelAdmin(TemaMixin, admin.ModelAdmin):
+class TemaModelAdmin(HistoricoMixin, TemaMixin, admin.ModelAdmin):
     # O uuid (BaseModel) so aparece no detalhe e so para leitura: no "adicionar" ele
     # ainda nao existe e na lista ocuparia coluna sem uso para o operador.
     def get_readonly_fields(self, request, obj=None):

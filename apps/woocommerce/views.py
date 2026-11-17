@@ -19,6 +19,7 @@ from apps.core.tarefas import enfileirar
 from apps.core.tenant.context import tenant_context
 from apps.integracoes import trafego
 from apps.integracoes.models import ConfiguracaoIntegracao, ExecucaoIntegracao
+from apps.integracoes.recusas import registrar_recusa
 from apps.woocommerce.tasks import processar_webhook_woocommerce
 from apps.woocommerce.webhooks_cadastro import OPERACOES, TOPICOS
 
@@ -57,6 +58,9 @@ def webhook(request, configuracao_uuid, recurso):
     if not topico and request.POST.get("webhook_id"):
         return HttpResponse(status=200)  # ping do cadastro: nao tem dado nem assinatura
     if not _assinatura_valida(configuracao, request):
+        registrar_recusa(configuracao, request, 401, (
+            "Assinatura do webhook nao confere (X-WC-Webhook-Signature). Confira o segredo "
+            "do webhook na loja e na configuracao da integracao."))
         return HttpResponse(status=401)
     operacao = _operacao(recurso, topico)
     if operacao is None or not configuracao.habilitado("receber", recurso, operacao):
@@ -64,6 +68,7 @@ def webhook(request, configuracao_uuid, recurso):
     try:
         dados = json.loads(request.body)
     except (json.JSONDecodeError, UnicodeDecodeError):
+        registrar_recusa(configuracao, request, 400, "Webhook recusado: o corpo nao e JSON valido.")
         return JsonResponse({"erro": "JSON invalido"}, status=400)
     with tenant_context(configuracao.account_id):
         execucao = ExecucaoIntegracao.objects.create(

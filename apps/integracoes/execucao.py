@@ -73,7 +73,8 @@ def _concluir(execucao, mensagem, avisos):
 
 def executar(execucao_id, funcao, *, canal, ambiente):
     execucao = ExecucaoIntegracao.all_objects.select_related("configuracao").get(pk=execucao_id)
-    with tenant_context(execucao.account_id), origem(canal, via=execucao.configuracao.nome):
+    with tenant_context(execucao.account_id), origem(
+            canal, via=execucao.configuracao.nome, tarefa=execucao.pk):
         # A liberada ja tem outra no lugar: reabri-la bateria no indice (uma por vez).
         comecou = gravar_aberta(
             execucao, status=ExecucaoIntegracao.Status.PROCESSANDO,

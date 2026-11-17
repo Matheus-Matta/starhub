@@ -131,6 +131,11 @@ LOGIN_URL = "admin:login"
 
 AUDITLOG_INCLUDE_ALL_MODELS = True
 AUDITLOG_STORE_JSON_CHANGES = True
+# Sessao de login nao e dado da loja: o log so enchia a lista e guardava a chave da sessao.
+# A tarefa e o proprio rastro (requisicao, resposta, falhas): logar ela copiava o corpo.
+AUDITLOG_EXCLUDE_TRACKING_MODELS = (
+    "sessions.session", "integracoes.execucaointegracao", "integracoes.tarefaregistro",
+)
 
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],

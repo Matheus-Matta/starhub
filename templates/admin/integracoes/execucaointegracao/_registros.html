@@ -1,0 +1,18 @@
+{# Registros que a tarefa tocou (TarefaRegistro). Contexto: admin_tarefas_registros.contexto. #}
+<div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>Tipo</th><th>Registro</th></tr></thead>
+    <tbody>
+      {% for item in registros_tarefa %}
+        <tr>
+          <td>{{ item.tipo }}</td>
+          <td>
+            {% if item.url %}<a href="{{ item.url }}" class="celula-principal">{{ item.descricao }}</a>{% else %}<span class="celula-principal">{{ item.descricao }}</span>{% endif %}
+            <span class="table-identity-meta">#{{ item.id }}</span>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if total_registros > registros_tarefa|length %}<p class="tarefa-etapa">Mostrando {{ registros_tarefa|length }} de {{ total_registros }}.</p>{% endif %}

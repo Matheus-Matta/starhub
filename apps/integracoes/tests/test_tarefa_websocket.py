@@ -103,6 +103,6 @@ def test_gravar_andamento_da_tarefa_publica(conta):
     from apps.integracoes.tasks import _gravar
 
     tarefa = _tarefa()
-    with patch("apps.integracoes.tasks.publicar") as publicar:
+    with patch("apps.integracoes.tarefa_estado.publicar") as publicar:
         _gravar(tarefa, progresso=30)
     publicar.assert_called_once_with(tarefa.pk)

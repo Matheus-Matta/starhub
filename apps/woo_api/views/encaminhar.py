@@ -57,6 +57,9 @@ def encaminhar_requisicao(configuracao, request):
 class EncaminharPedidoMixin:
     """Depois da autenticacao do DRF, troca o handler pelo encaminhamento se ligado."""
 
+    def registra_tarefa(self):
+        return loja_que_encaminha() is None and super().registra_tarefa()
+
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
         configuracao = loja_que_encaminha()

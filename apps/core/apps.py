@@ -9,12 +9,16 @@ class CoreConfig(AppConfig):
     def ready(self):
         from auditlog.models import LogEntry
         from django.db.models.signals import post_migrate, post_save, pre_save
+        from simple_history.signals import pre_create_historical_record
 
         from apps.core.models import Account
-        from apps.core.origem import marcar_log
+        from apps.core.origem import marcar_historico, marcar_log
         from apps.core.perfis_padrao import grupos_depois_do_migrate, perfis_da_conta_nova
 
         pre_save.connect(marcar_log, sender=LogEntry, dispatch_uid="starhub_origem_do_log")
+        # Versao gravada por API, webhook ou tarefa: autor e motivo vem da origem.
+        pre_create_historical_record.connect(
+            marcar_historico, dispatch_uid="starhub_origem_do_historico")
         # Conta nova nasce com os perfis de acesso iniciais; os grupos fixos ficam em dia
         # com os models a cada migrate (apps/core/perfis_padrao.py).
         post_save.connect(perfis_da_conta_nova, sender=Account, dispatch_uid="starhub_perfis_conta")

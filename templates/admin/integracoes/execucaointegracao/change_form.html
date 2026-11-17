@@ -21,7 +21,8 @@
       <div class="form-workspace-tools">
         {% block object-tools %}
           <ul class="object-tools">{% block object-tools-items %}{% change_form_object_tools %}{% endblock %}
-            {% if url_logs %}<li><a href="{{ url_logs }}" class="historylink">{% icone "history" "icon-sm" %} Logs</a></li>{% endif %}
+            {# Tudo o que esta tarefa alterou no hub (id de correlacao "tarefa-N", apps/core/origem.py). #}
+            {% if url_logs_tarefa %}<li><a href="{{ url_logs_tarefa }}" class="historylink">{% icone "history" "icon-sm" %} Logs desta tarefa</a></li>{% endif %}
           </ul>
         {% endblock %}
         {% url opts|admin_urlname:'changelist' as changelist_url %}
@@ -75,6 +76,12 @@
         {% if resposta %}
           {% componente "card" titulo="Resposta" subtitulo=resposta.linha icone="undo-2" %}
             {% include "admin/integracoes/execucaointegracao/_trafego.html" with parte=resposta %}
+          {% endcomponente %}
+        {% endif %}
+
+        {% if registros_tarefa %}
+          {% componente "card" titulo="Registros afetados" subtitulo="O que esta tarefa criou, alterou ou enviou" icone="package" flush=True %}
+            {% include "admin/integracoes/execucaointegracao/_registros.html" %}
           {% endcomponente %}
         {% endif %}
 

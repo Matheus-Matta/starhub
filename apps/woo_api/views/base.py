@@ -11,6 +11,7 @@ from rest_framework_simplejwt.exceptions import InvalidToken
 from apps.core import origem
 from apps.core.models import Origin
 from apps.core.tenant.context import bind_tenant, reset_tenant
+from apps.woo_api import registro_tarefa
 from apps.woo_api.autenticacao import ChaveConsumidorAuthentication
 from apps.woo_api.erros import WooErro, tratar_excecao
 from apps.woo_api.paginacao import paginar
@@ -36,25 +37,48 @@ class WooView(APIView):
         return tratar_erro_woo
 
     def dispatch(self, request, *args, **kwargs):
-        self._tokens_conta = self._token_origem = None
+        self._tokens_conta = self._token_origem = self._tarefa = None
         try:
             return super().dispatch(request, *args, **kwargs)
         finally:
+            if self._tarefa is not None:  # 500 fora do tratador: finalize_response nao rodou
+                registro_tarefa.sem_resposta(self._tarefa)
             if self._token_origem:
                 origem.restaurar(self._token_origem)
             if self._tokens_conta:
                 reset_tenant(self._tokens_conta)
 
+    def registra_tarefa(self):
+        """Pedido encaminhado a loja WooCommerce ja vira a tarefa "Encaminhar" (encaminhar.py)."""
+        return True
+
     def initial(self, request, *args, **kwargs):
-        # O DRF autentica aqui dentro, DEPOIS do TenantMiddleware do Django: quem
+        # O DRF autentica no request.user, DEPOIS do TenantMiddleware do Django: quem
         # entrou por JWT ou chave ck_ so e conhecido agora. Sem conta, nada roda.
-        super().initial(request, *args, **kwargs)
         account_id = getattr(request.user, "account_id", None)
+        if account_id is not None:
+            self._tokens_conta = bind_tenant(account_id, request.user)
+            # Aberta antes da permissao e do processamento: recusa (403) e erro tambem
+            # ficam registrados, e cada log da escrita aponta para ela.
+            if self.registra_tarefa():
+                self._tarefa = registro_tarefa.abrir(request, request.user)
+            # Log do auditlog: "woo_api" e por onde (chave ck_ ou usuario do JWT, o autor).
+            self._token_origem = origem.definir(
+                origem.WOO_API, via=request.user, ator=request.user,
+                tarefa=getattr(self._tarefa, "pk", None),
+                requisicao=origem.requisicao_de(request._request))
+        super().initial(request, *args, **kwargs)
         if account_id is None:
             raise PermissionDenied("O acesso nao pertence a nenhuma conta.")
-        self._tokens_conta = bind_tenant(account_id, request.user)
-        # Log do auditlog: "woo_api" e por onde (chave ck_ ou usuario do JWT, que vira o autor).
-        self._token_origem = origem.definir(origem.WOO_API, via=request.user, ator=request.user)
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        response = super().finalize_response(request, response, *args, **kwargs)
+        tarefa, self._tarefa = self._tarefa, None
+        if tarefa is not None:
+            registro_tarefa.fechar(tarefa, response)
+        elif response.status_code >= 400 and self._tokens_conta and self.registra_tarefa():
+            registro_tarefa.registrar_erro(request, request.user, response)
+        return response
 
     def recurso(self):
         recurso = self.recurso_classe()
@@ -93,7 +117,7 @@ class ListaView(WooView):
         recurso = self.recurso()
         qs = recurso.filtrar(recurso.queryset(), request.query_params)
         itens, cabecalhos = paginar(request, qs)
-        return Response([recurso.para_woo(obj) for obj in itens], headers=cabecalhos)
+        return Response(recurso.para_lista(itens), headers=cabecalhos)
 
     def post(self, request):
         recurso = self.recurso()

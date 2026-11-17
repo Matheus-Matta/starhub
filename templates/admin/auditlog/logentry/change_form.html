@@ -1,0 +1,78 @@
+{% extends "admin/change_form.html" %}
+{% load admin_urls %}
+
+{# Tela de um log (somente leitura). Contexto: apps/core/log_detalhe.py. #}
+{% block content %}
+<div id="content-main" class="form-page">
+  <section class="form-workspace form-workspace-flat">
+    <header class="form-workspace-header">
+      <div class="form-workspace-heading">
+        <span class="form-workspace-kicker">Log #{{ original.pk }} &middot; {{ tipo_registro }}</span>
+        <h1>{{ original.object_repr }}</h1>
+        <p>{% include "components/badge.html" with texto=acao tom=tom_acao %} em {{ original.timestamp|date:"d/m/Y \a\s H:i:s" }}</p>
+      </div>
+      <div class="form-workspace-tools">
+        {% if url_registro %}<a href="{{ url_registro }}" class="btn btn-outline">{% icone "external-link" "icon-sm" %} Abrir o registro</a>{% endif %}
+        {% if tarefa.url %}<a href="{{ tarefa.url }}" class="btn btn-outline">{% icone "clipboard-list" "icon-sm" %} Ver a tarefa #{{ tarefa.id }}</a>{% endif %}
+        {% url opts|admin_urlname:'changelist' as changelist_url %}
+        <a href="{% add_preserved_filters changelist_url %}" class="btn btn-outline">Voltar</a>
+      </div>
+    </header>
+
+    <div class="tarefa-grade">
+      <div class="tarefa-principal">
+        {% componente "card" titulo="O que mudou" subtitulo="Antes e depois de cada campo alterado" icone="pencil" flush=True %}
+          {% if mudancas %}
+            <div class="table-wrap">
+              <table class="table">
+                <thead><tr><th>Campo</th><th>Antes</th><th>Depois</th></tr></thead>
+                <tbody>
+                  {% for campo, antes, depois in mudancas %}
+                    <tr><td><strong>{{ campo }}</strong></td><td class="log-valor">{{ antes }}</td><td class="log-valor">{{ depois }}</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="tarefa-mensagem">Nenhum campo mudou de valor.</p>
+          {% endif %}
+        {% endcomponente %}
+
+        {% if retrato %}
+          {% componente "card" titulo="Registro completo" subtitulo="Todos os campos como ficaram depois desta alteracao" icone="file-text" flush=True %}
+            <div class="table-wrap">
+              <table class="table">
+                <tbody>
+                  {% for campo, valor in retrato %}
+                    <tr><td><strong>{{ campo }}</strong></td><td class="log-valor">{{ valor }}</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endcomponente %}
+        {% endif %}
+      </div>
+
+      <aside class="tarefa-lateral">
+        {% componente "card" titulo="Quem fez" icone="user" %}
+          <dl class="tarefa-dados">
+            <dt>Origem</dt><dd>{% include "components/badge.html" with texto=origem tom=tom_origem %}</dd>
+            <dt>Usuario</dt><dd>{% if url_autor %}<a href="{{ url_autor }}">{{ nome_autor }}</a>{% else %}{{ nome_autor|default:"Sem usuario (sistema ou chave da API)" }}{% endif %}</dd>
+            {% if via %}<dt>Por meio de</dt><dd>{{ via }}</dd>{% endif %}
+          </dl>
+        {% endcomponente %}
+
+        {% componente "card" titulo="De onde veio" icone="arrow-right" %}
+          <dl class="tarefa-dados">
+            <dt>Requisicao</dt><dd class="text-mono text-xs">{{ requisicao_linha|default:"-" }}</dd>
+            <dt>IP</dt><dd class="text-mono text-xs">{{ ip|default:"-" }}</dd>
+            <dt>Tarefa</dt><dd>{% if tarefa %}{% if tarefa.url %}<a href="{{ tarefa.url }}">#{{ tarefa.id }} - {{ tarefa.nome }}</a>{% else %}#{{ tarefa.id }} ({{ tarefa.nome }}){% endif %}{% else %}-{% endif %}</dd>
+            {% if url_correlacao %}<dt>Junto com</dt><dd><a href="{{ url_correlacao }}">Tudo o que esta {% if tarefa %}tarefa{% else %}requisicao{% endif %} alterou</a></dd>{% endif %}
+          </dl>
+          {% if tarefa.url %}<p class="tarefa-etapa">O corpo da requisicao e a resposta completos ficam na tarefa.</p>{% endif %}
+        {% endcomponente %}
+      </aside>
+    </div>
+  </section>
+</div>
+{% endblock %}
