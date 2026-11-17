@@ -16,7 +16,8 @@ from apps.woocommerce.cliente import WooClient
 from apps.woocommerce.importar_clientes import importar_cliente
 from apps.woocommerce.importar_cupons import importar_cupom
 from apps.woocommerce.importar_pedidos import importar_pedido
-from apps.woocommerce.sincronizar_produtos import importar_completo
+from apps.woocommerce.importar_produtos import variante_pelo_sku
+from apps.woocommerce.sincronizar_produtos import eh_variacao, importar_completo
 
 MODELOS = {"produtos": Produto, "clientes": Cliente, "pedidos": Pedido, "cupons": Cupom}
 
@@ -27,6 +28,17 @@ def _importador(configuracao, recurso):
     if recurso == "pedidos":
         return lambda dados: importar_pedido(dados, configuracao.dominio_loja)
     return {"clientes": importar_cliente, "cupons": importar_cupom}[recurso]
+
+
+def _conhecido(recurso, dados):
+    """O hub ja tem o registro: pelo vinculo ou, produto e variacao, pelo SKU."""
+    if vinculos.objeto_id(recurso, dados.get("id")):
+        return True
+    if recurso != "produtos":
+        return False
+    return bool(variante_pelo_sku(dados)
+                or vinculos.objeto_id("variantes", dados.get("id"))
+                or (eh_variacao(dados) and vinculos.objeto_id("produtos", dados["parent_id"])))
 
 
 def _desativar(recurso, externo_id):
@@ -44,8 +56,7 @@ def processar_webhook(configuracao, recurso, operacao, dados, progresso):
         mensagem = "Recurso sem webhook no WooCommerce."
     elif operacao == "delete":
         mensagem = _desativar(recurso, dados.get("id"))
-    elif (operacao == "update" and recurso != "pedidos"
-          and not vinculos.objeto_id(recurso, dados.get("id"))
+    elif (operacao == "update" and recurso != "pedidos" and not _conhecido(recurso, dados)
           and not configuracao.habilitado("receber", recurso, "create")):
         mensagem = "Registro nao encontrado; ligue Receber > Criar para cadastrar."
     else:

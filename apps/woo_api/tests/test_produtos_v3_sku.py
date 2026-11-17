@@ -31,8 +31,10 @@ def test_criacao_com_sku_existente_atualiza_a_variante_e_devolve_o_id(api, escri
                               "sale_price": "319.99", "stock_quantity": "8"}, format="json")
 
     assert resposta.status_code == 201
-    assert resposta.json()["id"] == escrivaninha.pk
     variante = VarianteProduto.objects.get(sku="7656")
+    # 7656 nao e a variante padrao: volta com o id da variacao, que o ERP guarda para o PUT.
+    assert resposta.json()["id"] == 1_000_000_000 + variante.pk
+    assert resposta.json()["parent_id"] == escrivaninha.pk
     assert (variante.price, variante.sale_price) == (Decimal("499.99"), Decimal("319.99"))
     assert _variantes(escrivaninha) == {"7657": 49, "7656": 8}
     assert Produto.objects.count() == 1

@@ -12,6 +12,7 @@ from apps.woo_api.recursos.produtos_sku import (
     sku_de,
     variante_do_sku,
 )
+from apps.woo_api.recursos.produtos_variacao import variacao_de
 from apps.woo_api.views.base import DetalheView, ListaView
 from apps.woo_api.views.lote import LoteView
 
@@ -44,7 +45,9 @@ class ProdutoV3Recurso(ProdutoRecurso):
         permitidos = {campo: dados[campo] for campo in _CAMPOS_UPDATE_PRODUTO if campo in dados}
         # No PUT o SKU so vale dentro do produto da URL: o ERP pode mandar o codigo dele
         # no sku, e o PUT que ja atualizava a variante padrao nao pode quebrar.
-        variante = variante_do_sku(dados, produto=None if criando else obj)
+        # Id de variacao na URL: ela ja e a variante; senao o SKU escolhe.
+        variante = variacao_de(obj) if not criando else None
+        variante = variante or variante_do_sku(dados, produto=None if criando else obj)
         if variante is not None:
             return gravar_na_variante(variante, permitidos)
         if criando:

@@ -19,6 +19,7 @@ from apps.loja.services.variantes import obter_variante_padrao
 from apps.woo_api.erros import WooErro
 from apps.woo_api.recursos.base import texto
 from apps.woo_api.recursos.produtos_entrada import _variant_fields
+from apps.woo_api.recursos.produtos_variacao import marcar
 
 logger = logging.getLogger("django.request")
 
@@ -43,7 +44,8 @@ def gravar_na_variante(variante, permitidos):
     _variant_fields(variante, permitidos)
     variante.save()  # save() completo: stock_status e calculado nele
     logger.info("Woo v3 localizou o produto %s pelo SKU %s", variante.produto_id, variante.sku)
-    return Produto.objects.get(pk=variante.produto_id)
+    # Variacao volta com o id dela: e o que o ERP guarda e manda no PUT seguinte.
+    return marcar(Produto.objects.get(pk=variante.produto_id), variante)
 
 
 def criar_inativo(produto, dados, permitidos):

@@ -6,6 +6,7 @@ from apps.core.models import ExternalReference, Origin
 from apps.loja.models import VarianteProduto
 from apps.loja.services.variantes import obter_variante_padrao
 from apps.shopify.contexto import avisar
+from apps.shopify.produtos_localizar import variante_do_produto
 from apps.shopify.produtos_opcoes import sincronizar_opcoes
 
 
@@ -100,27 +101,33 @@ def criar_variantes(produto, dados, decimal):
         sincronizar_opcoes(variante, recebida.get("selectedOptions"))
 
 
-def _por_referencia(produto, externo_id):
-    referencia = ExternalReference.objects.filter(
-        platform=Origin.SHOPIFY,
-        entity_type="variantes",
-        external_id=externo_id,
-    ).first()
-    if not referencia:
-        return None
-    return produto.variantes.filter(pk=referencia.object_id).first()
+def _nova_variante(produto, recebida, decimal, posicao, produto_externo_id):
+    """Variante que a loja criou depois do produto: o update a ignorava e ela nunca
+    chegava ao hub. SKU que ja e de outra variante do hub nao entra (indice unico)."""
+    campos = _campos(recebida, decimal, posicao)
+    if campos["sku"] and VarianteProduto.objects.filter(sku=campos["sku"]).exists():
+        avisar(f"Variante {campos['sku']} da loja nao entrou: o SKU ja e de outro produto "
+               "do hub.", recurso="produtos", id=produto.pk, descricao=produto.nome,
+               id_externo=produto_externo_id)
+        return
+    campos = _sem_barcode_repetido(VarianteProduto(produto=produto), campos,
+                                   produto_externo_id)
+    if produto.tipo == produto.Tipo.SIMPLES:
+        produto.tipo = produto.Tipo.VARIAVEL  # so produto variavel tem mais de uma
+        produto.save()
+    variante = VarianteProduto.objects.create(produto=produto, **campos)
+    _referenciar_variante(variante, recebida.get("id"), produto_externo_id)
+    sincronizar_opcoes(variante, recebida.get("selectedOptions"))
 
 
 def atualizar_variantes(produto, dados, decimal, sobrescrever=False):
     produto_externo_id = dados["id"]
     recebidas = (dados.get("variants") or {}).get("nodes") or []
-    for recebida in recebidas:
-        variante = _por_referencia(produto, recebida.get("id"))
-        if variante is None and recebida.get("sku"):
-            variante = produto.variantes.filter(sku=recebida["sku"]).first()
-        if variante is None and len(recebidas) == 1:
-            variante = produto.variante_padrao
+    for posicao, recebida in enumerate(recebidas):
+        # SKU primeiro, depois o vinculo (produtos_localizar.py).
+        variante = variante_do_produto(produto, recebida, len(recebidas))
         if variante is None:
+            _nova_variante(produto, recebida, decimal, posicao, produto_externo_id)
             continue
         regular, promocional, comparacao = _precos(recebida, decimal)
         variante.price = regular

@@ -251,16 +251,42 @@ que ja existiam; conta nova ganha os perfis (`is_system`) pelo sinal `post_save`
 todo `migrate` reacerta as permissoes dos grupos (model novo entra sem migration).
 Perfil do sistema nao e excluido nem troca de codigo/grupo no admin.
 
-#### Botao "Logs" da edicao
+#### Botoes "Logs", "Tarefas" e "Historico" da edicao
 
-Toda pagina de edicao (TemaMixin) mostra "Logs" para quem pode ver logs: abre
-"Entradas de log" (auditlog) filtrada so por aquele registro (`?registro=<tipo>-<pk>`),
-mais recentes primeiro. Usuario comum so ve logs da conta dele (a conta vai no
-`additional_data` do log). Tudo em `apps/core/admin_logs.py`.
-Cada log tambem guarda a ORIGEM (`apps/core/origem.py`): `admin`, `woo_api` (com a
-chave ou o usuario do JWT) ou `sistema`; aparece na coluna "usuario" e no filtro
-"origem". Integracao nova (Shopify etc.) envolve o trabalho em
-`with origem("shopify", via="Loja X"):`.
+Toda pagina de edicao (TemaMixin) mostra os tres para quem tem permissao. **Logs** e
+**Tarefas** abrem a lista filtrada pelo registro E pelo que pertence a ele
+(`?registro=<tipo>-<pk>`; `?registro=so:<tipo>-<pk>` e so ele): filhos com FK CASCADE
+ate 2 niveis (variantes, midias, itens do pedido) e os vinculos `ExternalReference`.
+Quem decide: `apps/core/registros.py`. A variante abre num modal sem botoes; e pelo
+produto que se chega nos logs e tarefas dela.
+
+- **Logs** (`apps/core/admin_logs.py`, tela em `log_detalhe.py`): quem fez (usuario,
+  origem `admin`/`woo_api`/`shopify`/`importacao`/`sistema`, chave ou loja), a
+  requisicao (metodo, caminho, IP), a tarefa, o "antes -> depois" com o rotulo do campo
+  e o valor legivel (`log_valores.py`: FK pelo nome, Sim/Nao, data local) e o registro
+  inteiro como ficou (`serialized_data`, ligado em `apps/core/auditoria.py`, sem campos
+  de credencial). O id de correlacao junta o que uma requisicao (ou `tarefa-<id>`)
+  alterou. Versao do historico, sessao e a propria tarefa nao viram log.
+- **Tarefas**: `TarefaRegistro` liga a tarefa aos registros que ela tocou; nasce
+  sozinha de cada log gravado com `tarefa_id` (`apps/integracoes/registros_tarefa.py`)
+  e, no envio, do registro enviado. A tela da tarefa lista os "Registros afetados" e
+  tem "Logs desta tarefa".
+- **Historico** (`apps/core/admin_historico.py`, `historico.py`): as versoes do
+  simple_history, inclusive de API, webhook e tarefa (autor e motivo
+  `"woo_api - ERP (...a1b2) - tarefa #12"` vem de `origem.marcar_historico`), com o que
+  mudou e **Reverter** (tela de confirmacao; grava pelo `save()`, entao log, historico
+  e envio as lojas acontecem como numa edicao; registro excluido volta com o mesmo id).
+
+Usuario comum so ve logs da conta dele (a conta vai no `additional_data` do log).
+Integracao nova envolve o trabalho em
+`with origem("shopify", via="Loja X", tarefa=execucao.pk):` (o `executar` comum ja faz).
+
+**API Woo vira tarefa** (`apps/woo_api/registro_tarefa.py`): toda escrita abre uma
+tarefa "Requisicao da API Woo" antes de processar (corpo com senha mascarada,
+resposta, status); leitura so vira tarefa se falhar. 4xx/5xx = Falhou com o codigo do
+Woo; item recusado no lote = Concluida com falhas. Requisicao sem credencial valida nao
+tem conta e fica so no log do servidor. Webhook recusado (assinatura, JSON invalido)
+do Shopify e do WooCommerce tambem vira tarefa Falhou (`apps/integracoes/recusas.py`).
 
 #### Campos que so aparecem conforme outro
 
@@ -471,6 +497,17 @@ cria um produto **simples, inativo e em rascunho** so com nome, SKU, precos e es
 (secao 7.2). Sem `sku`, continua 404 `rest_no_route`. No `PUT products/<id>` o `sku`
 escolhe a variante so dentro do produto da URL; SKU de fora (ex.: o codigo do ERP) cai
 na variante padrao, como antes. O lote (`batch`) continua recusando `create`.
+
+**Variacao de produto variavel tem id proprio** (`apps/woo_api/recursos/produtos_variacao.py`),
+como no Woo: `1000000000 + id da variante` (produto e variante tem sequencias separadas no
+hub, o 7 pode ser os dois). A variante padrao segue com o id do produto. Assim:
+`POST products {"id": "0", "sku": "<da variacao>"}` e `GET products?sku=<da variacao>` devolvem
+a variacao (`type: "variation"`, `parent_id` do pai, sku/preco/estoque dela), e o
+`PUT products/<id da variacao>` (v1, v3 e lote) altera so ela. Antes devolvia o id do pai e o
+PUT seguinte gravava na variante padrao. `DELETE` com id de variacao da 400 (nao manda o
+produto inteiro para a lixeira). ERP que ja guardou o id do pai para o SKU de uma variacao:
+o `PUT` no pai com o `sku` dela ainda acha a variacao e responde com o id certo; sem o `sku`
+no corpo, refaca o vinculo do SKU no ERP (consulta por `?sku=` ou `POST` com `id` 0).
 
 | Recurso | Lista / cria | Le / altera / exclui | Lote |
 | --- | --- | --- | --- |
@@ -761,6 +798,19 @@ Produtos novos sao adaptados ao catalogo canonico com todas as variantes, opcoes
 SKU, preco, promocao, estoque e codigo de barras. Imagens de `create` e `update`
 sao validadas, baixadas do CDN Shopify para `/media/produtos/` e vinculadas as
 variantes; o ID externo evita baixar novamente em webhooks repetidos.
+**Qual produto do hub e o da loja (Shopify e WooCommerce): SKU primeiro.** Webhook,
+sincronizacao e item de pedido procuram 1) o SKU de alguma variante recebida, 2) o vinculo
+do id da loja, 3) so entao criam (`apps/shopify/produtos_localizar.py`,
+`apps/woocommerce/importar_produtos.py`). Achado pelo SKU, o vinculo passa a apontar para
+ele, menos quando esse produto ja esta ligado a OUTRO produto da loja (SKU repetido
+na loja: vale o id e o SKU vira aviso). Item de pedido do Shopify continua com o vinculo
+antes do SKU (decisao anterior: SKU trocado na loja nao liga o item a outro produto).
+Dentro do produto a variante segue a mesma ordem; variante que a loja criou depois
+entra no produto (antes o update a ignorava). Produto do hub sem vinculo com a loja agora
+recebe o update mesmo com Receber > Criar desligado. WooCommerce: o webhook de uma
+variacao (`type: "variation"`) altera so ela; antes o preco e o estoque dela iam para a
+variante padrao do pai. Variacao nova que o hub nao conhece: o pai e buscado na loja e
+importado com ela.
 Cupons sao identificados pelo **nome** na conta (indice unico `cupom_nome_conta_unico`);
 o `code` nasce aleatorio, aparece no admin e pode ser trocado pelo codigo que o cliente
 digitara no checkout. Codigo de pedido que o hub ainda nao conhece e consultado no

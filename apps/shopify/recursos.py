@@ -53,13 +53,14 @@ def produto(dados, sobrescrever=False):
     Ja vinculado ou achado pelo slug, recebe os dados da loja (produtos_dados.py) e
     as variantes, nao so as imagens: senao SEO, tags e colecoes ficavam desatualizados.
     """
+    from apps.shopify.produtos_localizar import localizar_produto
     from apps.shopify.servicos_exportar import eh_servico
 
     if eh_servico(dados):
         # Produto escondido de um servico (servicos_envio.py): e do cadastro de Servicos.
         return None, False
     externo_id = dados["id"]
-    obj = _existente("produtos", externo_id)
+    obj = localizar_produto(dados)  # SKU primeiro, depois o id da loja; senao cria
     criado = False
     if obj is None:
         slug = slugify(dados.get("handle") or dados.get("title") or "produto")

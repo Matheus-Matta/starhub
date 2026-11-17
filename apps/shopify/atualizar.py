@@ -6,11 +6,17 @@ from apps.shopify.imagens import sincronizar_imagens
 from apps.shopify.pedidos import importar_pedido
 from apps.shopify.pedidos_base import ids_do_pedido
 from apps.shopify.produtos import atualizar_variantes
+from apps.shopify.produtos_localizar import localizar_produto
 from apps.shopify.recursos import _decimal, _existente, estoque
 
 
 def produto(dados):
-    obj = _existente("produtos", dados["id"])
+    from apps.shopify.servicos_exportar import eh_servico
+
+    if eh_servico(dados):
+        return None, False  # produto escondido de um servico: e do cadastro de Servicos
+    # SKU primeiro, depois o id: produto do hub sem vinculo com a loja tambem atualiza.
+    obj = localizar_produto(dados)
     if obj is None:
         return None, False
     atualizar_variantes(obj, dados, _decimal)

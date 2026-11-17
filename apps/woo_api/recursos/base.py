@@ -124,6 +124,10 @@ class Recurso:
     def para_woo(self, obj):
         raise NotImplementedError
 
+    def para_lista(self, itens):
+        """Linhas da listagem; o produto filtrado por SKU de variacao difere."""
+        return [self.para_woo(obj) for obj in itens]
+
     def gravar(self, obj, dados, criando):
         """Aplica o JSON recebido em obj (novo ou existente) e salva."""
         raise NotImplementedError

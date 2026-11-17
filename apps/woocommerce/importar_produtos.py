@@ -50,10 +50,19 @@ def _textos(obj, dados):
         obj.destaque = dados["featured"]
 
 
-def _pelo_sku(dados):
-    sku = (dados.get("sku") or "").strip()
-    variante = VarianteProduto.objects.filter(sku=sku).select_related("produto").first() \
-        if sku else None
+def variante_pelo_sku(*itens):
+    """A 1a variante do hub com o SKU de algum dos itens (produto ou variacoes da loja)."""
+    for dados in itens:
+        sku = (dados.get("sku") or "").strip()
+        variante = VarianteProduto.objects.filter(sku=sku).select_related("produto").first() \
+            if sku else None
+        if variante:
+            return variante
+    return None
+
+
+def _pelo_sku(dados, variacoes=()):
+    variante = variante_pelo_sku(dados, *variacoes)
     return variante.produto if variante else None
 
 
@@ -95,9 +104,12 @@ def _gravar_variante(variante, dados, posicao, completa, produto_externo):
 
 def _variacoes(produto, variacoes, completa, produto_externo):
     for posicao, dados in enumerate(variacoes):
-        variante = vinculos.existente("variantes", VarianteProduto, dados["id"])
-        if variante is None and dados.get("sku"):
-            variante = produto.variantes.filter(sku=dados["sku"]).first()
+        # SKU primeiro (dentro do produto), depois o vinculo da variacao.
+        sku = (dados.get("sku") or "").strip()
+        variante = produto.variantes.filter(sku=sku).first() if sku else None
+        variante = variante or vinculos.existente("variantes", VarianteProduto, dados["id"])
+        if variante is not None and variante.produto_id != produto.pk:
+            variante = None  # vinculo velho de variante de outro produto
         nova = variante is None
         variante = variante or VarianteProduto(produto=produto, origin=ORIGEM,
                                                is_default=not produto.variantes.exists())
@@ -114,7 +126,12 @@ def _variacoes(produto, variacoes, completa, produto_externo):
 @transaction.atomic
 def importar_produto(dados, variacoes=None, sobrescrever=False):
     externo = dados["id"]
-    obj = vinculos.existente("produtos", Produto, externo) or _pelo_sku(dados)
+    # SKU primeiro (do produto ou de uma das variacoes), depois o id da loja; senao cria.
+    # Produto do SKU ja ligado a OUTRO produto da loja = SKU repetido na loja: vale o id.
+    obj = _pelo_sku(dados, variacoes or ())
+    if obj is not None and vinculos.externo_id("produtos", obj.pk) not in (None, str(externo)):
+        obj = None
+    obj = obj or vinculos.existente("produtos", Produto, externo)
     criado = obj is None
     if criado:
         base = dados.get("slug") or slugify(dados.get("name") or "produto")
@@ -140,3 +157,20 @@ def importar_produto(dados, variacoes=None, sobrescrever=False):
                                     for i in lista])
         vincular_midias(padrao, lista)
     return obj, criado
+
+
+@transaction.atomic
+def importar_variacao(dados):
+    """Corpo de UMA variacao (webhook product.updated de variacao: type "variation").
+
+    Atualiza so ela, achada pelo SKU e depois pelo vinculo. None = o hub nao conhece:
+    quem chamou importa o produto pai, que traz a variacao nova junto.
+    """
+    variante = (variante_pelo_sku(dados)
+                or vinculos.existente("variantes", VarianteProduto, dados.get("id")))
+    if variante is None:
+        return None
+    pai = dados.get("parent_id") or ""
+    _gravar_variante(variante, dados, variante.posicao, False, pai)
+    vinculos.referenciar("variantes", dados["id"], variante, pai=pai)
+    return variante.produto
