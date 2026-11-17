@@ -508,6 +508,13 @@ PUT seguinte gravava na variante padrao. `DELETE` com id de variacao da 400 (nao
 produto inteiro para a lixeira). ERP que ja guardou o id do pai para o SKU de uma variacao:
 o `PUT` no pai com o `sku` dela ainda acha a variacao e responde com o id certo; sem o `sku`
 no corpo, refaca o vinculo do SKU no ERP (consulta por `?sku=` ou `POST` com `id` 0).
+Rotas de variacao do Woo na v3 (`apps/woo_api/views/variacoes_v3.py`):
+`products/<pai>/variations` (GET lista; POST da 404), `products/<pai>/variations/<id>`
+(GET/PUT/PATCH/POST; DELETE da 400) e `products/<pai>/variations/batch` (so `update`). O
+`<id>` pode ser o id da API (`1000000000 + variante`), o id da variante ou o id do pai
+(= variante padrao), sempre dentro do produto da URL; fora dele, 404
+`woocommerce_rest_product_variation_invalid_id`. Como no produto da v3, so preco,
+promocao e estoque mudam. E o que o ERP chama depois de receber o id da variacao.
 
 | Recurso | Lista / cria | Le / altera / exclui | Lote |
 | --- | --- | --- | --- |

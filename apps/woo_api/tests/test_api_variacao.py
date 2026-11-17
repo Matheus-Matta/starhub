@@ -96,3 +96,55 @@ def test_v1_altera_so_a_variacao_e_nao_exclui_o_produto_pelo_id_dela(api, camise
     assert excluida.status_code == 400
     assert Produto.objects.get().status != Produto.Status.LIXEIRA
     assert VarianteProduto.objects.count() == 2
+
+
+def _rota(camiseta, id_):
+    return f"{URL}/{camiseta.pk}/variations/{id_}"
+
+
+def test_rota_de_variacao_do_woo_altera_a_variacao(api, camiseta):
+    """O ERP manda PUT products/<pai>/variations/<id>: sem a rota voltava 404 em HTML."""
+    id_variacao = api.post(URL, {"id": "0", "sku": "CAM-M"}, format="json").json()["id"]
+    corpo = {"id": str(id_variacao), "catalog_visibility": "visible", "regular_price": "129.99",
+             "sale_price": "", "stock_quantity": "0", "name": "CAMISETA - M"}
+
+    resposta = api.put(_rota(camiseta, id_variacao), corpo, format="json")
+
+    assert resposta.status_code == 200
+    assert resposta.json()["id"] == id_variacao and resposta.json()["sku"] == "CAM-M"
+    assert _variantes() == {"CAM-P": (Decimal("50.00"), None, 5),
+                            "CAM-M": (Decimal("129.99"), None, 0)}
+    assert Produto.objects.get().nome == "Camiseta"
+
+
+def test_rota_de_variacao_aceita_o_id_da_variante_e_o_do_pai(api, camiseta):
+    m = VarianteProduto.objects.get(sku="CAM-M")
+    assert api.put(_rota(camiseta, m.pk), {"stock_quantity": 1}, format="json").json()["sku"] \
+        == "CAM-M"
+    assert api.put(_rota(camiseta, camiseta.pk), {"stock_quantity": 2},
+                   format="json").json()["sku"] == "CAM-P"
+    assert _variantes()["CAM-M"][2] == 1 and _variantes()["CAM-P"][2] == 2
+
+
+def test_variacao_de_outro_produto_da_404_no_formato_do_woo(api, camiseta):
+    outro = criar_produto("Outro", sku="OUT-1")
+    m = VarianteProduto.objects.get(sku="CAM-M")
+
+    resposta = api.put(f"{URL}/{outro.pk}/variations/{1_000_000_000 + m.pk}",
+                       {"stock_quantity": 1},
+                       format="json")
+
+    assert resposta.status_code == 404
+    assert resposta.json()["code"] == "woocommerce_rest_product_variation_invalid_id"
+    assert _variantes()["CAM-M"][2] == 3
+
+
+def test_lista_e_lote_de_variacoes(api, camiseta):
+    lista = api.get(f"{URL}/{camiseta.pk}/variations").json()
+    assert [v["sku"] for v in lista] == ["CAM-P", "CAM-M"]
+
+    m = VarianteProduto.objects.get(sku="CAM-M")
+    lote = api.post(f"{URL}/{camiseta.pk}/variations/batch",
+                    {"update": [{"id": m.pk, "stock_quantity": 7}]}, format="json")
+
+    assert lote.json()["update"][0]["sku"] == "CAM-M" and _variantes()["CAM-M"][2] == 7

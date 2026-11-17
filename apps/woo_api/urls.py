@@ -19,6 +19,11 @@ from apps.woo_api.views.produtos_v3 import (
     ProdutoLoteV3View,
 )
 from apps.woo_api.views.recursos import RECURSOS, IndiceView, RaizView, views_de
+from apps.woo_api.views.variacoes_v3 import (
+    VariacaoDetalheV3View,
+    VariacaoListaV3View,
+    VariacaoLoteV3View,
+)
 
 urlpatterns = [
     re_path(r"^$", RaizView.as_view(), name="woo_raiz"),
@@ -49,6 +54,12 @@ urlpatterns = [
         ProdutoDetalheV3View.as_view(),
         name="woo_v3_products_detalhe",
     ),
+    re_path(r"^wc/v3/products/(?P<pai>\d+)/variations/?$", VariacaoListaV3View.as_view(),
+            name="woo_v3_variations"),
+    re_path(r"^wc/v3/products/(?P<pai>\d+)/variations/batch/?$", VariacaoLoteV3View.as_view(),
+            name="woo_v3_variations_lote"),
+    re_path(r"^wc/v3/products/(?P<pai>\d+)/variations/(?P<pk>\d+)/?$",
+            VariacaoDetalheV3View.as_view(), name="woo_v3_variations_detalhe"),
     re_path(r"^wc/v3/orders/?$", PedidoListaV3View.as_view(), name="woo_v3_orders"),
     re_path(r"^wc/v3/orders/batch/?$", PedidoLoteV3View.as_view(), name="woo_v3_orders_lote"),
     re_path(
