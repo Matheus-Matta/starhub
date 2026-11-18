@@ -6,7 +6,8 @@
   variantes) e apagada na loja, e cada edicao no hub arrancaria imagens e colecoes.
   Variante que so existe no Shopify fica; variante nova do hub e criada.
 - excluir: productDelete.
-- imagens: ver produtos_midias.py (create manda `files`; update acrescenta `media`).
+- imagens: ver produtos_midias.py (create manda `files`; update acrescenta `media` e
+  apaga da loja a foto que saiu ou foi trocada no hub).
 """
 
 from apps.integracoes.envio.base import EnvioNaoSuportado
@@ -79,6 +80,7 @@ class ProdutoShopify(RecursoShopify):
     def atualizar(self, obj, external_id):
         produto_gid = self.gid("Product", external_id)
         variantes = self._variantes(obj)
+        velhas = midias_shopify.trocadas(self, obj)
         imagens = midias_shopify.pendentes(self, obj)
         variaveis = {"product": {"id": produto_gid, **self._campos(obj)}}
         if imagens:
@@ -88,6 +90,7 @@ class ProdutoShopify(RecursoShopify):
         # nao last): o Shopify recusa last sem before e o productUpdate inteiro falhava.
         recebidas = _midias(produto)[-len(imagens):] if imagens else []
         midias_shopify.registrar(self, imagens, recebidas, produto_gid)
+        midias_shopify.remover(self, obj, [m["id"] for m in _midias(produto)], velhas)
         vinculos = dict(self.referencias_variantes().filter(
             object_id__in=[str(v.pk) for v in variantes]
         ).values_list("object_id", "external_id"))

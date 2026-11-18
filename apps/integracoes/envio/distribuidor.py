@@ -6,7 +6,8 @@ o que nasceu no hub (admin, API Woo, comando) vai para todos.
 
 Nao passa por aqui (nao gera envio): `QuerySet.update()`, `bulk_create` e
 `bulk_update`, que nao disparam signal; e filhos sem model no MAPA (item do
-pedido, endereco do cliente, midia do produto) enquanto o pai nao for salvo.
+pedido, endereco do cliente) enquanto o pai nao for salvo. A galeria de imagens
+avisa por conta propria (loja/services/midias.py).
 """
 
 from django.core.exceptions import ValidationError
@@ -103,6 +104,9 @@ class Distribuidor:
         if fora_das_lojas(produto):
             return
         self.distribuir(produto.account_id, "produtos", "update", produto.pk)
+
+    # Imagens (MidiaProduto) mudaram: mesmo caminho, o produto inteiro vai como update.
+    filhos_do_produto = m2m_do_produto
 
     # Decisao.
 

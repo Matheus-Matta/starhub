@@ -137,8 +137,10 @@ def liberar_travada(execucao, sem_sinal_antes_de=None):
     ))
 
 
-def iniciar(configuracao, direcao, recursos, janela=None):
-    """`janela`: so os itens criados/alterados nela (conferencia do beat, conferencia.py)."""
+def iniciar(configuracao, direcao, recursos, janela=None, produtos=None):
+    """`janela`: so os itens criados/alterados nela (conferencia do beat, conferencia.py).
+    `produtos`: so esses produtos (e o estoque das variantes deles), na exportacao
+    pedida pelo botao/acao "Sincronizar com integracao" do produto."""
     _validar_direcao(direcao)
     recursos = _validar_recursos(configuracao, direcao, recursos)
     tarefa = _tarefa(configuracao, direcao)
@@ -157,7 +159,8 @@ def iniciar(configuracao, direcao, recursos, janela=None):
                 configuracao=configuracao,
                 tipo=TIPOS[direcao],
                 parametros={"direcao": direcao, "recursos": recursos,
-                            **({"janela": janela} if janela else {})},
+                            **({"janela": janela} if janela else {}),
+                            **({"produtos": [int(pk) for pk in produtos]} if produtos else {})},
             )
     except IntegrityError:
         existente = em_andamento(configuracao)

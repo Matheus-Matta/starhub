@@ -16,6 +16,10 @@ from apps.loja.admin import campos
 from apps.loja.admin.bundle import ComponenteInline, estoque_calculado
 from apps.loja.admin.codigo_externo import CodigoExternoMixin
 from apps.loja.admin.detalhes import variacoes_do_produto
+from apps.loja.admin.produtos_sincronizar import (
+    SincronizarProdutoMixin,
+    sincronizar_com_integracao,
+)
 from apps.loja.admin.variante_unica import VarianteUnicaInline
 from apps.loja.admin.variantes import lista_variantes
 from apps.loja.models import Produto, VarianteProduto
@@ -45,8 +49,9 @@ class FiltroStatusProduto(admin.SimpleListFilter):
 
 
 @admin.register(Produto)
-class ProdutoAdmin(CodigoExternoMixin, TemaModelAdmin):
+class ProdutoAdmin(SincronizarProdutoMixin, CodigoExternoMixin, TemaModelAdmin):
     entidade_externa = "produtos"
+    actions = [sincronizar_com_integracao]
     campos_json = campos.PRODUTO
     list_display = [
         "produto_info", "codigo_externo", "preco_regular_fmt", "preco_promocional_fmt",

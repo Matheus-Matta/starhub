@@ -1,9 +1,11 @@
 """Imagens do produto do hub -> midias do Shopify, sem mandar a mesma URL duas vezes.
 
 Create: `files` do productSet ("The files to associate with the product.").
-Update: `media` do productUpdate ("List of new media to be added to the product."):
-so acrescenta, nunca apaga midia da loja. productCreateMedia esta deprecado na
-2026-07 ("Deprecated. Use productUpdate or productSet instead.").
+Update: `media` do productUpdate ("List of new media to be added to the product.")
+acrescenta as novas; depois sai da loja (fileDelete) a midia com vinculo cuja foto
+foi apagada no hub ou trocada (mesma linha, URL nova: vai a nova, sai a antiga).
+Midia da loja sem vinculo (cadastrada direto la) nunca e apagada. productCreateMedia
+esta deprecado na 2026-07 ("Deprecated. Use productUpdate or productSet instead.").
 
 Midia com vinculo "midias" ja esta na loja (enviada pelo hub ou importada dela) e
 nao vai de novo; URL ja enviada tambem nao (a mesma foto ligada a outra variante e
@@ -19,10 +21,35 @@ from apps.shopify.cliente import ShopifyErro
 logger = logging.getLogger(__name__)
 
 
+APAGAR = """mutation($fileIds: [ID!]!) {
+  fileDelete(fileIds: $fileIds) { deletedFileIds userErrors { field message code } }
+}"""
+
+
+def _imagens(produto):
+    return list(produto.midias.filter(tipo=MidiaProduto.Tipo.IMAGEM).order_by("posicao", "id"))
+
+
+def _trocada(enviador, midia, vinculo):
+    """Foto que nasceu no hub e cuja URL mudou depois do envio (a importada nao tem
+    `enviado_src`: a URL do hub dela nunca foi a da loja)."""
+    enviado = (vinculo.metadata or {}).get("enviado_src")
+    return bool(enviado) and enviado not in {
+        midia.url, vinculos.url_publica(enviador.configuracao, midia.url)}
+
+
+def trocadas(enviador, produto):
+    """Vinculos das fotos trocadas no hub: a midia antiga sai da loja."""
+    todas = {str(m.pk): m for m in _imagens(produto)}
+    return [v for v in vinculos.do_produto(produto, todas.values())
+            if _trocada(enviador, todas[v.object_id], v)]
+
+
 def pendentes(enviador, produto):
     """[(url publica, [midias com essa URL])] que ainda nao estao no Shopify."""
-    todas = list(produto.midias.filter(tipo=MidiaProduto.Tipo.IMAGEM).order_by("posicao", "id"))
-    ligadas = {r.object_id: r for r in vinculos.do_produto(produto, todas)}
+    todas = _imagens(produto)
+    velhas = {v.pk for v in trocadas(enviador, produto)}
+    ligadas = {r.object_id: r for r in vinculos.do_produto(produto, todas) if r.pk not in velhas}
     na_loja = set()
     for midia in todas:
         referencia = ligadas.get(str(midia.pk))
@@ -74,3 +101,18 @@ def registrar(enviador, grupos, recebidas, produto_gid):
     for vinculo in criados:
         if vinculo.external_id in prontas:
             vinculos.gravar_cdn(vinculo, prontas[vinculo.external_id])
+
+
+def remover(enviador, produto, na_loja, velhas):
+    """Apaga da loja as midias do produto (`na_loja`: ids da resposta do productUpdate)
+    cuja foto saiu do hub, e as `velhas` (trocadas). So midia com vinculo."""
+    existentes = {str(pk) for pk in produto.midias.values_list("pk", flat=True)}
+    ids = set(na_loja)
+    saem = [v for v in vinculos.referencias(produto.account_id).filter(external_id__in=ids)
+            if v.object_id not in existentes]
+    saem += [v for v in velhas if v.external_id in ids]
+    if not saem:
+        return
+    gids = list(dict.fromkeys(v.external_id for v in saem))
+    enviador.mutacao(APAGAR, {"fileIds": gids}, "fileDelete")
+    vinculos.referencias(produto.account_id).filter(pk__in=[v.pk for v in saem]).delete()

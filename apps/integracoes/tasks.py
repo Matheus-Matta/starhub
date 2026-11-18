@@ -103,7 +103,10 @@ def exportar_dados(execucao_id):
             registrar(processados, total, etapa[:150])
 
         try:
-            resumo = exportador.exportar_dados(configuracao, recursos, progresso)
+            # "produtos": so os escolhidos no botao/acao do produto (exportar.py).
+            produtos = (execucao.parametros or {}).get("produtos")
+            extra = {"produtos": produtos} if produtos else {}
+            resumo = exportador.exportar_dados(configuracao, recursos, progresso, **extra)
         except Exception as erro:  # a tarefa precisa persistir o erro antes de terminar
             _gravar(execucao, status=ExecucaoIntegracao.Status.FALHOU, etapa="Falhou",
                     mensagem=str(erro)[:4000], concluida_em=timezone.now())

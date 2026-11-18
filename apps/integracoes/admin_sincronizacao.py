@@ -59,6 +59,9 @@ def parametros_legiveis(execucao):
     itens = format_html_join(
         "", "<li>{}</li>", ((rotulos.get(r, r),) for r in parametros.get("recursos", []))
     )
+    produtos = parametros.get("produtos")
+    if produtos:  # "Sincronizar com integracao" no produto: so os escolhidos
+        direcao = f"{direcao} ({len(produtos)} produto(s) escolhido(s))"
     return format_html("<strong>{}</strong><ul>{}</ul>", direcao, itens)
 
 

@@ -23,10 +23,14 @@ def _vinculados(enviador):
     return set(enviador._referencias().values_list("object_id", flat=True))
 
 
-def _registros(enviador, conta_id):
+def _registros(enviador, conta_id, produtos=None):
     consulta = enviador.modelo.all_objects.filter(account_id=conta_id)
     if enviador.recurso == "estoque":
         consulta = consulta.filter(manage_inventory=True)
+    if produtos is not None:
+        # "Sincronizar com integracao" no produto: so os escolhidos e as variantes deles.
+        campo = "produto_id__in" if enviador.recurso == "estoque" else "pk__in"
+        consulta = consulta.filter(**{campo: produtos})
     pks = [str(pk) for pk in consulta.order_by("pk").values_list("pk", flat=True)]
     if enviador.recurso == "pedidos":
         # Pedido nasce no marketplace; exportar so atualiza os que ja estao vinculados.
@@ -90,7 +94,7 @@ def _identificar(enviador, pk):
         return "", ""
 
 
-def exportar_dados(configuracao, recursos, progresso):
+def exportar_dados(configuracao, recursos, progresso, produtos=None):
     classe = registro.obter(configuracao.plataforma)
     if classe is None:
         raise EnvioNaoSuportado(
@@ -106,7 +110,7 @@ def exportar_dados(configuracao, recursos, progresso):
         if enviador is None:
             resumo.sem_enviador.append(recurso)
             continue
-        plano.append((recurso, enviador, _registros(enviador, configuracao.account_id)))
+        plano.append((recurso, enviador, _registros(enviador, configuracao.account_id, produtos)))
     total = sum(len(pks) for _r, _e, pks in plano)
     feitos = 0
     progresso(0, total, "Preparando a exportacao")

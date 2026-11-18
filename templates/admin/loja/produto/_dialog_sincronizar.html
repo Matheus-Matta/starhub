@@ -1,0 +1,27 @@
+{# "Sincronizar com integracao" (apps/loja/admin/produtos_sincronizar.py): escolhe a loja e confirma. #}
+{# Na lista, o JS (sincronizar-produtos.js) leva a escolha para o form da acao em massa. #}
+{% componente "modal_etapas" id="modal-sincronizar-produtos" titulo="Sincronizar com integracao" titulo_1="Integracao" titulo_2="Confirmar" concluir="Sincronizar" action=acao_dialog %}
+  {% slot "etapa_1" %}
+    {% if integracoes_sincronizar %}
+      <div class="modal-etapas-opcoes" data-exige-marcado="integracao" data-mensagem-erro="Escolha a integracao para onde os produtos vao.">
+        {% for item in integracoes_sincronizar %}
+          <label class="modal-etapas-opcao">
+            <input type="radio" name="integracao" value="{{ item.pk }}" data-rotulo="{{ item.plataforma }} ({{ item.nome }})"{% if not item.permitido %} disabled data-travado="1"{% endif %}>
+            <span><strong>{{ item.plataforma }}</strong>
+              <small>{% if item.permitido %}{{ item.nome }}: envia os dados do produto{% if item.estoque %} e o estoque{% else %} (estoque desligado em Enviar > Estoque){% endif %}.{% else %}{% icone "lock" "icon-sm" %} {{ item.motivo }}{% endif %}</small>
+            </span>
+          </label>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted" data-exige-marcado="integracao" data-mensagem-erro="Nenhuma integracao ativa.">Nenhuma integracao ativa nesta conta. Configure em Integracoes e salve.</p>
+    {% endif %}
+  {% endslot %}
+  {% slot "etapa_2" %}
+    <dl class="modal-etapas-resumo">
+      <div><dt class="text-muted">Integracao</dt><dd data-resumo="integracao"></dd></div>
+      <div><dt class="text-muted">Produtos</dt><dd data-sincronizar-quantos>{{ quantos_dialog|default:"" }}</dd></div>
+    </dl>
+    <p class="text-muted">Vira uma tarefa na fila: o produto e criado na loja se ainda nao existe la, ou atualizado com todos os dados do hub, e depois o estoque. Voce acompanha na pagina da tarefa.</p>
+  {% endslot %}
+{% endcomponente %}

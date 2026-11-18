@@ -916,6 +916,21 @@ aviso na tarefa e nao derruba o produto nem as outras fotos.
 Os webhooks `products/create` e `products/update` tambem baixam imagens novas para
 o MEDIA e reaproveitam a copia local quando a foto da CDN nao mudou.
 
+Galeria alterada no hub (apagar, trocar, incluir ou reordenar foto) envia o produto
+como update aos marketplaces, mesmo sem outro campo mudado
+(`sincronizar_midias` -> `filhos_do_produto`). No Shopify o update acrescenta as fotos
+novas e apaga da loja (`fileDelete`) a midia com vinculo cuja foto saiu do hub ou teve
+a URL trocada; midia da loja sem vinculo fica. A Suri recebe a lista inteira no PUT.
+
+**Sincronizar com integracao** (`apps/loja/admin/produtos_sincronizar.py`): acao em
+massa na lista de produtos e botao "Sincronizar" dentro do produto. Um dialog escolhe
+a integracao ativa (Shopify, Suri, WooCommerce); vira uma tarefa de Exportar com
+`parametros["produtos"]`, que envia so esses produtos (create se nao estao na loja,
+update se estao) e depois o estoque das variantes deles (se Enviar > Estoque estiver
+ligado). Mesmo `exportar_dados` da tela Sincronizar loja: uma por vez por loja,
+progresso, falhas e Retomar iguais. Na lista, `sincronizar-produtos.js` leva a escolha
+do dialog para o form da acao (campo `integracao`), mantendo "selecionar todos".
+
 No marketplace, `EnviadorRecurso.enviar` (base) trava a linha canonica
 (`select_for_update`) e rele o vinculo (`ExternalReference`) depois do lock: com
 vinculo atualiza; sem vinculo cria e vincula (em `update`, so se `Enviar > criar`
