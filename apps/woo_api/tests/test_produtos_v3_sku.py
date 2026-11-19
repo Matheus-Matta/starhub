@@ -38,7 +38,9 @@ def test_criacao_com_sku_existente_atualiza_a_variante_e_devolve_o_id(api, escri
     assert (variante.price, variante.sale_price) == (Decimal("499.99"), Decimal("319.99"))
     assert _variantes(escrivaninha) == {"7657": 49, "7656": 8}
     assert Produto.objects.count() == 1
-    assert Produto.objects.get().nome == "ESCRIVANINHA", "nome e o do Shopify, nao o do ERP"
+    # Produto com varias variantes: o name do ERP e o titulo da variante, nao o do produto.
+    assert Produto.objects.get().nome == "ESCRIVANINHA"
+    assert variante.titulo == "OUTRO NOME"
 
 
 def test_sku_que_o_hub_nao_tem_vira_produto_simples_inativo(api, escrivaninha):

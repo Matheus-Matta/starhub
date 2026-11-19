@@ -15,6 +15,7 @@ from apps.integracoes.envio.base import EnvioNaoSuportado
 from apps.loja.models import Produto
 from apps.shopify.envio import produtos_casar as casar_shopify
 from apps.shopify.envio import produtos_midias as midias_shopify
+from apps.shopify.envio import produtos_religar as religar_shopify
 from apps.shopify.envio import produtos_variantes as variantes_shopify
 from apps.shopify.envio.base import RecursoShopify
 
@@ -82,7 +83,10 @@ class ProdutoShopify(RecursoShopify):
         return produto["id"]
 
     def atualizar(self, obj, external_id):
-        produto_gid = self.gid("Product", external_id)
+        # Id do vinculo que sumiu da loja: acha pelo SKU ou cria de novo (produtos_religar.py).
+        religar_shopify.atualizar(self, obj, self.gid("Product", external_id))
+
+    def _atualizar(self, obj, produto_gid):
         variantes = self._variantes(obj)
         velhas = midias_shopify.trocadas(self, obj)
         imagens = midias_shopify.pendentes(self, obj)

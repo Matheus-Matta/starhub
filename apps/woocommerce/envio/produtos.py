@@ -33,6 +33,37 @@ class ProdutoWoo(RecursoWoo):
         corpo["images"], self._midias = produtos_imagens.imagens(self.configuracao, obj)
         return corpo
 
+    def atualizar(self, obj, external_id):
+        """Produto apagado na loja (404): acha pelo SKU e religa; senao cria de novo
+        (com Enviar > Produtos > Criar ligado). Antes falhava ate alguem reimportar."""
+        try:
+            return super().atualizar(obj, external_id)
+        except WooErro as erro:
+            if erro.status != 404:
+                raise
+            novo = self._produto_pelo_sku(obj)
+            ExternalReference.objects.filter(
+                platform=Origin.WOOCOMMERCE, entity_type="produtos", object_id=str(obj.pk)
+            ).delete()
+            if novo:
+                vinculos.referenciar("produtos", novo, obj)
+                return super().atualizar(obj, novo)
+            if not self.configuracao.habilitado("enviar", "produtos", "create"):
+                vinculos.referenciar("produtos", external_id, obj)  # fica como estava
+                raise WooErro(f"{erro} e nenhum produto da loja tem o SKU dele. Ligue "
+                              "Enviar > Produtos > Criar para o hub criar de novo.",
+                              erro.status) from erro
+            self.vincular(obj, self.criar(obj))
+            return None
+
+    def _produto_pelo_sku(self, produto):
+        """Id do unico produto da loja com o SKU de alguma variante (pai da variacao)."""
+        achados = set()
+        for sku in produto.variantes.exclude(sku="").values_list("sku", flat=True):
+            for item in self.cliente.get("products", sku=sku.strip()) or []:
+                achados.add(str(item.get("parent_id") or item["id"]))
+        return achados.pop() if len(achados) == 1 else None
+
     def depois(self, obj, resposta):
         produtos_imagens.vincular(self._midias, resposta)
         if obj.tipo == Produto.Tipo.VARIAVEL:

@@ -5,6 +5,7 @@ import logging
 from apps.woo_api.erros import WooErro
 from apps.woo_api.recursos.categorias import CategoriaRecurso
 from apps.woo_api.recursos.produtos import ProdutoRecurso
+from apps.woo_api.recursos.produtos_nome import aplicar_na_variante, nome_de
 from apps.woo_api.recursos.produtos_sku import (
     criar_inativo,
     erro_sem_sku,
@@ -18,6 +19,7 @@ from apps.woo_api.views.lote import LoteView
 
 logger = logging.getLogger("django.request")
 _CREDENCIAIS = {"consumer_key", "consumer_secret"}
+# Mais o `name` (produtos_nome.py): no produto ou no titulo da variacao.
 _CAMPOS_UPDATE_PRODUTO = {"regular_price", "sale_price", "stock_quantity"}
 
 
@@ -48,12 +50,18 @@ class ProdutoV3Recurso(ProdutoRecurso):
         # Id de variacao na URL: ela ja e a variante; senao o SKU escolhe.
         variante = variacao_de(obj) if not criando else None
         variante = variante or variante_do_sku(dados, produto=None if criando else obj)
+        # `name`: no produto (simples ou pelo id dele) ou no titulo da variacao
+        # (recursos/produtos_nome.py). O resto do cadastro continua so no hub.
+        nome = nome_de(dados)
         if variante is not None:
+            aplicar_na_variante(variante, nome)
             return gravar_na_variante(variante, permitidos)
         if criando:
             if not sku_de(dados):
                 raise erro_sem_sku()
             return criar_inativo(obj, dados, permitidos)
+        if nome:
+            permitidos["name"] = nome
         return super().gravar(obj, permitidos, criando=False)
 
 

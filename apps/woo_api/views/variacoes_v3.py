@@ -4,7 +4,7 @@ Com o id proprio da variacao (produtos_variacao.py), o ERP passou a fazer como n
 PUT products/461/variations/1000000856. Sem a rota o hub respondia 404 em HTML e a
 variacao nao mudava. Aceita o id da API (1000000000 + variante), o id da variante e o id
 do pai (= a variante padrao), sempre dentro do produto da URL. Mesma regra do produto
-na v3: so preco, promocao e estoque mudam.
+na v3: so preco, promocao, estoque e o `name` (titulo da variante, produtos_nome.py).
 """
 
 import logging

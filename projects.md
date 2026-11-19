@@ -488,7 +488,12 @@ O token vale `JWT_ACESSO_DIAS` dias (7, como no plugin). O login tem limite de
 Base: `/wp-json/wc/v1/`. Sem barra no final, como no WordPress (com barra tambem funciona).
 A integracao tambem aceita produtos e categorias em `/wp-json/wc/v3/products`: consulta,
 categorias podem ser criadas e alteradas, mas produtos existentes aceitam somente alteracao
-de `regular_price`, `sale_price` e `stock_quantity`. Filtros/corpos aparecem no terminal.
+de `regular_price`, `sale_price`, `stock_quantity` e `name`. Filtros/corpos aparecem no terminal.
+O `name` (`apps/woo_api/recursos/produtos_nome.py`) vai para o que o SKU/id acha: produto
+de uma variante so ou PUT pelo id do produto -> nome do produto; produto com mais de uma
+variante -> titulo da variante do SKU, tirando do comeco o nome do produto ("SOFA X -
+Veludo Azul" -> "Veludo Azul"; "SOFA X-" nao sobra nada e o titulo fica). Conta as
+variantes, nao o tipo. Nome vazio nao apaga nada.
 O SKU localiza o produto (`apps/woo_api/recursos/produtos_sku.py`): `POST products`
 (o ERP manda `id` 0 quando nao sabe o id) com um `sku` que o hub tem atualiza preco e
 estoque daquela variante e devolve 201 com o produto e o `id`. SKU que o hub nao tem
@@ -514,7 +519,8 @@ Rotas de variacao do Woo na v3 (`apps/woo_api/views/variacoes_v3.py`):
 `<id>` pode ser o id da API (`1000000000 + variante`), o id da variante ou o id do pai
 (= variante padrao), sempre dentro do produto da URL; fora dele, 404
 `woocommerce_rest_product_variation_invalid_id`. Como no produto da v3, so preco,
-promocao e estoque mudam. E o que o ERP chama depois de receber o id da variacao.
+promocao, estoque e o `name` (titulo da variante) mudam. E o que o ERP chama depois de
+receber o id da variacao.
 
 | Recurso | Lista / cria | Le / altera / exclui | Lote |
 | --- | --- | --- | --- |
@@ -935,6 +941,11 @@ vinculo, e so e criada se nao existe:
 - WooCommerce: lista `products/<id>/variations` e casa pelo SKU antes do vinculo;
   estoque com 404 acha pelo SKU (`products?sku=`, que devolve a variacao).
 - Suri: o corpo ja vai inteiro com as variantes pelo SKU.
+- Produto ligado a um id que sumiu da loja (Shopify "Product does not exist", Woo 404):
+  acha o produto da loja pelo SKU de alguma variante e refaz o vinculo (variantes e fotos
+  do velho saem); sem SKU la, cria de novo se Enviar > Produtos > Criar estiver ligado.
+  Produto da loja que ja e de outro produto do hub nao e roubado (SKU repetido: erro
+  explicando). Shopify: `shopify/envio/produtos_religar.py`; Woo: `ProdutoWoo.atualizar`.
 
 **Sincronizar com integracao** (`apps/loja/admin/produtos_sincronizar.py`): acao em
 massa na lista de produtos e botao "Sincronizar" dentro do produto. Um dialog escolhe

@@ -24,7 +24,7 @@ def test_v3_consulta_produto_por_sku_e_exibe_os_filtros(api, caplog):
 
 
 def test_v3_atualiza_produto_e_exibe_o_corpo_recebido(api, caplog):
-    """A v3 altera somente os dois precos e o estoque permitidos pelo negocio."""
+    """A v3 altera os dois precos, o estoque e o nome; o resto (visibilidade...) nao."""
     produto = criar_produto("Caneca", sku="1490", price="10.00", inventory_quantity=2)
 
     with caplog.at_level(logging.INFO, logger="django.request"):
@@ -41,7 +41,7 @@ def test_v3_atualiza_produto_e_exibe_o_corpo_recebido(api, caplog):
         )
 
     assert resposta.status_code == 200
-    assert resposta.json()["name"] == "Caneca"
+    assert resposta.json()["name"] == "Caneca grande"
     assert resposta.json()["catalog_visibility"] == "visible"
     assert resposta.json()["regular_price"] == "29.90"
     assert resposta.json()["sale_price"] == "24.90"
