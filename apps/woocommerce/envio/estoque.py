@@ -4,11 +4,16 @@ Variacao: PUT products/<pai>/variations/<id> (o pai vem do vinculo "variantes").
 Produto simples: a variante padrao nao tem vinculo proprio; o estoque vai no
 produto (PUT products/<id>). Numero absoluto, nao delta: envio perdido ou repetido
 se corrige no proximo.
+
+Vinculo velho (404: apagado/recriado na loja): acha pelo SKU (products?sku=, que no
+Woo devolve tambem a variacao, com parent_id), refaz o vinculo e envia.
 """
 
+from apps.core.models import ExternalReference, Origin
 from apps.integracoes.envio.base import EnvioNaoSuportado
 from apps.loja.models import VarianteProduto
 from apps.woocommerce import vinculos
+from apps.woocommerce.cliente import WooErro
 from apps.woocommerce.envio.base import RecursoWoo
 
 
@@ -38,5 +43,29 @@ class EstoqueWoo(RecursoWoo):
         if not obj.manage_inventory:
             raise EnvioNaoSuportado(
                 f"variante {obj.pk} esta sem controle de estoque no hub; nada a enviar.")
-        self.cliente.put(f"products/{external_id}",
-                         {"manage_stock": True, "stock_quantity": obj.inventory_quantity})
+        corpo = {"manage_stock": True, "stock_quantity": obj.inventory_quantity}
+        try:
+            self.cliente.put(f"products/{external_id}", corpo)
+        except WooErro as erro:
+            if erro.status != 404:
+                raise
+            achado = self._pelo_sku(obj)
+            if achado is None:
+                raise WooErro(f"{erro} (e nenhuma variacao/produto unico com o SKU "
+                              f"{obj.sku or '-'} na loja)", erro.status) from erro
+            self.cliente.put(f"products/{achado}", corpo)
+
+    def _pelo_sku(self, variante):
+        sku = (variante.sku or "").strip()
+        achados = self.cliente.get("products", sku=sku) if sku else []
+        if len(achados or []) != 1:
+            return None
+        item = achados[0]
+        pai = item.get("parent_id") or ""
+        if pai:
+            ExternalReference.objects.filter(
+                platform=Origin.WOOCOMMERCE, entity_type="variantes",
+                object_id=str(variante.pk)).exclude(external_id=str(item["id"])).delete()
+            vinculos.referenciar("variantes", item["id"], variante, pai=pai)
+            return f"{pai}/variations/{item['id']}"
+        return str(item["id"])

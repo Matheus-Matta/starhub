@@ -33,6 +33,15 @@ def test_catalogo_desligado_responde_404_e_ligado_e_publico(client, conta):
     assert resposta["X-Robots-Tag"].startswith("noindex")
 
 
+def test_catalogo_publico_abre_com_sessao_do_admin(admin_logado, conta):
+    """O DRF troca o usuario da rota publica por anonimo sem invalidar o tenant ligado."""
+    _publicar(conta)
+
+    resposta = admin_logado.get(_url(conta))
+
+    assert resposta.status_code == 200
+
+
 def test_catalogo_de_conta_inativa_responde_404(client, conta):
     """Desativar a conta precisa retirar imediatamente seu catalogo publico do ar."""
     conta.catalogo_publico = True

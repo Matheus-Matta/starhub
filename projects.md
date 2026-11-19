@@ -922,6 +922,20 @@ como update aos marketplaces, mesmo sem outro campo mudado
 novas e apaga da loja (`fileDelete`) a midia com vinculo cuja foto saiu do hub ou teve
 a URL trocada; midia da loja sem vinculo fica. A Suri recebe a lista inteira no PUT.
 
+**Variante no envio: SKU primeiro, depois o id.** Qualquer dado da variante alterado no
+hub (preco, promocao, SKU, codigo de barras, opcao Cor/Tamanho, estoque) sai para os
+marketplaces; trocar so a opcao (`ValorDaVarianteProduto`) tambem gera o envio
+(`sinais._opcao_da_variante`). Na loja, cada variante e achada pelo SKU, depois pelo
+vinculo, e so e criada se nao existe:
+- Shopify (`shopify/envio/produtos_casar.py`): a resposta do productUpdate traz as
+  variantes e as opcoes da loja; vinculo velho ou trocado e refeito. A opcao vai no
+  lote so se a loja tem aquela opcao; variante nova com opcao que a loja nao tem fica de
+  fora com aviso (antes "Option does not exist" derrubava o envio, preco junto).
+  Estoque: vinculo para variante que sumiu acha a do mesmo SKU (`productVariants`).
+- WooCommerce: lista `products/<id>/variations` e casa pelo SKU antes do vinculo;
+  estoque com 404 acha pelo SKU (`products?sku=`, que devolve a variacao).
+- Suri: o corpo ja vai inteiro com as variantes pelo SKU.
+
 **Sincronizar com integracao** (`apps/loja/admin/produtos_sincronizar.py`): acao em
 massa na lista de produtos e botao "Sincronizar" dentro do produto. Um dialog escolhe
 a integracao ativa (Shopify, Suri, WooCommerce); vira uma tarefa de Exportar com

@@ -1,7 +1,8 @@
 """Produto do hub -> Product do Shopify.
 
 - criar: productSet, o produto inteiro (dados, opcoes e variantes) numa chamada so.
-- atualizar: productUpdate (so os campos do produto) + variantes em lote. NUNCA
+- atualizar: productUpdate (so os campos do produto) + variantes em lote, cada uma
+  achada na loja pelo SKU e depois pelo id (produtos_casar.py). NUNCA
   productSet: nele toda lista omitida ou incompleta (colecoes, midias, metafields,
   variantes) e apagada na loja, e cada edicao no hub arrancaria imagens e colecoes.
   Variante que so existe no Shopify fica; variante nova do hub e criada.
@@ -12,6 +13,7 @@
 
 from apps.integracoes.envio.base import EnvioNaoSuportado
 from apps.loja.models import Produto
+from apps.shopify.envio import produtos_casar as casar_shopify
 from apps.shopify.envio import produtos_midias as midias_shopify
 from apps.shopify.envio import produtos_variantes as variantes_shopify
 from apps.shopify.envio.base import RecursoShopify
@@ -25,7 +27,9 @@ CRIAR = """mutation($input: ProductSetInput!) {
 }"""
 ATUALIZAR = """mutation($product: ProductUpdateInput!, $media: [CreateMediaInput!]) {
   productUpdate(product: $product, media: $media) {
-    product { id media(first: 250) { nodes { id } } } userErrors { field message }
+    product { id media(first: 250) { nodes { id } } options { name }
+      variants(first: 250) { nodes { id sku inventoryItem { id } } } }
+    userErrors { field message }
   }
 }"""
 ATUALIZAR_VARIANTES = """mutation($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
@@ -94,12 +98,19 @@ class ProdutoShopify(RecursoShopify):
         vinculos = dict(self.referencias_variantes().filter(
             object_id__in=[str(v.pk) for v in variantes]
         ).values_list("object_id", "external_id"))
+        loja, opcoes = casar_shopify.da_loja(produto)
+        if loja is not None:
+            # SKU primeiro, depois o id (produtos_casar.py).
+            vinculos = {str(pk): gid for pk, gid in casar_shopify.casar(
+                self, variantes, loja, vinculos, produto_gid).items()}
         vinculadas = [v for v in variantes if str(v.pk) in vinculos]
         novas = [v for v in variantes if str(v.pk) not in vinculos]
         if vinculadas:
             self.mutacao(ATUALIZAR_VARIANTES, {"productId": produto_gid, "variants": [
-                {"id": vinculos[str(v.pk)], **variantes_shopify.em_lote(v)} for v in vinculadas
+                {"id": vinculos[str(v.pk)], **casar_shopify.no_lote(v, opcoes)}
+                for v in vinculadas
             ]}, "productVariantsBulkUpdate")
+        novas = casar_shopify.criaveis(novas, len(variantes) > 1, opcoes)
         if novas:
             self._criar_variantes(produto_gid, novas, len(variantes) > 1)
 

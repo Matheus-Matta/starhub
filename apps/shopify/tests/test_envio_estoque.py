@@ -133,7 +133,9 @@ def test_user_errors_do_estoque_viram_shopify_erro(conta):
     variante = _variante(metadata={"inventory_item_id": ITEM_GID})
     enviador = _enviador(conta, {"location": LOCAL, "inventorySetQuantities": {
         "inventorySetQuantities": {"userErrors": [
-            {"field": ["input"], "message": "not stocked at location"}]}}})
+            {"field": ["input"], "message": "not stocked at location"}]}},
+        # Confere o item de novo: e o mesmo, entao o erro e outro e volta como veio.
+        "productVariant(": {"productVariant": {"inventoryItem": {"id": ITEM_GID}}}})
 
     with pytest.raises(ShopifyErro, match="not stocked at location"):
         enviador.atualizar(variante, VARIANTE_GID)

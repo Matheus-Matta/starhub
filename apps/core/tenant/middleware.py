@@ -51,13 +51,14 @@ def _bind_request(request):
     # Decisao do produto: no admin o superusuario ve todas as contas (com coluna e
     # filtro "Conta" nas listagens). Fora do admin, inclusive na API, ninguem ve.
     todas = bool(user.is_superuser) and _no_admin(request)
+    request.tenant_account_id = user.account_id
     request.tenant_todas_as_contas = todas
     return bind_tenant(user.account_id, user, todas_as_contas=todas)
 
 
 def _validar_saida(request, response):
     if not getattr(request, "tenant_todas_as_contas", False):
-        validate_tenant_response(response, request.user.account_id)
+        validate_tenant_response(response, request.tenant_account_id)
 
 
 def TenantMiddleware(get_response):
