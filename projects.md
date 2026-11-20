@@ -946,6 +946,17 @@ vinculo, e so e criada se nao existe:
   do velho saem); sem SKU la, cria de novo se Enviar > Produtos > Criar estiver ligado.
   Produto da loja que ja e de outro produto do hub nao e roubado (SKU repetido: erro
   explicando). Shopify: `shopify/envio/produtos_religar.py`; Woo: `ProdutoWoo.atualizar`.
+- Shopify, id que existe mas e de OUTRO produto (vinculo trocado): antes de alterar,
+  `produtos_religar.conferir` le os SKUs do produto do id (1 consulta por envio de
+  produto). Algum bate -> segue pelo id. Nenhum bate -> busca pelo SKU; achou um produto
+  so -> altera esse e corrige o vinculo. Nao achou -> segue pelo id (SKU trocado no hub,
+  2822 -> 2822A: e o update que leva o novo). Produto da loja sem SKU: segue pelo id.
+- Fotos ao refazer o vinculo do produto (`shopify/envio/produtos_midias_religar.py`):
+  cada foto do hub procura a sua no produto achado pela referencia do vinculo antigo (URL
+  da CDN sem `?v=`, ou o nome do arquivo enviado, com o sufixo `_xxxx` que a CDN poe em
+  nome repetido). Casou: so religa. Foto da loja sem par sai (`fileDelete`); foto do hub
+  sem par vai no update. Nunca duplica; no pior caso e apagar tudo e mandar de novo.
+  So nesse momento: no envio normal a galeria nao e reenviada.
 
 **Sincronizar com integracao** (`apps/loja/admin/produtos_sincronizar.py`): acao em
 massa na lista de produtos e botao "Sincronizar" dentro do produto. Um dialog escolhe

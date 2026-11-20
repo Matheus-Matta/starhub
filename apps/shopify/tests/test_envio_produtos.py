@@ -34,6 +34,14 @@ class ClienteFalso:
         for chave, resposta in self.respostas.items():
             if chave in query:
                 return resposta
+        if "node(id:" in query:
+            # Fotos do produto achado pelo SKU (produtos_midias_religar): sem resposta no
+            # teste, a loja nao tem nenhuma.
+            return {"node": {"id": (variables or {}).get("id"), "media": {"nodes": []}}}
+        if "product(id:" in query:
+            # Conferencia do produto antes do update (produtos_religar.conferir): sem
+            # resposta no teste, a loja nao informa SKU e o envio segue pelo id.
+            return {"product": {"id": (variables or {}).get("id"), "variants": {"nodes": []}}}
         raise AssertionError(f"query inesperada: {query[:60]}")
 
 
