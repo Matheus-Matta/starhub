@@ -1,9 +1,39 @@
+from html.parser import HTMLParser
+
 from django.db.models import CharField, Exists, F, IntegerField, OuterRef, Prefetch, Value
-from django.utils.html import strip_tags
 
 from apps.core.tenant.context import get_current_account_id
 from apps.loja.dinheiro import texto
 from apps.loja.models import ItemBundle, MidiaProduto, Produto, VarianteProduto
+
+
+class _ExtratorTexto(HTMLParser):
+    blocos = {"br", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "p", "tr"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.partes = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self.blocos:
+            self.partes.append(" ")
+
+    def handle_startendtag(self, tag, attrs):
+        self.handle_starttag(tag, attrs)
+
+    def handle_endtag(self, tag):
+        if tag in self.blocos:
+            self.partes.append(" ")
+
+    def handle_data(self, data):
+        self.partes.append(data)
+
+
+def _texto_publico(valor):
+    extrator = _ExtratorTexto()
+    extrator.feed(str(valor or ""))
+    extrator.close()
+    return " ".join("".join(extrator.partes).split())
 
 
 def referencias_catalogo():
@@ -98,7 +128,7 @@ def _linha(produto, variante, request):
     imagem = imagens[0]["src"] if imagens else ""
     if imagem and imagem.startswith("/"):
         imagem = request.build_absolute_uri(imagem)
-    return {
+    linha = {
         "nome": nome,
         "tipo": produto.get_tipo_display(),
         "variacao": variante.titulo if variante else "",
@@ -110,11 +140,18 @@ def _linha(produto, variante, request):
         "situacao_estoque": situacao,
         "categorias": ", ".join(categoria.nome for categoria in produto.categorias.all()),
         "componentes": _componentes(produto),
-        "descricao_curta": strip_tags(produto.descricao_curta),
-        "descricao": strip_tags(produto.descricao),
+        "descricao_curta": produto.descricao_curta,
+        "descricao": produto.descricao,
         "imagem": imagem,
         "url_externa": produto.url_externa,
     }
+    for chave, valor in linha.items():
+        if chave not in {"imagem", "url_externa"}:
+            linha[chave] = (
+                [_texto_publico(item) for item in valor]
+                if isinstance(valor, list) else _texto_publico(valor)
+            )
+    return linha
 
 
 def linhas_catalogo(referencias, request):

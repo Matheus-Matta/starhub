@@ -52,9 +52,10 @@ def test_catalogo_de_conta_inativa_responde_404(client, conta):
 
 
 def test_cada_variacao_vira_linha_com_conteudo_seguro(client, conta):
-    """Cada SKU precisa de linha propria e texto cadastrado nunca pode executar script."""
+    """Texto do catalogo precisa sair legivel, sem carregar as tags HTML cadastradas."""
     produto = Produto.objects.create(
-        nome="Camiseta <script>alert(1)</script>", tipo=Produto.Tipo.VARIAVEL
+        nome="Camiseta <script>alert(1)</script>", tipo=Produto.Tipo.VARIAVEL,
+        descricao="<p>Leve<p>100% algodao",
     )
     for titulo, sku, preco in (
         ("Azul / P", "CAM-AZ-P", "79.90"),
@@ -70,7 +71,9 @@ def test_cada_variacao_vira_linha_com_conteudo_seguro(client, conta):
     html = client.get(_url(conta)).content.decode()
 
     assert html.count("<tr data-item") == 4
-    assert "Camiseta &lt;script&gt;alert(1)&lt;/script&gt; - Azul / P" in html
+    assert "Camiseta alert(1) - Azul / P" in html
+    assert "Leve 100% algodao" in html
+    assert "&lt;script&gt;" not in html
     assert "CAM-AZ-M" in html and "94.90" in html
     assert "<script>alert(1)</script>" not in html
 
