@@ -17,6 +17,7 @@ from apps.loja.admin.bundle import ComponenteInline, estoque_calculado
 from apps.loja.admin.codigo_externo import CodigoExternoMixin
 from apps.loja.admin.detalhes import variacoes_do_produto
 from apps.loja.admin.produtos_agrupar import AgruparProdutoMixin
+from apps.loja.admin.produtos_exportar import ExportarProdutoMixin
 from apps.loja.admin.produtos_sincronizar import (
     SincronizarProdutoMixin,
     sincronizar_com_integracao,
@@ -50,8 +51,8 @@ class FiltroStatusProduto(admin.SimpleListFilter):
 
 
 @admin.register(Produto)
-class ProdutoAdmin(AgruparProdutoMixin, SincronizarProdutoMixin, CodigoExternoMixin,
-                   TemaModelAdmin):
+class ProdutoAdmin(AgruparProdutoMixin, ExportarProdutoMixin, SincronizarProdutoMixin,
+                   CodigoExternoMixin, TemaModelAdmin):
     entidade_externa = "produtos"
     actions = [sincronizar_com_integracao]
     campos_json = campos.PRODUTO

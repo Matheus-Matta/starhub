@@ -75,6 +75,8 @@ def _celula(model_admin, obj, nome):
         campo, attr, valor = lookup_field(nome, obj, model_admin)
     except (AttributeError, ObjectDoesNotExist):
         return "", False
+    if campo is None and getattr(attr, "em_reais", False) and isinstance(valor, Decimal):
+        return local(valor), True
     if campo is None and (por_tras := _campo_por_tras(type(obj), attr)):
         return local(getattr(obj, por_tras.attname)), "R$" in _texto(valor)
     if campo is not None and getattr(campo, "choices", None):
@@ -101,7 +103,18 @@ class RelatorioModelo(Relatorio):
         return self.model_admin.has_view_or_change_permission(request)
 
     def _colunas(self, request):
+        # `colunas_exportacao` no ModelAdmin: um dado por coluna quando a lista junta
+        # varios numa celula rica (ex.: produto com foto, nome e SKU).
+        proprias = getattr(self.model_admin, "colunas_exportacao", None)
+        if proprias:
+            return list(proprias)
         return [nome for nome in self.model_admin.get_list_display(request) if nome not in FORA]
+
+    def _linhas(self, obj):
+        # `linhas_da_exportacao(obj)` no ModelAdmin: um registro em varias linhas (ex.:
+        # produto variavel, uma por variacao). Sem ele, uma linha por registro.
+        abrir = getattr(self.model_admin, "linhas_da_exportacao", None)
+        return abrir(obj) if abrir else [obj]
 
     def _consulta(self, request, de, ate):
         admin = self.model_admin
@@ -139,9 +152,10 @@ class RelatorioModelo(Relatorio):
         ])
         objetos = consulta[:limite] if limite is not None else consulta
         for obj in objetos.iterator(chunk_size=500):
-            celulas = [_celula(self.model_admin, obj, nome) for nome in nomes]
-            tabela.linhas.append([valor for valor, _reais in celulas])
-            tabela.moeda |= {indice for indice, (_v, reais) in enumerate(celulas) if reais}
+            for linha in self._linhas(obj):
+                celulas = [_celula(self.model_admin, linha, nome) for nome in nomes]
+                tabela.linhas.append([valor for valor, _reais in celulas])
+                tabela.moeda |= {i for i, (_v, reais) in enumerate(celulas) if reais}
         return Resultado(tabela, consulta.count())
 
     def gerar(self, request, de, ate, limite, painel=False):

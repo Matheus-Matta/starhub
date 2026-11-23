@@ -381,6 +381,13 @@ class ProdutoAdmin(TemaModelAdmin):
   exporta todas as linhas filtradas pelas colunas de `list_display` e, ao concluir,
   mostra na tarefa os botoes **Baixar Excel** e **Baixar PDF**. Os arquivos ficam no
   storage em `relatorios/<conta>/<uuid da tarefa>/` e so saem por uma view autenticada.
+  Dois ganchos opcionais no ModelAdmin (`apps/core/relatorios/modelos.py`):
+  `colunas_exportacao` troca as colunas da lista por um dado por coluna, e
+  `linhas_da_exportacao(obj)` abre um registro em varias linhas; metodo com
+  `em_reais = True` sai como dinheiro. Produtos (`apps/loja/admin/produtos_exportar.py`):
+  ID, Nome, Variacao, SKU, Codigo de barras, Codigo externo, Tipo, Preco, Preco
+  promocional, Estoque, Situacao do estoque, Status, Ativo e Alterado em; o variavel
+  sai com uma linha por variacao (cada uma com o seu SKU, preco e estoque).
 - **Agrupar produtos simples** (botao dentro do produto simples,
   `apps/loja/admin/produtos_agrupar.py` + `apps/loja/services/agrupar.py`): o ERP so
   cadastra simples, entao a Camiseta P, M e G chega como tres produtos. Abra um deles e

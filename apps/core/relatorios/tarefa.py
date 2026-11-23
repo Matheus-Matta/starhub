@@ -103,10 +103,13 @@ def executar(execucao_id):
         gerados = _salvar(execucao, relatorio, resultado)
         arquivos = [item["caminho"] for item in gerados.values()]
         parametros = {**(execucao.parametros or {}), "arquivos": gerados}
+        linhas = len(resultado.principal.linhas)
+        # Produto variavel abre em uma linha por variacao: o arquivo tem mais linhas.
+        extra = f" ({linhas} linha(s), uma por variacao)" if linhas != total else ""
         _gravar(
             execucao, status=ExecucaoIntegracao.Status.CONCLUIDA, progresso=100,
             processados=total, total=total, etapa="Concluida",
-            mensagem=f"{total} registro(s) exportado(s) em Excel e PDF.",
+            mensagem=f"{total} registro(s) exportado(s) em Excel e PDF{extra}.",
             parametros=parametros, concluida_em=timezone.now(),
         )
         return {"status": "completed", "total": total}

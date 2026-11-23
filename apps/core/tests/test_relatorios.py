@@ -114,7 +114,13 @@ def test_todo_relatorio_abre_e_exporta_com_dados_reais(admin_logado, conta, sett
         assert [r.status_code for r in respostas] == [200] * 3, relatorio.chave
         total = respostas[0].context["total"]
         planilha = load_workbook(BytesIO(respostas[1].content)).active
-        assert planilha.max_row - 1 == total, relatorio.chave
+        linhas = planilha.max_row - 1
+        # Quem abre o registro em varias linhas (produto variavel: uma por variacao)
+        # tem pelo menos uma por registro; os outros, exatamente uma.
+        if hasattr(getattr(relatorio, "model_admin", None), "linhas_da_exportacao"):
+            assert linhas >= total, relatorio.chave
+        else:
+            assert linhas == total, relatorio.chave
         com_dados += total > 0
     # O demo cobre a maior parte dos models: sem isso o laco acima testaria tabela vazia.
     assert com_dados >= 10
