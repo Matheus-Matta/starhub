@@ -50,6 +50,11 @@
   flex: 1;
 }
 
+.list-export {
+  display: flex;
+  margin: 0;
+}
+
 #toolbar.list-search {
   margin: 0;
   padding: 0;
@@ -79,7 +84,8 @@
 }
 
 .list-search .btn,
-.list-card-tools > .btn {
+.list-card-tools > .btn,
+.list-export .btn {
   height: 36px;
 }
 
@@ -138,6 +144,8 @@
 
   .list-search,
   .list-search form,
+  .list-export,
+  .list-export .btn,
   #toolbar #searchbar {
     width: 100%;
   }

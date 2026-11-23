@@ -375,6 +375,12 @@ class ProdutoAdmin(TemaModelAdmin):
   colunas continua visivel.
 - A busca da listagem nao tem botao: envia sozinha 600 ms depois da ultima
   tecla e devolve o foco ao campo depois do recarregamento.
+- **Exportar** ao lado de Filtros existe em toda lista do tema. Ele preserva busca,
+  filtros e ordenacao, ignora somente a pagina e cria a tarefa **Exportar relatorio**.
+  O worker reconstroi o mesmo `ChangeList` com o usuario e a conta que pediram,
+  exporta todas as linhas filtradas pelas colunas de `list_display` e, ao concluir,
+  mostra na tarefa os botoes **Baixar Excel** e **Baixar PDF**. Os arquivos ficam no
+  storage em `relatorios/<conta>/<uuid da tarefa>/` e so saem por uma view autenticada.
 - Produto aparece em uma celula rica com miniatura, nome e SKU. Pedido mostra
   avatar, nome e e-mail do cliente, alem da quantidade de itens. Sem imagem,
   os componentes usam icone ou iniciais como alternativa.

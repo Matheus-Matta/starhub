@@ -18,6 +18,7 @@ from django.db import models
 
 from apps.core import admin_condicoes, admin_lista_modal, admin_logs
 from apps.core.admin_conta import ContaAdminMixin
+from apps.core.admin_exportar import ExportarListaMixin
 from apps.core.admin_historico import HistoricoMixin
 from apps.core.fields import TextoHTMLField
 from apps.core.filtros import FiltroPeriodo
@@ -34,7 +35,7 @@ WIDGETS_TEMA = {
 }
 
 
-class TemaMixin(ContaAdminMixin):
+class TemaMixin(ExportarListaMixin, ContaAdminMixin):
     formfield_overrides = WIDGETS_TEMA
     # Pares (campo_inicio, campo_fim) que abrem juntos no seletor de periodo.
     periodos = []

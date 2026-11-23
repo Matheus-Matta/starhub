@@ -15,7 +15,7 @@ from django.views.decorators.http import require_POST
 
 from apps.core.admin_base import TemaModelAdmin
 from apps.core.admin_utils import badge
-from apps.integracoes import progresso, retomar, sincronizacao, trafego
+from apps.integracoes import admin_tarefas_arquivos, progresso, retomar, sincronizacao, trafego
 from apps.integracoes.admin_sincronizacao import falhas_legiveis, parametros_legiveis
 from apps.integracoes.admin_tarefas_registros import RegistroDaTarefaFilter, contexto
 from apps.integracoes.models import ExecucaoIntegracao
@@ -54,12 +54,19 @@ class ExecucaoIntegracaoAdmin(TemaModelAdmin):
 
     def get_urls(self):
         rotas = [
+            path("<path:object_id>/arquivo/<str:formato>/",
+                 self.admin_site.admin_view(self.arquivo_view),
+                 name="integracoes_execucaointegracao_arquivo"),
             path("<path:object_id>/liberar/", self.admin_site.admin_view(self.liberar_view),
                  name="integracoes_execucaointegracao_liberar"),
             path("<path:object_id>/retomar/", self.admin_site.admin_view(self.retomar_view),
                  name="integracoes_execucaointegracao_retomar"),
         ]
         return [*rotas, *super().get_urls()]
+
+    def arquivo_view(self, request, object_id, formato):
+        execucao = self._execucao(request, object_id)
+        return admin_tarefas_arquivos.resposta(request, execucao, formato)
 
     def _execucao(self, request, object_id):
         execucao = self.get_object(request, object_id)
@@ -118,6 +125,7 @@ class ExecucaoIntegracaoAdmin(TemaModelAdmin):
                 and self.has_marcar_como_falhou_permission(request),
                 "duracao": duracao(execucao),
                 "parametros_html": parametros_legiveis(execucao),
+                "arquivos_exportacao": admin_tarefas_arquivos.para_tela(request, execucao),
                 **trafego.para_tela(execucao.parametros),
                 "falhas_html": falhas_legiveis(execucao) if execucao.falhas else "",
                 "dica_falhas": (

@@ -27,6 +27,11 @@
         {% endblock %}
         {% url opts|admin_urlname:'changelist' as changelist_url %}
         <a href="{% add_preserved_filters changelist_url %}" class="btn btn-outline">Voltar</a>
+        {% for arquivo in arquivos_exportacao %}
+          <a href="{{ arquivo.url }}" class="btn btn-primary"{% if arquivo.formato == "pdf" %} title="Baixe e abra o PDF para imprimir."{% endif %}>
+            {% icone arquivo.icone "icon-sm" %} {{ arquivo.rotulo }}
+          </a>
+        {% endfor %}
         {% if pode_retomar %}
           <form method="post" action="{{ url_retomar }}">{% csrf_token %}
             <button type="submit" class="btn btn-primary"

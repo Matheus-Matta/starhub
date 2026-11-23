@@ -9,6 +9,7 @@ Cada tipo volta para a fila com o que precisa:
   sem isso, sao lidas da mensagem ("produtos update 15: erro...").
 - Receber webhook: parametros["reenvio"] com o corpo recebido. As antigas nao
   guardavam o corpo: nao tem o que reprocessar (a sincronizacao busca de novo).
+- Exportar relatorio: refaz os arquivos com o mesmo model, usuario e filtros.
 
 A reabertura e um UPDATE filtrado pelo status: duas pessoas clicando ao mesmo tempo
 nao colocam a tarefa duas vezes na fila. Sincronizacao reaberta com outra em
@@ -41,6 +42,7 @@ TAREFAS = {
     Tipo.CPF_PEDIDOS: "apps.shopify.tasks.preencher_cpf_shopify",
     Tipo.ATIVAR_PEDIDOS: "apps.loja.tasks.ativar_pedidos",
     Tipo.REIMPORTAR_PEDIDOS: "apps.shopify.tasks.reimportar_pedidos_shopify",
+    Tipo.EXPORTAR_RELATORIO: "apps.core.tasks.exportar_relatorio",
 }
 # Tarefa de marketplace que nao e a do Shopify (a de TAREFAS): troca pela da plataforma.
 POR_PLATAFORMA = {
@@ -85,7 +87,8 @@ def argumentos(execucao):
     if execucao.tipo in (Tipo.SINCRONIZAR, Tipo.EXPORTAR, Tipo.WEBHOOKS, Tipo.IMPORTAR_AVALIACOES,
                          Tipo.IMPORTAR_FRETE, Tipo.FRETE_CHECKOUT, Tipo.VERIFICAR_FRETE,
                          Tipo.IMPORTAR_SERVICOS, Tipo.EXPORTAR_SERVICOS,
-                         Tipo.CPF_PEDIDOS, Tipo.ATIVAR_PEDIDOS, Tipo.REIMPORTAR_PEDIDOS):
+                         Tipo.CPF_PEDIDOS, Tipo.ATIVAR_PEDIDOS, Tipo.REIMPORTAR_PEDIDOS,
+                         Tipo.EXPORTAR_RELATORIO):
         return caminho, (identificador,), {}
     reenvio = _reenvio(execucao)
     if reenvio is None:

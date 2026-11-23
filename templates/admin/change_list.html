@@ -33,6 +33,13 @@ paginacao no mesmo card usado pelo template store-inventory.
         </div>
         <div class="list-card-tools">
           {% block search %}{% search_form cl %}{% endblock %}
+          {% if url_exportar_lista %}
+            <form method="post" action="{{ url_exportar_lista }}" class="list-export">{% csrf_token %}
+              <button type="submit" class="btn btn-outline">
+                {% icone "file-spreadsheet" %}<span>Exportar</span>
+              </button>
+            </form>
+          {% endif %}
           {% if cl.has_filters %}
             {% with ativos=cl|filtros_ativos %}
               <button type="button" class="btn btn-outline btn-filtros" data-acao="abrir-filtros" aria-controls="changelist-filter">

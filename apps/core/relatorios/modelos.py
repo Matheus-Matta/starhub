@@ -130,21 +130,27 @@ class RelatorioModelo(Relatorio):
                     return campo
         return None
 
-    def gerar(self, request, de, ate, limite, painel=False):
+    def gerar_consulta(self, request, consulta, limite=None):
+        """Gera pelas linhas recebidas; a listagem passa aqui seu queryset filtrado."""
         nomes = self._colunas(request)
-        consulta = self._consulta(request, de, ate)
         tabela = Tabela(self.titulo, [
             capfirst(_texto(label_for_field(nome, self.model, self.model_admin)))
             for nome in nomes
         ])
-        for obj in consulta[:limite]:
+        objetos = consulta[:limite] if limite is not None else consulta
+        for obj in objetos.iterator(chunk_size=500):
             celulas = [_celula(self.model_admin, obj, nome) for nome in nomes]
             tabela.linhas.append([valor for valor, _reais in celulas])
             tabela.moeda |= {indice for indice, (_v, reais) in enumerate(celulas) if reais}
-        resultado = Resultado(tabela, consulta.count())
+        return Resultado(tabela, consulta.count())
+
+    def gerar(self, request, de, ate, limite, painel=False):
+        consulta = self._consulta(request, de, ate)
+        resultado = self.gerar_consulta(request, consulta, limite)
         if painel:
+            nomes = self._colunas(request)
             resultado.indicadores, resultado.graficos = painel_modelo.montar(
                 consulta, resultado.total, campo_de_criacao(self.model_admin),
                 self.model_admin.get_list_filter(request),
-                self._campo_em_reais(nomes, tabela.moeda), de, ate)
+                self._campo_em_reais(nomes, resultado.principal.moeda), de, ate)
         return resultado

@@ -140,6 +140,7 @@ class ExecucaoIntegracao(BaseModel):
         CPF_PEDIDOS = "fill_documents", "Buscar CPF dos pedidos"
         ATIVAR_PEDIDOS = "order_active", "Desativar/reativar pedidos"
         REIMPORTAR_PEDIDOS = "reimport_orders", "Reimportar pedidos do Shopify"
+        EXPORTAR_RELATORIO = "export_report", "Exportar relatorio"
         # Escrita (ou erro) recebida pela API Woo: requisicao e resposta ficam na tarefa.
         API_WOO = "api_woo", "Requisicao da API Woo"
 
