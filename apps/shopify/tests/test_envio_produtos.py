@@ -42,6 +42,10 @@ class ClienteFalso:
             # Conferencia do produto antes do update (produtos_religar.conferir): sem
             # resposta no teste, a loja nao informa SKU e o envio segue pelo id.
             return {"product": {"id": (variables or {}).get("id"), "variants": {"nodes": []}}}
+        if "publications(" in query:
+            # Canais de venda do produto novo (produtos_publicar): sem resposta no teste, a
+            # loja nao tem canal e nada e publicado.
+            return {"publications": {"nodes": []}}
         raise AssertionError(f"query inesperada: {query[:60]}")
 
 
@@ -95,7 +99,7 @@ def test_criar_produto_simples_manda_preco_de_venda_e_de_comparacao_como_texto(c
 
     assert enviador.criar(produto) == PRODUTO_GID
 
-    _, variaveis = enviador.cliente.chamadas[-1]
+    variaveis = next(v for q, v in enviador.cliente.chamadas if "productSet" in q)
     entrada = variaveis["input"]
     assert variaveis.get("identifier") is None
     assert entrada["title"] == "Mesa"
@@ -136,7 +140,7 @@ def test_criar_produto_variavel_manda_as_opcoes_de_cada_variante(conta):
 
     enviador.criar(produto)
 
-    entrada = enviador.cliente.chamadas[-1][1]["input"]
+    entrada = next(v for q, v in enviador.cliente.chamadas if "productSet" in q)["input"]
     assert entrada["productOptions"] == [
         {"name": "Cor", "values": [{"name": "Bege"}, {"name": "Prata"}]}
     ]

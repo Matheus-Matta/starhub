@@ -970,6 +970,21 @@ o produto da loja so tem a opcao padrao "Title" e as variantes novas chegam com
 o "Title" pela opcao do hub com o valor da variante ja ligada; as outras entram pelo
 `productVariantsBulkCreate`. Produto da loja que ja tem opcao propria nao passa por isso.
 
+**Produto no Shopify: canais, colecoes, foto da variacao e vendor** (`apps/shopify/envio/`):
+- Canais (`produtos_publicar.py`): produto criado do zero entra em todos os canais de
+  venda (`publications` + `publishablePublish`). So no create: canal tirado a mao na
+  loja nao volta. Precisa dos escopos `read_publications`/`write_publications`; sem
+  eles o produto e criado e o log avisa.
+- Colecoes (`produtos_colecoes.py`): no create e no update, cada categoria do produto com
+  vinculo de colecao entra por `collectionAddProducts` (uma por chamada: colecao
+  automatica recusa e nao barra as outras). So adiciona; categoria sem colecao na loja
+  vira aviso no log. Tirar a categoria no hub nao tira o produto da colecao.
+- Foto da variacao (`produtos_midias_variantes.py`): produto com mais de uma variante liga
+  a primeira foto de cada variacao do hub a variante da loja (`mediaId`). A foto recem
+  enviada fica PROCESSING; a tarefa espera ate 5 x 2 s e a que nao ficar pronta liga no
+  proximo envio.
+- `vendor` e so o Fornecedor; a Marca nao vai para a Shopify.
+
 **Variante no envio: SKU primeiro, depois o id.** Qualquer dado da variante alterado no
 hub (preco, promocao, SKU, codigo de barras, opcao Cor/Tamanho, estoque) sai para os
 marketplaces; trocar so a opcao (`ValorDaVarianteProduto`) tambem gera o envio

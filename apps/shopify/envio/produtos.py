@@ -7,6 +7,8 @@
   variantes) e apagada na loja, e cada edicao no hub arrancaria imagens e colecoes.
   Variante que so existe no Shopify fica; variante nova do hub e criada.
 - excluir: productDelete.
+- canais de venda: o produto novo entra em todos (produtos_publicar.py).
+- colecoes (produtos_colecoes.py) e foto de cada variacao (produtos_midias_variantes.py).
 - imagens: ver produtos_midias.py (create manda `files`; update acrescenta `media` e
   apaga da loja a foto que saiu ou foi trocada no hub).
 """
@@ -14,8 +16,12 @@
 from apps.integracoes.envio.base import EnvioNaoSuportado
 from apps.loja.models import Produto
 from apps.shopify.envio import produtos_casar as casar_shopify
+from apps.shopify.envio import produtos_colecoes as colecoes_shopify
 from apps.shopify.envio import produtos_midias as midias_shopify
+from apps.shopify.envio import produtos_midias_variantes as fotos_variantes
+from apps.shopify.envio import produtos_novas as novas_shopify
 from apps.shopify.envio import produtos_opcoes as opcoes_shopify
+from apps.shopify.envio import produtos_publicar as publicar_shopify
 from apps.shopify.envio import produtos_religar as religar_shopify
 from apps.shopify.envio import produtos_variantes as variantes_shopify
 from apps.shopify.envio.base import RecursoShopify
@@ -30,6 +36,7 @@ CRIAR = """mutation($input: ProductSetInput!) {
 ATUALIZAR = """mutation($product: ProductUpdateInput!, $media: [CreateMediaInput!]) {
   productUpdate(product: $product, media: $media) {
     product { id media(first: 250) { nodes { id } } options { name }
+      collections(first: 250) { nodes { id } }
       variants(first: 250) { nodes { id sku inventoryItem { id } } } }
     userErrors { field message }
   }
@@ -37,12 +44,6 @@ ATUALIZAR = """mutation($product: ProductUpdateInput!, $media: [CreateMediaInput
 ATUALIZAR_VARIANTES = """mutation($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
   productVariantsBulkUpdate(productId: $productId, variants: $variants) {
     productVariants { id } userErrors { field message }
-  }
-}"""
-CRIAR_VARIANTES = """mutation($productId: ID!, $variants: [ProductVariantsBulkInput!]!,
-    $strategy: ProductVariantsBulkCreateStrategy) {
-  productVariantsBulkCreate(productId: $productId, variants: $variants, strategy: $strategy) {
-    productVariants { id inventoryItem { id } } userErrors { field message }
   }
 }"""
 EXCLUIR = """mutation($input: ProductDeleteInput!) {
@@ -69,7 +70,7 @@ class ProdutoShopify(RecursoShopify):
             **self._campos(obj),
             "productOptions": variantes_shopify.opcoes_do_produto(pares),
             "variants": [
-                self._nova_no_set(v, posicao, opcoes)
+                novas_shopify.no_set(self, v, posicao, opcoes)
                 for posicao, (v, opcoes) in enumerate(zip(variantes, pares, strict=True), 1)
             ],
         }
@@ -77,10 +78,13 @@ class ProdutoShopify(RecursoShopify):
             entrada["files"] = midias_shopify.arquivos(imagens)
         produto = self.mutacao(CRIAR, {"input": entrada}, "productSet")["product"]
         midias_shopify.registrar(self, imagens, _midias(produto), produto["id"])
+        publicar_shopify.em_todos(self, produto["id"])
         por_posicao = {n.get("position"): n for n in produto["variants"]["nodes"]}
         for posicao, variante in enumerate(variantes, 1):
             if posicao in por_posicao:
                 variantes_shopify.vincular(self, variante, por_posicao[posicao], produto["id"])
+        colecoes_shopify.entrar(self, obj, produto["id"])
+        fotos_variantes.ligar(self, obj, variantes, produto["id"])
         return produto["id"]
 
     def atualizar(self, obj, external_id):
@@ -120,7 +124,9 @@ class ProdutoShopify(RecursoShopify):
             ]}, "productVariantsBulkUpdate")
         novas = casar_shopify.criaveis(novas, len(variantes) > 1, opcoes)
         if novas:
-            self._criar_variantes(produto_gid, novas, len(variantes) > 1)
+            novas_shopify.criar(self, produto_gid, novas, len(variantes) > 1)
+        colecoes_shopify.entrar(self, obj, produto_gid, colecoes_shopify.da_resposta(produto))
+        fotos_variantes.ligar(self, obj, variantes, produto_gid)
 
     def excluir(self, external_id):
         self.mutacao(EXCLUIR, {"input": {"id": self.gid("Product", external_id)}},
@@ -139,7 +145,8 @@ class ProdutoShopify(RecursoShopify):
         campos = {
             "title": produto.nome,
             "descriptionHtml": produto.descricao or "",
-            "vendor": produto.fornecedor or produto.marca or "",
+            # So o fornecedor: a marca no vendor misturava os dois filtros da loja.
+            "vendor": produto.fornecedor or "",
             "status": STATUS.get(produto.status, "DRAFT"),
             "tags": [tag.nome for tag in produto.tags.all()],
         }
@@ -149,46 +156,6 @@ class ProdutoShopify(RecursoShopify):
         if seo:
             campos["seo"] = seo
         return campos
-
-    def _estoque_inicial(self, variante, formato):
-        # So na criacao da variante: depois o estoque segue pelo recurso "estoque",
-        # que tem o seu proprio liga/desliga na configuracao.
-        if not variante.manage_inventory:
-            return None
-        if formato == "set":
-            return [{"locationId": self.local_principal(), "name": "available",
-                     "quantity": variante.inventory_quantity}]
-        return [{"locationId": self.local_principal(),
-                 "availableQuantity": variante.inventory_quantity}]
-
-    def _nova_no_set(self, variante, posicao, opcoes):
-        # ProductVariantSetInput tem `sku` no topo (o lote nao tem).
-        dados = {**variantes_shopify.comum(variante), "position": posicao, "sku": variante.sku,
-                 "optionValues": variantes_shopify.valores_de_opcao(opcoes)}
-        estoque = self._estoque_inicial(variante, "set")
-        if estoque:
-            dados["inventoryQuantities"] = estoque
-        return dados
-
-    def _criar_variantes(self, produto_gid, novas, varias):
-        entrada = []
-        for variante in novas:
-            opcoes = variantes_shopify.opcoes_da_variante(variante, varias)
-            dados = {**variantes_shopify.em_lote(variante),
-                     "optionValues": variantes_shopify.valores_de_opcao(opcoes)}
-            estoque = self._estoque_inicial(variante, "lote")
-            if estoque:
-                dados["inventoryQuantities"] = estoque
-            entrada.append(dados)
-        # PRESERVE: o DEFAULT apaga a variante "Default Title" da loja, e o update nunca
-        # apaga variante.
-        criadas = self.mutacao(CRIAR_VARIANTES, {
-            "productId": produto_gid, "variants": entrada,
-            "strategy": "PRESERVE_STANDALONE_VARIANT",
-        }, "productVariantsBulkCreate").get("productVariants") or []
-        # O Shopify devolve as criadas na ordem da entrada.
-        for variante, recebida in zip(novas, criadas, strict=False):
-            variantes_shopify.vincular(self, variante, recebida, produto_gid)
 
 
 def _midias(produto):

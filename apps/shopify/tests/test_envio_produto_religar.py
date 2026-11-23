@@ -45,6 +45,10 @@ class Sequencia:
             # Conferencia do produto antes do update (produtos_religar.conferir): sem
             # resposta no teste, a loja nao informa SKU e o envio segue pelo id.
             return {"product": {"id": (variables or {}).get("id"), "variants": {"nodes": []}}}
+        if "publications(" in query:
+            # Canais de venda do produto novo (produtos_publicar): sem resposta no teste, a
+            # loja nao tem canal e nada e publicado.
+            return {"publications": {"nodes": []}}
         raise AssertionError(f"query inesperada: {query[:60]}")
 
 

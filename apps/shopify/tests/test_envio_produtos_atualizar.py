@@ -111,3 +111,17 @@ def test_variante_nova_do_hub_e_criada_e_vinculada_sem_apagar_as_da_loja(conta):
     assert referencia.external_id == "gid://shopify/ProductVariant/2"
     assert referencia.metadata["inventory_item_id"] == "gid://shopify/InventoryItem/2"
     assert ExternalReference.objects.filter(object_id=str(antiga.pk)).exists()
+
+
+@pytest.mark.django_db
+def test_vendor_e_so_o_fornecedor_e_a_marca_nao_entra(conta):
+    """Produto sem fornecedor ia para a Shopify com a marca no vendor."""
+    produto, variante = _simples()
+    produto.fornecedor, produto.marca = "", "Tramontina"
+    produto.save()
+    _vincular(variante, 1)
+    enviador = _enviador(conta, _respostas())
+
+    enviador.atualizar(produto, PRODUTO_GID)
+
+    assert _chamada(enviador, "productUpdate")["product"]["vendor"] == ""

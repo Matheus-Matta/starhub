@@ -18,6 +18,7 @@ from apps.core.ui.formatos import moeda
 from apps.loja.models import RegraServico, Servico
 from apps.shopify.cliente import ShopifyErro
 from apps.shopify.envio.base import RecursoShopify
+from apps.shopify.envio.produtos_publicar import PUBLICACOES, PUBLICAR
 from apps.shopify.envio.produtos_variantes import dinheiro
 
 TAG = "starhub-servico"
@@ -29,10 +30,6 @@ SALVAR = """mutation($input: ProductSetInput!, $identifier: ProductSetIdentifier
     product { id variants(first: 250) { nodes { id price } } }
     userErrors { field message code }
   }
-}"""
-PUBLICACOES = "query { publications(first: 50) { nodes { id name } } }"
-PUBLICAR = """mutation($id: ID!, $input: [PublicationInput!]!) {
-  publishablePublish(id: $id, input: $input) { userErrors { field message } }
 }"""
 EXCLUIR = """mutation($input: ProductDeleteInput!) {
   productDelete(input: $input, synchronous: true) { deletedProductId userErrors { field message } }
