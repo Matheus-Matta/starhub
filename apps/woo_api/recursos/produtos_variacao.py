@@ -16,7 +16,9 @@ id do produto: produto simples e id que o ERP ja guardou nao mudam.
 
 import copy
 
+from apps.core.models import ExternalReference, Origin
 from apps.loja.models import VarianteProduto
+from apps.loja.services.agrupar_mover import ENTIDADE_ID_ANTIGO
 from apps.woo_api.recursos.produtos_saida import produto_para_woo
 
 BASE_VARIACAO = 1_000_000_000
@@ -34,6 +36,18 @@ def variante_do_id(pk, travar=False):
     if numero <= BASE_VARIACAO:
         return None
     variantes = VarianteProduto.objects.filter(pk=numero - BASE_VARIACAO, is_default=False)
+    return (variantes.select_for_update() if travar else variantes).first()
+
+
+def variante_agrupada(pk, travar=False):
+    """Variante que veio do simples `pk`, agrupado num variavel (loja/services/agrupar.py),
+    ou None. O ERP guardou o id do simples e segue mandando PUT nele; sem isto, 404."""
+    variante_id = ExternalReference.objects.filter(
+        platform=Origin.API, entity_type=ENTIDADE_ID_ANTIGO, external_id=str(pk),
+    ).values_list("object_id", flat=True).first()
+    if variante_id is None:
+        return None
+    variantes = VarianteProduto.objects.filter(pk=variante_id)
     return (variantes.select_for_update() if travar else variantes).first()
 
 

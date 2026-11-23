@@ -87,6 +87,9 @@ def lista_variantes(produto):
     return render_to_string("admin/loja/lista_variantes.html", {
         "linhas": linhas,
         "pode_adicionar": True,
+        # Simples com o tipo trocado para Variavel na tela: juntar os outros simples
+        # (admin/produtos_agrupar.py marca a permissao no produto).
+        "pode_agrupar": getattr(produto, "pode_agrupar_aqui", False),
         "url_adicionar": url_popup(
             "admin:loja_varianteproduto_add", produto=produto.pk, account=produto.account_id
         ) if salvo else None,

@@ -381,6 +381,23 @@ class ProdutoAdmin(TemaModelAdmin):
   exporta todas as linhas filtradas pelas colunas de `list_display` e, ao concluir,
   mostra na tarefa os botoes **Baixar Excel** e **Baixar PDF**. Os arquivos ficam no
   storage em `relatorios/<conta>/<uuid da tarefa>/` e so saem por uma view autenticada.
+- **Agrupar produtos simples** (botao dentro do produto simples,
+  `apps/loja/admin/produtos_agrupar.py` + `apps/loja/services/agrupar.py`): o ERP so
+  cadastra simples, entao a Camiseta P, M e G chega como tres produtos. Abra um deles e
+  troque o tipo para Variavel: a secao Variantes mostra o botao. O dialog
+  (`_dialog_agrupar.html`, `js/agrupar-produtos.js`) ja abre buscando pelo nome sem a
+  ultima palavra; busque por nome ou SKU e marque os outros (os marcados ficam no topo).
+  Na etapa Conferir vem sugerido o nome do pai (palavras iguais no comeco dos nomes) e o
+  valor de cada um (o resto do nome); informe a opcao (Tamanho, Cor). Exige permissao de
+  alterar e de excluir produto. O produto aberto vira o pai: fica Variavel e recebe as
+  variantes dos outros **sem recriar**
+  (mesmo id, SKU, preco, estoque e codigo de barras). Pedidos, fotos (presas a variante
+  que veio do simples), avaliacoes, cupons, regras de servico, categorias e tags passam
+  ao pai; os simples vazios sao excluidos. Nas lojas: o pai e atualizado com as
+  variantes novas (no Shopify o produto simples ganha a opcao, ver 7.2) e os antigos
+  saem onde `Enviar > Produtos > Excluir` esta ligado; desligado, a tela avisa para
+  apagar la. Recusa (e nada muda): produto que nao e simples, valor vazio ou repetido,
+  cliente que avaliou dois dos produtos.
 - Produto aparece em uma celula rica com miniatura, nome e SKU. Pedido mostra
   avatar, nome e e-mail do cliente, alem da quantidade de itens. Sem imagem,
   os componentes usam icone ou iniciais como alternativa.
@@ -519,6 +536,12 @@ PUT seguinte gravava na variante padrao. `DELETE` com id de variacao da 400 (nao
 produto inteiro para a lixeira). ERP que ja guardou o id do pai para o SKU de uma variacao:
 o `PUT` no pai com o `sku` dela ainda acha a variacao e responde com o id certo; sem o `sku`
 no corpo, refaca o vinculo do SKU no ERP (consulta por `?sku=` ou `POST` com `id` 0).
+**Id de simples agrupado num variavel** (botao "Agrupar produtos simples", secao 5.4):
+o id do simples que foi excluido continua valendo em `GET`/`PUT products/<id>` (v1, v3 e
+lote) e cai na variacao que veio dele (resposta com o id da variacao e o `parent_id`). O
+desvio fica em `ExternalReference` (`platform="api"`, `entity_type="produto_agrupado"`,
+`external_id` = id antigo, `object_id` = variante) e so e consultado quando o id nao
+existe. Id que nunca existiu segue com 404.
 Rotas de variacao do Woo na v3 (`apps/woo_api/views/variacoes_v3.py`):
 `products/<pai>/variations` (GET lista; POST da 404), `products/<pai>/variations/<id>`
 (GET/PUT/PATCH/POST; DELETE da 400) e `products/<pai>/variations/batch` (so `update`). O
@@ -933,6 +956,12 @@ como update aos marketplaces, mesmo sem outro campo mudado
 (`sincronizar_midias` -> `filhos_do_produto`). No Shopify o update acrescenta as fotos
 novas e apaga da loja (`fileDelete`) a midia com vinculo cuja foto saiu do hub ou teve
 a URL trocada; midia da loja sem vinculo fica. A Suri recebe a lista inteira no PUT.
+
+**Simples na loja que virou variavel no hub** (`apps/shopify/envio/produtos_opcoes.py`):
+o produto da loja so tem a opcao padrao "Title" e as variantes novas chegam com
+"Tamanho". Antes do update das variantes, o `productOptionsCreate` (`LEAVE_AS_IS`) troca
+o "Title" pela opcao do hub com o valor da variante ja ligada; as outras entram pelo
+`productVariantsBulkCreate`. Produto da loja que ja tem opcao propria nao passa por isso.
 
 **Variante no envio: SKU primeiro, depois o id.** Qualquer dado da variante alterado no
 hub (preco, promocao, SKU, codigo de barras, opcao Cor/Tamanho, estoque) sai para os

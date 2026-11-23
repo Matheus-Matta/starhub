@@ -1,0 +1,37 @@
+{# "Agrupar produtos simples" (apps/loja/admin/produtos_agrupar.py, js/agrupar-produtos.js). #}
+{# Etapa 1: busca e marca os simples; etapa 2: nome, opcao e o valor de cada um (sugeridos). #}
+{% url "admin:loja_produto_agrupar" original.pk as url_agrupar %}
+{% url "admin:loja_produto_agrupar_buscar" original.pk as url_buscar %}
+{% url "admin:loja_produto_agrupar_sugestao" original.pk as url_sugestao %}
+{% componente "modal_etapas" id="modal-agrupar" titulo="Agrupar produtos simples" titulo_1="Escolher produtos" titulo_2="Conferir" concluir="Agrupar" action=url_agrupar %}
+  {% slot "etapa_1" %}
+    <div class="agrupar" data-agrupar data-url-buscar="{{ url_buscar }}" data-url-sugestao="{{ url_sugestao }}" data-busca-inicial="{{ original.agrupar_busca }}"
+         data-exige-marcado="produtos" data-mensagem-erro="Marque pelo menos um produto simples para juntar a este.">
+      <p class="text-muted">Este produto vira o pai. Marque os simples que viram variantes dele.</p>
+      <div class="input-icon">{% icone "search" %}<input type="search" class="vTextField" data-agrupar-busca placeholder="Buscar por nome ou SKU" aria-label="Buscar produtos simples"></div>
+      <div class="agrupar-lista" data-agrupar-escolhidos aria-label="Produtos marcados"></div>
+      <p class="agrupar-estado text-muted" data-agrupar-estado role="status"></p>
+      <div class="agrupar-lista agrupar-resultados-lista" data-agrupar-resultados aria-label="Resultado da busca"></div>
+    </div>
+  {% endslot %}
+  {% slot "etapa_2" %}
+    <div class="agrupar-campos">
+      <div class="field">
+        <label for="agrupar-nome">Nome do produto variavel<span class="required-mark" aria-hidden="true">*</span></label>
+        <input type="text" class="vTextField" id="agrupar-nome" name="nome" maxlength="255" data-agrupar-nome>
+      </div>
+      <div class="field">
+        <label for="agrupar-opcao">Nome da opcao<span class="required-mark" aria-hidden="true">*</span></label>
+        <input type="text" class="vTextField" id="agrupar-opcao" name="opcao" maxlength="100" list="agrupar-tipos" placeholder="Ex.: Tamanho, Cor, Voltagem">
+        <datalist id="agrupar-tipos">{% for tipo in tipos_variante %}<option value="{{ tipo }}">{% endfor %}</datalist>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Produto</th><th>SKU</th><th>Valor da opcao</th></tr></thead>
+        <tbody data-agrupar-valores></tbody>
+      </table>
+    </div>
+    <p class="text-muted">Cada produto vira uma variante deste, com o mesmo SKU, preco e estoque. Os outros sao excluidos depois de passar pedidos, fotos e avaliacoes para ca; o ERP continua atualizando pelo id antigo.</p>
+  {% endslot %}
+{% endcomponente %}

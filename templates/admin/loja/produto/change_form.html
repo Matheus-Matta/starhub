@@ -1,7 +1,11 @@
 {% extends "admin/change_form.html" %}
 {% load static %}
 {# Botao "Sincronizar" do produto: dialog com a integracao (produtos_sincronizar.py). #}
-{% block extrahead %}{{ block.super }}<script defer src="{% static 'starhub/js/modal-etapas.js' %}"></script>{% endblock %}
+{# Dialog "Agrupar produtos simples" do simples (produtos_agrupar.py): o botao fica na secao Variantes. #}
+{% block extrastyle %}{{ block.super }}{% if original.pode_agrupar_aqui %}<link rel="stylesheet" href="{% static 'starhub/css/agrupar.css' %}">{% endif %}{% endblock %}
+{% block extrahead %}{{ block.super }}<script defer src="{% static 'starhub/js/modal-etapas.js' %}"></script>
+  {% if original.pode_agrupar_aqui %}<script defer src="{% static 'starhub/js/agrupar-produtos.js' %}"></script>{% endif %}
+{% endblock %}
 {% block object-tools-items %}{{ block.super }}
   {% if has_change_permission %}<li><a href="#" class="historylink" role="button" data-abrir-modal-etapas="modal-sincronizar-produtos">{% icone "store" "icon-sm" %} Sincronizar</a></li>{% endif %}
 {% endblock %}
@@ -10,4 +14,5 @@
     {% url "admin:loja_produto_sincronizar" original.pk as acao_dialog %}
     {% include "admin/loja/produto/_dialog_sincronizar.html" with acao_dialog=acao_dialog quantos_dialog="1 (este produto)" %}
   {% endif %}
+  {% if change and original.pode_agrupar_aqui %}{% include "admin/loja/produto/_dialog_agrupar.html" %}{% endif %}
 {% endblock %}

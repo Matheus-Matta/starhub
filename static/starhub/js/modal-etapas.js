@@ -58,6 +58,8 @@
       concluir.hidden = !ultima;
       erro.hidden = true;
       if (ultima) preencherResumo(modal);
+      // A tela que precisa montar a etapa ao abrir (ex.: agrupar-produtos.js) escuta isto.
+      modal.dispatchEvent(new CustomEvent("modal-etapas:etapa", { detail: { etapa: numero } }));
       const foco = etapas[numero - 1].querySelector("input:checked:not(:disabled), input:not(:disabled)");
       if (foco && modal.open) foco.focus();
     }

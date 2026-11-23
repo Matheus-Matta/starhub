@@ -15,6 +15,7 @@ from apps.integracoes.envio.base import EnvioNaoSuportado
 from apps.loja.models import Produto
 from apps.shopify.envio import produtos_casar as casar_shopify
 from apps.shopify.envio import produtos_midias as midias_shopify
+from apps.shopify.envio import produtos_opcoes as opcoes_shopify
 from apps.shopify.envio import produtos_religar as religar_shopify
 from apps.shopify.envio import produtos_variantes as variantes_shopify
 from apps.shopify.envio.base import RecursoShopify
@@ -107,6 +108,9 @@ class ProdutoShopify(RecursoShopify):
             # SKU primeiro, depois o id (produtos_casar.py).
             vinculos = {str(pk): gid for pk, gid in casar_shopify.casar(
                 self, variantes, loja, vinculos, produto_gid).items()}
+            # Simples na loja que virou variavel no hub (produtos_opcoes.py).
+            opcoes = opcoes_shopify.trocar_padrao(self, produto_gid, variantes, loja,
+                                                  vinculos, opcoes)
         vinculadas = [v for v in variantes if str(v.pk) in vinculos]
         novas = [v for v in variantes if str(v.pk) not in vinculos]
         if vinculadas:

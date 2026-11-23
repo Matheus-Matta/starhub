@@ -55,7 +55,13 @@ class ProdutoRecurso(Recurso):
     def obter(self, pk):
         variante = variacao.variante_do_id(pk)
         if variante is None:
-            return super().obter(pk)
+            try:
+                return super().obter(pk)
+            except WooErro:
+                # So no id que nao existe: o normal nao paga a consulta a mais.
+                variante = variacao.variante_agrupada(pk)
+                if variante is None:
+                    raise
         try:
             return variacao.marcar(self.queryset().get(pk=variante.produto_id), variante)
         except Produto.DoesNotExist as erro:
@@ -64,7 +70,12 @@ class ProdutoRecurso(Recurso):
     def obter_para_escrita(self, pk):
         variante = variacao.variante_do_id(pk, travar=True)
         if variante is None:
-            return super().obter_para_escrita(pk)
+            try:
+                return super().obter_para_escrita(pk)
+            except WooErro:
+                variante = variacao.variante_agrupada(pk, travar=True)
+                if variante is None:
+                    raise
         return variacao.marcar(Produto.objects.select_for_update().get(pk=variante.produto_id),
                                variante)
 

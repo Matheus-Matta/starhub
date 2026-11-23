@@ -1,0 +1,65 @@
+/* Dialog "Agrupar produtos simples" (templates/admin/loja/produto/_dialog_agrupar.html).
+   A moldura e as etapas sao do modal-etapas.css; aqui a lista de produtos e os campos. */
+.agrupar,
+.agrupar-campos {
+  display: grid;
+  gap: 12px;
+}
+
+.agrupar-lista {
+  display: grid;
+  gap: 8px;
+}
+
+.agrupar-lista:empty,
+.agrupar-estado:empty {
+  display: none;
+}
+
+/* Os marcados ficam no topo, destacados, separados do resultado da busca. */
+.agrupar-lista[data-agrupar-escolhidos] {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.agrupar-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+}
+
+.agrupar-item:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.agrupar-item:has(input:focus-visible) {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.agrupar-item span {
+  display: grid;
+  gap: 2px;
+}
+
+.agrupar-item small {
+  color: var(--muted-foreground);
+}
+
+.agrupar-resultados-lista {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.agrupar-estado {
+  margin: 0;
+}
+
+.agrupar-campos {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}

@@ -7,6 +7,11 @@ Linha e botoes com data-modal-url abrem o form da variante num modal (modal-list
   {# Vai para a direita do titulo da secao (lista-modal.css): a secao e a propria lista. #}
   {% if pode_adicionar %}
     <div class="sh-lista-acoes">
+      {% if pode_agrupar %}
+        <button type="button" class="btn btn-sm btn-primary" data-abrir-modal-etapas="modal-agrupar">
+          {% icone "package" "icon-sm" %} Agrupar produtos simples
+        </button>
+      {% endif %}
       {# Mesmo "+" verde dos campos de relacao: abre o cadastro no modal. #}
       <button type="button" class="btn btn-sm btn-outline sh-adicionar-relacionado" data-modal-chave="variantes"
               data-modal-titulo="Adicionar variante"
