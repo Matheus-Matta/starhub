@@ -22,10 +22,13 @@
       </div>
       <div class="field">
         <label for="agrupar-opcao">Nome da opcao<span class="required-mark" aria-hidden="true">*</span></label>
-        <input type="text" class="vTextField" id="agrupar-opcao" name="opcao" maxlength="100" list="agrupar-tipos" placeholder="Ex.: Tamanho, Cor, Voltagem">
-        <datalist id="agrupar-tipos">{% for tipo in tipos_variante %}<option value="{{ tipo }}">{% endfor %}</datalist>
+        <input type="text" class="vTextField" id="agrupar-opcao" name="opcao" maxlength="100" list="agrupar-tipos" placeholder="Escolha ou digite uma nova" data-agrupar-opcao>
+        <input type="hidden" name="opcao_id" data-agrupar-opcao-id>
+        <datalist id="agrupar-tipos">{% for tipo in tipos_variante %}<option value="{{ tipo.nome }}">{% endfor %}</datalist>
       </div>
     </div>
+    {{ tipos_variante|json_script:"agrupar-opcoes-dados" }}
+    <datalist id="agrupar-valores-existentes"></datalist>
     <div class="table-wrap">
       <table class="table">
         <thead><tr><th>Produto</th><th>SKU</th><th>Valor da opcao</th></tr></thead>

@@ -15,7 +15,7 @@ from django.urls import reverse
 from apps.core.models import ExternalReference, User
 from apps.integracoes import permissoes
 from apps.integracoes.models import ConfiguracaoIntegracao
-from apps.loja.models import Produto, VarianteProduto
+from apps.loja.models import Produto, TipoVariante, ValorVariante, VarianteProduto
 
 pytestmark = pytest.mark.django_db
 
@@ -59,6 +59,19 @@ def test_produto_simples_tem_o_botao_e_o_dialog_na_secao_variantes(admin_logado,
     assert f'action="{_url(camisetas[0])}"' in html
     # A busca ja abre pelo comeco do nome: as outras camisetas aparecem sem digitar.
     assert 'data-busca-inicial="Camiseta Basica"' in html
+
+
+def test_dialog_oferece_opcoes_e_valores_ja_cadastrados(admin_logado, camisetas):
+    """Sem os valores no diálogo, o operador precisava redigitar e podia criar duplicado."""
+    cor = TipoVariante.objects.create(nome="Cor")
+    ValorVariante.objects.create(tipo=cor, valor="Nevada")
+
+    html = admin_logado.get(
+        reverse("admin:loja_produto_change", args=[camisetas[0].pk])).content.decode()
+
+    assert '<option value="Cor">' in html
+    assert '"nome": "Nevada"' in html
+    assert 'data-agrupar-opcao-id' in html
 
 
 def test_produto_variavel_nao_tem_o_botao(admin_logado):
@@ -105,7 +118,31 @@ def test_confirmar_agrupa_no_produto_aberto_e_volta_para_ele(admin_logado, camis
     pai.refresh_from_db()
     assert pai.tipo == Produto.Tipo.VARIAVEL
     assert sorted(pai.variantes.values_list("sku", flat=True)) == ["CAM-G", "CAM-M", "CAM-P"]
+    assert {(opcao.valor.tipo.nome, opcao.valor.valor) for variante in pai.variantes.all()
+            for opcao in variante.opcoes.all()} == {
+        ("Tamanho", "P"), ("Tamanho", "M"), ("Tamanho", "G"),
+    }
     assert any("3 produtos agrupados" in m for m in _mensagens(resposta))
+
+
+def test_confirmar_reutiliza_opcao_e_valores_escolhidos(admin_logado, camisetas):
+    """O seletor envia IDs: ignorá-los perdia a opção quando os textos vinham vazios."""
+    pai, m, _g = camisetas
+    tamanho = TipoVariante.objects.create(nome="Tamanho")
+    pequeno = ValorVariante.objects.create(tipo=tamanho, valor="P")
+    medio = ValorVariante.objects.create(tipo=tamanho, valor="M")
+
+    resposta = _agrupar(
+        admin_logado, pai, [m], ["", ""], opcao="", opcao_id=tamanho.pk,
+        **{f"valor_id_{pai.pk}": pequeno.pk, f"valor_id_{m.pk}": medio.pk},
+    )
+
+    assert resposta.status_code == 302
+    assert {(v.sku, v.opcoes.get().valor_id) for v in pai.variantes.all()} == {
+        ("CAM-P", pequeno.pk), ("CAM-M", medio.pk),
+    }
+    assert TipoVariante.objects.count() == 1
+    assert ValorVariante.objects.count() == 2
 
 
 def test_erro_volta_para_o_produto_com_o_que_corrigir_e_nada_muda(admin_logado, camisetas):

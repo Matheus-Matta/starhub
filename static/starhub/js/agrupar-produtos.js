@@ -13,13 +13,37 @@
   const resultados = raiz.querySelector("[data-agrupar-resultados]");
   const estado = raiz.querySelector("[data-agrupar-estado]");
   const nome = modal.querySelector("[data-agrupar-nome]");
+  const opcao = modal.querySelector("[data-agrupar-opcao]");
+  const opcaoId = modal.querySelector("[data-agrupar-opcao-id]");
   const valores = modal.querySelector("[data-agrupar-valores]");
+  const listaValores = modal.querySelector("#agrupar-valores-existentes");
+  const opcoes = JSON.parse(modal.querySelector("#agrupar-opcoes-dados").textContent);
   const erro = modal.querySelector("[data-etapas-erro]");
   let espera = null;
   let pedido = 0;
   let nomeEditado = false;
 
   const marcados = () => [...escolhidos.querySelectorAll('input[name="produtos"]')];
+  const normalizar = (texto) => texto.trim().toLocaleLowerCase("pt-BR");
+  const tipoAtual = () => opcoes.find((tipo) => normalizar(tipo.nome) === normalizar(opcao.value));
+
+  function sincronizarOpcao() {
+    const tipo = tipoAtual();
+    opcaoId.value = tipo?.id || "";
+    listaValores.replaceChildren(...(tipo?.valores || []).map((valor) => {
+      const item = document.createElement("option");
+      item.value = valor.nome;
+      return item;
+    }));
+    valores.querySelectorAll('[data-agrupar-valor]').forEach(sincronizarValor);
+  }
+
+  function sincronizarValor(entrada) {
+    const tipo = tipoAtual();
+    const valor = tipo?.valores.find(
+      (item) => normalizar(item.nome) === normalizar(entrada.value));
+    entrada.nextElementSibling.value = valor?.id || "";
+  }
 
   function linha(produto, marcado) {
     const rotulo = document.createElement("label");
@@ -83,10 +107,17 @@
     const entrada = document.createElement("input");
     Object.assign(entrada, { type: "text", className: "vTextField", name: `valor_${item.id}`,
                              value: item.valor, maxLength: 100 });
+    entrada.dataset.agruparValor = "";
+    entrada.setAttribute("list", "agrupar-valores-existentes");
+    entrada.setAttribute("placeholder", "Escolha ou digite um novo");
     entrada.setAttribute("aria-label", `Valor da opcao de ${item.nome}`);
+    const id = document.createElement("input");
+    Object.assign(id, { type: "hidden", name: `valor_id_${item.id}` });
+    entrada.addEventListener("input", () => sincronizarValor(entrada));
     const td = document.createElement("td");
-    td.append(entrada);
+    td.append(entrada, id);
     tr.append(...celulas, td);
+    sincronizarValor(entrada);
     return tr;
   }
 
@@ -110,6 +141,7 @@
   modal.addEventListener("modal-etapas:etapa", (evento) => {
     if (evento.detail.etapa === 2) sugerir();
   });
+  opcao.addEventListener("input", sincronizarOpcao);
   modal.querySelector("form").addEventListener("submit", (evento) => {
     const vazios = [...modal.querySelectorAll('[data-etapa="2"] input[type="text"]')]
       .filter((entrada) => !entrada.value.trim());

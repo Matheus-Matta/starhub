@@ -7,7 +7,7 @@ posta aqui. O produto aberto e o pai: fica com o id, as fotos e o vinculo das lo
 
     GET  <pk>/agrupar/buscar/?q=camiseta      -> {"produtos": [{id, nome, sku, ...}]}
     GET  <pk>/agrupar/sugestao/?ids=13,14     -> {"nome", "itens": [{id, valor}, ...]}
-    POST <pk>/agrupar/  produtos, nome, opcao, valor_<id>
+    POST <pk>/agrupar/  produtos, nome, opcao/opcao_id, valor_<id>/valor_id_<id>
 """
 
 from django.contrib import messages
@@ -19,7 +19,7 @@ from django.urls import path, reverse
 
 from apps.core.models import ExternalReference
 from apps.integracoes.models import ConfiguracaoIntegracao
-from apps.loja.models import Produto, TipoVariante
+from apps.loja.models import Produto, TipoVariante, ValorVariante
 from apps.loja.services.agrupar import AgrupamentoInvalido, agrupar, sugestao
 
 LIMITE_BUSCA = 30
@@ -33,6 +33,38 @@ def busca_inicial(produto):
 
 def _ids(texto):
     return [int(pk) for pk in str(texto or "").split(",") if pk.strip().isdigit()]
+
+
+def _cadastros_de_opcoes():
+    return [{
+        "id": tipo.pk,
+        "nome": tipo.nome,
+        "valores": [{"id": valor.pk, "nome": valor.valor} for valor in tipo.valores.all()],
+    } for tipo in TipoVariante.objects.prefetch_related("valores")]
+
+
+def _opcao_e_valores(post, ids):
+    tipo = None
+    if str(post.get("opcao_id") or "").isdigit():
+        tipo = TipoVariante.objects.filter(pk=post["opcao_id"]).first()
+        if tipo is None:
+            raise AgrupamentoInvalido("A opcao escolhida nao existe mais. Escolha outra.")
+    opcao = tipo.nome if tipo else post.get("opcao")
+    valores = {}
+    for pk in ids:
+        valor_id = post.get(f"valor_id_{pk}")
+        if not str(valor_id or "").isdigit():
+            valores[pk] = post.get(f"valor_{pk}", "")
+            continue
+        valor = ValorVariante.objects.select_related("tipo").filter(pk=valor_id).first()
+        if valor is None:
+            raise AgrupamentoInvalido("Um valor escolhido nao existe mais. Escolha outro.")
+        if tipo is None or valor.tipo_id != tipo.pk:
+            raise AgrupamentoInvalido(
+                f"{valor.valor} nao pertence a opcao {opcao or 'informada'}."
+            )
+        valores[pk] = valor.valor
+    return opcao, valores
 
 
 def _lojas_que_nao_apagam(ids_que_saem):
@@ -82,8 +114,7 @@ class AgruparProdutoMixin:
         return produto
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
-        contexto = {**(extra_context or {}), "tipos_variante": list(
-            TipoVariante.objects.values_list("nome", flat=True))}
+        contexto = {**(extra_context or {}), "tipos_variante": _cadastros_de_opcoes()}
         return super().change_view(request, object_id, form_url, contexto)
 
     def agrupar_buscar_view(self, request, object_id):
@@ -118,10 +149,10 @@ class AgruparProdutoMixin:
         voltar = HttpResponseRedirect(reverse("admin:loja_produto_change", args=[pai.pk]))
         outros = [pk for pk in _ids(",".join(request.POST.getlist("produtos"))) if pk != pai.pk]
         ids = [pai.pk, *outros]
-        valores = {pk: request.POST.get(f"valor_{pk}", "") for pk in ids}
         lojas = _lojas_que_nao_apagam(outros)
         try:
-            agrupar(pai.pk, ids, request.POST.get("nome"), request.POST.get("opcao"), valores)
+            opcao, valores = _opcao_e_valores(request.POST, ids)
+            agrupar(pai.pk, ids, request.POST.get("nome"), opcao, valores)
         except AgrupamentoInvalido as erro:
             messages.error(request, str(erro))
             return voltar
