@@ -16,7 +16,7 @@ import logging
 
 from apps.core.models import ExternalReference, Origin
 from apps.shopify.contexto import avisar
-from apps.shopify.imagens import ImagemShopifyErro, _baixar
+from apps.shopify.imagens_baixar import ImagemShopifyErro, _baixar
 from apps.shopify.midias import sem_versao
 
 logger = logging.getLogger(__name__)

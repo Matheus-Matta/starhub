@@ -19,7 +19,7 @@ def eh_variacao(dados):
     return dados.get("type") == "variation" and bool(dados.get("parent_id"))
 
 
-def importar_completo(cliente, dados, sobrescrever=False):
+def importar_completo(cliente, dados, sobrescrever=False, refazer_fotos=False):
     if eh_variacao(dados):
         # Webhook de variacao: o corpo e da variacao, nao do produto. Tratado como
         # produto, o preco e o estoque dela iam para a variante padrao do pai.
@@ -27,7 +27,8 @@ def importar_completo(cliente, dados, sobrescrever=False):
         if produto is not None:
             return produto, False
         dados = cliente.get(f"products/{dados['parent_id']}")  # variacao nova: vem no pai
-    return importar_produto(dados, variacoes(cliente, dados), sobrescrever=sobrescrever)
+    return importar_produto(dados, variacoes(cliente, dados), sobrescrever=sobrescrever,
+                            refazer_fotos=refazer_fotos)
 
 
 def importar_da_loja(configuracao, produto_id):

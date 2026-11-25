@@ -101,6 +101,7 @@ def exportar_dados(configuracao, recursos, progresso, produtos=None):
             f"O StarHub ainda nao envia dados para {configuracao.plataforma}."
         )
     marketplace = classe(configuracao)
+    marketplace.refazer_fotos = True
     resumo = Resumo()
     plano = []
     for recurso in ORDEM:

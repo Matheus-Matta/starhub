@@ -14,9 +14,6 @@ vinculo e o update manda (produtos_midias.pendentes). No pior caso (nenhuma refe
 bate) e o "apaga tudo e manda de novo", nunca em dobro.
 """
 
-from pathlib import PurePosixPath
-from urllib.parse import urlsplit
-
 from apps.loja.models import MidiaProduto
 from apps.shopify import midias as vinculos
 
@@ -29,16 +26,11 @@ APAGAR = """mutation($fileIds: [ID!]!) {
 }"""
 
 
-def _arquivo(url):
-    return PurePosixPath(urlsplit(url or "").path).stem
-
-
 def _casa(meta, url):
     cdn = vinculos.sem_versao(meta.get("shopify_src"))
     if cdn and cdn == vinculos.sem_versao(url):
         return True
-    enviado, da_loja = _arquivo(meta.get("enviado_src")), _arquivo(url)
-    return bool(enviado) and (da_loja == enviado or da_loja.startswith(f"{enviado}_"))
+    return vinculos.e_o_arquivo(meta.get("enviado_src"), url)
 
 
 def refazer(enviador, produto, produto_gid, antigos):

@@ -18,6 +18,7 @@ from apps.loja.models import Produto
 from apps.shopify.envio import produtos_casar as casar_shopify
 from apps.shopify.envio import produtos_colecoes as colecoes_shopify
 from apps.shopify.envio import produtos_midias as midias_shopify
+from apps.shopify.envio import produtos_midias_refazer as refazer_shopify
 from apps.shopify.envio import produtos_midias_variantes as fotos_variantes
 from apps.shopify.envio import produtos_novas as novas_shopify
 from apps.shopify.envio import produtos_opcoes as opcoes_shopify
@@ -25,6 +26,7 @@ from apps.shopify.envio import produtos_publicar as publicar_shopify
 from apps.shopify.envio import produtos_religar as religar_shopify
 from apps.shopify.envio import produtos_variantes as variantes_shopify
 from apps.shopify.envio.base import RecursoShopify
+from apps.shopify.envio.produtos_midias_reserva import reservadas
 
 CRIAR = """mutation($input: ProductSetInput!) {
   productSet(input: $input, synchronous: true) {
@@ -74,10 +76,11 @@ class ProdutoShopify(RecursoShopify):
                 for posicao, (v, opcoes) in enumerate(zip(variantes, pares, strict=True), 1)
             ],
         }
-        if imagens:
-            entrada["files"] = midias_shopify.arquivos(imagens)
-        produto = self.mutacao(CRIAR, {"input": entrada}, "productSet")["product"]
-        midias_shopify.registrar(self, imagens, _midias(produto), produto["id"])
+        with reservadas(imagens) as imagens:
+            if imagens:
+                entrada["files"] = midias_shopify.arquivos(imagens)
+            produto = self.mutacao(CRIAR, {"input": entrada}, "productSet")["product"]
+            midias_shopify.registrar(self, imagens, _midias(produto), produto["id"])
         publicar_shopify.em_todos(self, produto["id"])
         por_posicao = {n.get("position"): n for n in produto["variants"]["nodes"]}
         for posicao, variante in enumerate(variantes, 1):
@@ -93,17 +96,21 @@ class ProdutoShopify(RecursoShopify):
 
     def _atualizar(self, obj, produto_gid):
         variantes = self._variantes(obj)
-        velhas = midias_shopify.trocadas(self, obj)
-        imagens = midias_shopify.pendentes(self, obj)
+        # Sincronizar > Exportar: as fotos vao do zero, no fim (produtos_midias_refazer.py).
+        refazer = self.marketplace.refazer_fotos
+        velhas = [] if refazer else midias_shopify.trocadas(self, obj)
+        pendentes = [] if refazer else midias_shopify.pendentes(self, obj)
         variaveis = {"product": {"id": produto_gid, **self._campos(obj)}}
-        if imagens:
-            variaveis["media"] = midias_shopify.novas(imagens)
-        produto = self.mutacao(ATUALIZAR, variaveis, "productUpdate").get("product") or {}
-        # As novas entram no fim da lista de midias do produto, na ordem enviada. first (e
-        # nao last): o Shopify recusa last sem before e o productUpdate inteiro falhava.
-        recebidas = _midias(produto)[-len(imagens):] if imagens else []
-        midias_shopify.registrar(self, imagens, recebidas, produto_gid)
-        midias_shopify.remover(self, obj, [m["id"] for m in _midias(produto)], velhas)
+        with reservadas(pendentes) as imagens:
+            if imagens:
+                variaveis["media"] = midias_shopify.novas(imagens)
+            produto = self.mutacao(ATUALIZAR, variaveis, "productUpdate").get("product") or {}
+            # As novas entram no fim da lista de midias, na ordem enviada. first (e nao
+            # last): o Shopify recusa last sem before e o productUpdate inteiro falhava.
+            recebidas = _midias(produto)[-len(imagens):] if imagens else []
+            midias_shopify.registrar(self, imagens, recebidas, produto_gid)
+        if not refazer:
+            midias_shopify.remover(self, obj, [m["id"] for m in _midias(produto)], velhas)
         vinculos = dict(self.referencias_variantes().filter(
             object_id__in=[str(v.pk) for v in variantes]
         ).values_list("object_id", "external_id"))
@@ -126,6 +133,8 @@ class ProdutoShopify(RecursoShopify):
         if novas:
             novas_shopify.criar(self, produto_gid, novas, len(variantes) > 1)
         colecoes_shopify.entrar(self, obj, produto_gid, colecoes_shopify.da_resposta(produto))
+        if refazer:
+            refazer_shopify.refazer(self, obj, produto_gid)
         fotos_variantes.ligar(self, obj, variantes, produto_gid)
 
     def excluir(self, external_id):

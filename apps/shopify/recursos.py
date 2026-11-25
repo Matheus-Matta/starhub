@@ -4,7 +4,7 @@ from django.utils.text import slugify
 
 from apps.core.models import ExternalReference, Origin
 from apps.loja.models import Categoria, Cliente, Cupom, Pedido, Produto, VarianteProduto
-from apps.shopify import categorias_imagem, produtos_dados
+from apps.shopify import categorias_imagem, imagens_refazer, produtos_dados
 from apps.shopify.cupons import importar_desconto
 from apps.shopify.imagens import sincronizar_imagens
 from apps.shopify.produtos import atualizar_variantes, criar_variantes
@@ -79,7 +79,10 @@ def produto(dados, sobrescrever=False):
     else:
         atualizar_variantes(obj, dados, _decimal, sobrescrever)
     produtos_dados.aplicar(obj, dados, sobrescrever and not criado)
-    sincronizar_imagens(obj, dados)
+    if sobrescrever:
+        imagens_refazer.refazer(obj, dados)  # Sincronizar > Importar: fotos do zero
+    else:
+        sincronizar_imagens(obj, dados)
     return obj, criado
 
 

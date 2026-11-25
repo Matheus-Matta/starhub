@@ -15,15 +15,13 @@ from decimal import Decimal
 from django.db import transaction
 from django.utils.text import slugify
 
-from apps.core.imagens_remotas import ImagemErro, baixar
 from apps.core.models import Origin
 from apps.loja.dinheiro import ZERO, dinheiro
-from apps.loja.models import Categoria, MidiaProduto, Produto, VarianteProduto
-from apps.loja.services.midias import sincronizar_midias
+from apps.loja.models import Categoria, Produto, VarianteProduto
 from apps.loja.services.slugs import slug_livre
 from apps.loja.services.variantes import obter_variante_padrao
+from apps.suri import imagens, vinculos
 from apps.suri import servicos as servicos_suri
-from apps.suri import vinculos
 from apps.suri.contexto import avisar, configuracao_atual
 from apps.suri.opcoes import gravar_opcoes
 from apps.suri.servicos_dimensoes import SEM_SERVICO
@@ -136,31 +134,6 @@ def _variantes(produto, dados, completa):
         vinculos.referenciar("variantes", chave, variante, pai=externo)
 
 
-def _imagens(produto, dados):
-    """Foto ja baixada (vinculo "midias" pela URL do Suri) nao baixa de novo."""
-    lista = []
-    for imagem in dados.get("images") or []:
-        url = (imagem.get("url") or "").strip()
-        if not url:
-            continue
-        midia = vinculos.existente("midias", MidiaProduto, url)
-        if midia is not None:
-            lista.append({"id": midia.pk, "src": midia.url, "alt": midia.alt_text, "_url": url})
-            continue
-        try:
-            lista.append({"id": None, "src": baixar(url), "alt": imagem.get("description") or "",
-                          "_url": url})
-        except ImagemErro as erro:
-            avisar(f"Imagem nao importada: {erro}", recurso="produtos", id=produto.pk,
-                   descricao=produto.nome, id_externo=dados.get("id"))
-    padrao = produto.variantes.filter(is_default=True).first() or produto.variantes.first()
-    if not padrao or not lista:
-        return
-    sincronizar_midias(padrao, [{k: v for k, v in i.items() if k != "_url"} for i in lista])
-    for midia, item in zip(padrao.midias.order_by("posicao", "id"), lista, strict=False):
-        vinculos.referenciar("midias", item["_url"], midia)
-
-
 def _categorias(produto, dados):
     ids = [dados.get("categoryId"), dados.get("subcategoryId")]
     categorias = [c for c in (vinculos.existente("categorias", Categoria, i) for i in ids if i)
@@ -170,8 +143,9 @@ def _categorias(produto, dados):
 
 
 @transaction.atomic
-def importar_produto(dados, sobrescrever=False):
-    """Produto novo recebe tudo; o existente so preco e estoque, salvo `sobrescrever`."""
+def importar_produto(dados, sobrescrever=False, refazer_fotos=False):
+    """Produto novo recebe tudo; o existente so preco e estoque, salvo `sobrescrever`.
+    `refazer_fotos`: so do Sincronizar (o pedido tambem usa `sobrescrever`)."""
     externo = str(dados["id"])
     obj = vinculos.existente("produtos", Produto, externo)
     criado = obj is None
@@ -188,5 +162,8 @@ def importar_produto(dados, sobrescrever=False):
     vinculos.referenciar("produtos", externo, obj)
     _categorias(obj, dados)
     _variantes(obj, dados, criado or sobrescrever)
-    _imagens(obj, dados)
+    if refazer_fotos:
+        imagens.refazer(obj, dados)
+    else:
+        imagens.importar(obj, dados)
     return obj, criado

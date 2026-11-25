@@ -7,81 +7,19 @@ b) o id e o do vinculo (a MediaImage do envio) ou o `imagem_id` visto antes;
 c) a URL de origem e a propria URL que o hub enviou (`enviado_src`);
 d) nada bateu e ha foto enviada ainda sem CDN (estava em PROCESSING no envio):
    pergunta a loja a URL da CDN dessas midias pelo id do vinculo e compara.
-So baixa se nada bater. Texto alternativo nunca identifica: uma foto que falhou na
-loja faria o hub adotar outra foto cadastrada la no lugar dela. Foto que nasceu no
-hub continua com a URL do hub: o eco so completa o vinculo com a CDN.
+e) foto do hub ainda sem vinculo com o mesmo nome de arquivo (o nome e um uuid): o eco
+   chegou antes de o envio gravar o vinculo.
+So baixa se nada bater, e se a loja confirmar que a foto esta la (webhook velho). Texto
+alternativo nunca identifica: uma foto que falhou na loja faria o hub adotar outra foto
+cadastrada la no lugar dela. Foto que nasceu no hub continua com a URL do hub: o eco so
+completa o vinculo com a CDN. Foto apagada de um dos lados: midias_apagadas.py.
 """
 
-import urllib.request
-from pathlib import PurePath
-from urllib.error import HTTPError, URLError
-from urllib.parse import parse_qsl, unquote, urlencode, urlsplit, urlunsplit
-
-from django.core.files.base import ContentFile
-
-from apps.core.imagens import TAMANHO_MAXIMO, salvar
-from apps.core.models import ExternalReference, Origin
-from apps.loja.models import MidiaProduto
+from apps.shopify import imagens_gravar as gravar
 from apps.shopify import midias as vinculos
+from apps.shopify import midias_apagadas
 from apps.shopify.contexto import avisar
-
-HOSTS_SHOPIFY = {"cdn.shopify.com", "cdn.shopifycdn.net"}
-
-
-class ImagemShopifyErro(RuntimeError):
-    pass
-
-
-# Foto maior que 5 MB (PNG de ambiente da loja) vem reduzida pela propria CDN da
-# Shopify (`width=`): 2048 px sobra para a vitrine e cabe no limite do hub.
-LARGURAS = (2048, 1600, 1200)
-
-
-def _com_largura(url, largura):
-    partes = urlsplit(url)
-    query = [(k, v) for k, v in parse_qsl(partes.query) if k != "width"] + [("width", largura)]
-    return urlunsplit(partes._replace(query=urlencode(query)))
-
-
-def _ler(url, nome, timeout):
-    """Bytes da imagem, ou None se passa de 5 MB."""
-    requisicao = urllib.request.Request(url, headers={"User-Agent": "StarHub/1.0"})
-    try:
-        with urllib.request.urlopen(requisicao, timeout=timeout) as resposta:
-            if int(resposta.headers.get("Content-Length") or 0) > TAMANHO_MAXIMO:
-                return None
-            conteudo = resposta.read(TAMANHO_MAXIMO + 1)
-    except (HTTPError, URLError, TimeoutError, ValueError) as erro:
-        raise ImagemShopifyErro(f"Nao foi possivel baixar {nome}: {erro}") from erro
-    return conteudo if len(conteudo) <= TAMANHO_MAXIMO else None
-
-
-def _baixar(url, timeout=20, pasta="produtos"):
-    partes = urlsplit(url)
-    if partes.scheme != "https" or partes.hostname not in HOSTS_SHOPIFY:
-        raise ImagemShopifyErro("A imagem nao pertence ao CDN HTTPS da Shopify.")
-    nome = PurePath(unquote(partes.path)).name or "imagem"
-    for tentativa in (url, *(_com_largura(url, largura) for largura in LARGURAS)):
-        conteudo = _ler(tentativa, nome, timeout)
-        if conteudo is not None:
-            item = salvar(ContentFile(conteudo, name=nome), pasta)
-            return item["src"]
-    raise ImagemShopifyErro(
-        f"{nome}: passa de 5 MB mesmo reduzida a {LARGURAS[-1]} px; "
-        "diminua a foto na loja e sincronize de novo."
-    )
-
-
-def _variantes(produto, ids):
-    referencias = ExternalReference.objects.filter(
-        platform=Origin.SHOPIFY,
-        entity_type="variantes",
-        external_id__in=ids,
-    )
-    variantes = list(produto.variantes.filter(
-        pk__in=[referencia.object_id for referencia in referencias]
-    ))
-    return variantes or ([produto.variante_padrao] if produto.variante_padrao else [])
+from apps.shopify.imagens_baixar import ImagemShopifyErro
 
 
 def _mesma(vinculo, externo_id, url):
@@ -94,11 +32,33 @@ def _mesma(vinculo, externo_id, url):
     )
 
 
+def _eco(vinculo, url):
+    """A foto que o hub mandou, intacta na loja; outro arquivo na CDN = trocada la."""
+    meta = vinculo.metadata or {}
+    cdn = meta.get("shopify_src")
+    return bool(meta.get("enviado_src")) and (
+        not cdn or url == meta["enviado_src"]
+        or vinculos.sem_versao(cdn) == vinculos.sem_versao(url))
+
+
 class _Loja:
     """Consulta a CDN das fotos enviadas ainda sem CDN, uma vez por importacao."""
 
-    def __init__(self, lista):
+    def __init__(self, lista, produto_gid):
         self.lista, self.cdn = lista, None
+        self.produto_gid, self._agora = produto_gid, False
+        self.cliente = vinculos.cliente_da_loja()
+
+    def agora(self):
+        """Fotos do produto na loja neste momento (None = nao da para saber). Perguntado
+        depois de ler os vinculos: foto vinculada que falta aqui saiu mesmo."""
+        if self._agora is False:
+            self._agora = midias_apagadas.ids_na_loja(self.cliente, self.produto_gid)
+        return self._agora
+
+    def confirma(self, externo_id):
+        return self.agora() is None or not externo_id.startswith(
+            "gid://shopify/MediaImage/") or externo_id in self.agora()
 
     def reconhecer(self, externo_id, url):
         vinculo = next((v for v in self.lista if _mesma(v, externo_id, url)), None)
@@ -108,7 +68,7 @@ class _Loja:
             # Erro da loja sobe: a execucao falha e e reprocessada, em vez de baixar
             # uma copia da foto que talvez seja a do proprio hub.
             ids = [v.external_id for v in vinculos.sem_cdn(self.lista)]
-            self.cdn = vinculos.cdn_por_id(vinculos.cliente_da_loja(), ids)
+            self.cdn = vinculos.cdn_por_id(self.cliente, ids)
         alvo = vinculos.sem_versao(url)
         return next((v for v in vinculos.sem_cdn(self.lista)
                      if vinculos.sem_versao(self.cdn.get(v.external_id)) == alvo
@@ -130,7 +90,7 @@ def _da_consulta(media):
     return imagens
 
 
-def _imagens(dados):
+def imagens_da_loja(dados):
     # `media` com `nodes` e a consulta GraphQL; o webhook REST manda `images` (com a
     # MediaImage em admin_graphql_api_id) e uma lista `media` em outro formato.
     if isinstance(dados.get("media"), dict):
@@ -139,56 +99,53 @@ def _imagens(dados):
     return imagens.get("nodes") or [] if isinstance(imagens, dict) else imagens
 
 
+def _pelo_nome(lista, midias, externo_id, url):
+    ligadas = {v.object_id for v in lista if not v.external_id.startswith(vinculos.PENDENTE)}
+    for pk, midia in midias.items():
+        if pk not in ligadas and vinculos.tem_nome_unico(midia.url) \
+                and vinculos.e_o_arquivo(midia.url, url):
+            vinculo = vinculos.vincular(midia, externo_id, {"enviado_src": midia.url})
+            lista.append(vinculo)
+            return vinculo
+    return None
+
+
 def sincronizar_imagens(produto, dados):
-    imagens = _imagens(dados)
     midias = {str(m.pk): m for m in produto.midias.all()}
-    # Vinculo de midia apagada no hub nao reconhece nada: a foto volta a ser baixada.
     lista = vinculos.do_produto(produto, midias.values())
-    loja = _Loja(lista)
-    for posicao, imagem in enumerate(imagens):
-        externo_id = str(imagem.get("id") or imagem.get("admin_graphql_api_id") or "")
-        origem_url = imagem.get("src") or imagem.get("url") or ""
-        if not externo_id or not origem_url:
+    loja = _Loja(lista, str(dados.get("id") or ""))
+    recebidas = {str(i.get("id") or i.get("admin_graphql_api_id") or ""): i
+                 for i in imagens_da_loja(dados)}
+    vistos = {v.pk: v for v in lista}
+    apagadas = midias_apagadas.apagadas_no_hub(produto, list(recebidas))
+    for posicao, (externo_id, imagem) in enumerate(recebidas.items()):
+        url = imagem.get("src") or imagem.get("url") or ""
+        if not externo_id or not url or externo_id in apagadas:
             continue
         alt = (imagem.get("alt") or imagem.get("altText") or "")[:255]
-        vinculo = loja.reconhecer(externo_id, origem_url)
-        if vinculo and (vinculo.metadata or {}).get("enviado_src"):
-            _completar_eco(vinculo, externo_id, origem_url)
+        vinculo = loja.reconhecer(externo_id, url) or _pelo_nome(lista, midias, externo_id, url)
+        if vinculo is not None:
+            vistos.pop(vinculo.pk, None)
+        if vinculo and _eco(vinculo, url):
+            _completar_eco(vinculo, externo_id, url)
             lista.remove(vinculo)
             continue
         try:
-            _importar(produto, imagem, vinculo, midias, externo_id, origem_url, alt, posicao)
+            if vinculo is not None and vinculo.object_id in midias:
+                gravar.conhecida(produto, imagem, vinculo, midias, externo_id, url, alt, posicao)
+            elif loja.confirma(externo_id):
+                gravar.nova(produto, imagem, externo_id, url, alt, posicao)
         except ImagemShopifyErro as erro:
             # Uma foto ruim nao derruba o produto nem as outras fotos; sem vinculo, ela
             # e tentada de novo na proxima sincronizacao.
             avisar(str(erro), recurso="produtos", id=produto.pk, descricao=produto.nome,
                    id_externo=externo_id)
+    faltam = midias_apagadas.candidatas(produto, loja.produto_gid, vistos.values(), recebidas)
+    if faltam and loja.agora() is not None:
+        midias_apagadas.tirar_do_hub(
+            produto, [v for v in faltam if v.external_id not in loja.agora()])
 
 
 def _completar_eco(vinculo, externo_id, url):
     extras = {"imagem_id": externo_id} if externo_id != vinculo.external_id else {}
     vinculos.gravar_cdn(vinculo, url, **extras)
-
-
-def _importar(produto, imagem, vinculo, midias, externo_id, url, alt, posicao):
-    """Foto da loja: a mesma CDN reaproveita o arquivo local; CDN nova baixa de novo."""
-    base = midias.get(vinculo.object_id) if vinculo else None
-    anterior = (vinculo.metadata or {}).get("shopify_src") if vinculo else ""
-    mesma_url = base and anterior and vinculos.sem_versao(anterior) == vinculos.sem_versao(url)
-    # As copias (uma linha por variante) dividem o arquivo local da midia do vinculo.
-    copias = [m for m in midias.values() if base and m.url == base.url]
-    url_local = base.url if mesma_url else _baixar(url)
-    ids_variantes = imagem.get("variantIds") or imagem.get("variant_ids") or []
-    for variante in _variantes(produto, ids_variantes):
-        midia = next((m for m in copias if m.variante_id == variante.pk), None)
-        midia = midia or MidiaProduto(produto=produto, variante=variante, origin=Origin.SHOPIFY)
-        midia.url, midia.alt_text, midia.posicao = url_local, alt, posicao
-        midia.save()
-        base = base or midia
-    if vinculo is not None:
-        # O mesmo vinculo passa a apontar o id/CDN atuais: criar outro deixaria dois
-        # vinculos para a mesma midia.
-        vinculo.external_id, vinculo.metadata = externo_id, {"shopify_src": url}
-        vinculo.save(update_fields=["external_id", "metadata", "updated_at"])
-    elif base is not None:
-        vinculos.vincular(base, externo_id, {"shopify_src": url})

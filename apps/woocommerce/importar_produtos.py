@@ -23,7 +23,7 @@ from apps.loja.services.slugs import slug_livre
 from apps.loja.services.variantes import obter_variante_padrao
 from apps.woocommerce import vinculos
 from apps.woocommerce.contexto import avisar
-from apps.woocommerce.imagens import imagens_locais, vincular_midias
+from apps.woocommerce.imagens import imagens_locais, refazer, vincular_midias
 from apps.woocommerce.importar_catalogo import (
     ORIGEM,
     campos_variante,
@@ -102,7 +102,7 @@ def _gravar_variante(variante, dados, posicao, completa, produto_externo):
     variante.save()
 
 
-def _variacoes(produto, variacoes, completa, produto_externo):
+def _variacoes(produto, variacoes, completa, produto_externo, com_fotos):
     for posicao, dados in enumerate(variacoes):
         # SKU primeiro (dentro do produto), depois o vinculo da variacao.
         sku = (dados.get("sku") or "").strip()
@@ -116,7 +116,7 @@ def _variacoes(produto, variacoes, completa, produto_externo):
         _gravar_variante(variante, dados, posicao, completa or nova, produto_externo)
         vinculos.referenciar("variantes", dados["id"], variante, pai=produto_externo)
         _opcoes(variante, dados.get("attributes"))
-        if dados.get("image"):
+        if com_fotos and dados.get("image"):
             lista = imagens_locais(produto, [dados["image"]])
             sincronizar_midias(variante, [{k: v for k, v in i.items() if k != "_woo_id"}
                                           for i in lista])
@@ -124,7 +124,8 @@ def _variacoes(produto, variacoes, completa, produto_externo):
 
 
 @transaction.atomic
-def importar_produto(dados, variacoes=None, sobrescrever=False):
+def importar_produto(dados, variacoes=None, sobrescrever=False, refazer_fotos=False):
+    """`refazer_fotos`: so do Sincronizar (o pedido tambem usa `sobrescrever`)."""
     externo = dados["id"]
     # SKU primeiro (do produto ou de uma das variacoes), depois o id da loja; senao cria.
     # Produto do SKU ja ligado a OUTRO produto da loja = SKU repetido na loja: vale o id.
@@ -146,10 +147,13 @@ def importar_produto(dados, variacoes=None, sobrescrever=False):
     if "tags" in dados:
         obj.tags.set(tags_do_produto(dados["tags"]))
     if dados.get("type") == Produto.Tipo.VARIAVEL and variacoes:
-        _variacoes(obj, variacoes, criado or sobrescrever, externo)
+        _variacoes(obj, variacoes, criado or sobrescrever, externo, not refazer_fotos)
     else:
         padrao = obj.variante_padrao or obter_variante_padrao(obj)
         _gravar_variante(padrao, dados, 0, criado or sobrescrever, externo)
+    if refazer_fotos:
+        refazer(obj, dados, variacoes)
+        return obj, criado
     lista = imagens_locais(obj, dados.get("images"))
     padrao = obj.variantes.filter(is_default=True).first() or obj.variantes.first()
     if padrao and lista:

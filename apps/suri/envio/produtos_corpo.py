@@ -65,6 +65,16 @@ def categorias(enviador_categorias, produto):
     return externo, None
 
 
+def _galeria(produto, configuracao):
+    """A mesma foto em duas variantes e uma imagem so na galeria do Suri."""
+    por_url = {}
+    for m in produto.midias.filter(tipo=MidiaProduto.Tipo.IMAGEM).order_by("posicao", "id"):
+        if url := url_publica(configuracao, m.url):
+            por_url.setdefault(url, {"providerId": None, "url": url,
+                                     "description": m.alt_text or None})
+    return list(por_url.values())
+
+
 def corpo(enviador_categorias, produto, loja, configuracao, servicos=(), enviados=None):
     """`enviados` (dict) recebe as dimensions de servico, para o vinculo."""
     produto_id = id_no_suri("produtos", produto)
@@ -75,9 +85,7 @@ def corpo(enviador_categorias, produto, loja, configuracao, servicos=(), enviado
         variantes = [variante]
     padrao = produto.variante_padrao
     categoria, subcategoria = categorias(enviador_categorias, produto)
-    imagens = [{"providerId": None, "url": url, "description": m.alt_text or None}
-               for m in produto.midias.filter(tipo=MidiaProduto.Tipo.IMAGEM).order_by("posicao")
-               if (url := url_publica(configuracao, m.url))]
+    imagens = _galeria(produto, configuracao)
     if not imagens and (url := url_publica(configuracao, static(FOTO_PADRAO))):
         imagens = [produtos_dimensoes.imagem(url, produto.nome)]
     promocional = padrao.sale_price if padrao and padrao.sale_price else ZERO

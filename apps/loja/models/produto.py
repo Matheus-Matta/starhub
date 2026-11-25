@@ -181,7 +181,7 @@ class Produto(ComDatas):
             da_padrao = variante is None or variante.is_default
             return (not da_padrao, variante.posicao if variante else 0, midia.posicao, midia.pk)
 
-        return [
-            {"id": item.pk, "src": item.url, "alt": item.alt_text}
-            for item in sorted(self.midias.all(), key=ordem)
-        ]
+        por_url = {}  # a mesma foto em duas variantes aparece uma vez so
+        for item in sorted(self.midias.all(), key=ordem):
+            por_url.setdefault(item.url, {"id": item.pk, "src": item.url, "alt": item.alt_text})
+        return list(por_url.values())

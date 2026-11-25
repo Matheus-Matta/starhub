@@ -30,6 +30,7 @@ def _foto(produto, n):
 
 def _midias_vinculadas():
     return sorted(ExternalReference.objects.filter(entity_type="midias")
+                  .exclude(object_id="")
                   .values_list("external_id", flat=True))
 
 

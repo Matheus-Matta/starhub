@@ -9,7 +9,8 @@ class ShopifyConfig(AppConfig):
     def ready(self):
         # Registra o Shopify no apps.integracoes.envio.registro: sem isso o distribuidor
         # nao acha a plataforma e nenhuma alteracao do hub chega a loja.
-        from apps.shopify import servicos_sinais
+        from apps.shopify import midias_apagadas, servicos_sinais
         from apps.shopify.envio import marketplace  # noqa: F401
 
         servicos_sinais.conectar()
+        midias_apagadas.conectar()

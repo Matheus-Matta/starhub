@@ -172,4 +172,4 @@ def test_imagem_cadastrada_no_shopify_baixa_uma_vez_e_vincula(conta, settings, t
     assert not midia.metadados
     vinculo = _vinculo(midia)
     assert vinculo.external_id == "gid://shopify/ProductImage/7"
-    assert vinculo.metadata == {"shopify_src": outra}
+    assert vinculo.metadata["shopify_src"] == outra

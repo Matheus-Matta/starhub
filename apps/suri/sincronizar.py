@@ -77,7 +77,8 @@ def sincronizar_loja(configuracao, progresso, recursos=None, janela=None):
     cliente = SuriClient(configuracao)
     recursos = recursos_para_buscar(configuracao, recursos)
     importadores = {
-        "produtos": lambda dados: importar_produto(dados, sobrescrever=True),
+        "produtos": lambda dados: importar_produto(dados, sobrescrever=True,
+                                                     refazer_fotos=True),
         "estoque": atualizar_estoque,
         "pedidos": importar_pedido,
     }

@@ -62,7 +62,7 @@ def test_create_e_update_inexistente_baixam_imagens(operacao, conta, settings, t
     assert midia.alt_text == "Produto de frente"
     vinculo = ExternalReference.objects.get(entity_type="midias", object_id=str(midia.pk))
     assert vinculo.external_id == "gid://shopify/ProductImage/123"
-    assert vinculo.metadata == {"shopify_src": "https://cdn.shopify.com/s/files/1/produto.png?v=1"}
+    assert vinculo.metadata["shopify_src"] == "https://cdn.shopify.com/s/files/1/produto.png?v=1"
     assert (tmp_path / midia.url.removeprefix("/media/")).exists()
 
 
@@ -88,8 +88,9 @@ def test_update_baixa_imagem_nova_do_produto(conta, settings, tmp_path):
     settings.MEDIA_ROOT = tmp_path
     configuracao = _configuracao(conta)
     dados = _produto_shopify()
-    with patch("urllib.request.urlopen", side_effect=lambda *_a, **_k: RespostaImagem(PNG)) \
-            as baixar:
+    # Bytes diferentes: a mesma imagem com outro nome nao entra de novo.
+    arquivos = [RespostaImagem(PNG), RespostaImagem(PNG + b"verso")]
+    with patch("urllib.request.urlopen", side_effect=arquivos) as baixar:
         processar_webhook(configuracao, "produtos", "create", dados, lambda *_: None)
         dados["images"] = [{
             "id": 124,

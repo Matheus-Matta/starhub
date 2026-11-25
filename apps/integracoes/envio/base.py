@@ -136,6 +136,7 @@ class EnviadorRecurso:
 class Marketplace:
     plataforma = ""  # igual a ConfiguracaoIntegracao.Plataforma e ao codigo de origem
     recursos = ()  # subclasses de EnviadorRecurso
+    refazer_fotos = False  # Sincronizar > Exportar: as fotos da loja saem, vao as do hub
 
     def __init__(self, configuracao):
         self.configuracao = configuracao

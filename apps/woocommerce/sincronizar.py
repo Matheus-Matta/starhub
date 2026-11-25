@@ -45,7 +45,8 @@ def recursos_para_buscar(configuracao, escolhidos=None):
 def importadores(cliente, configuracao, categorias):
     return {
         "categorias": lambda dados: importar_categoria(dados, categorias),
-        "produtos": lambda dados: importar_completo(cliente, dados, sobrescrever=True),
+        "produtos": lambda dados: importar_completo(cliente, dados, sobrescrever=True,
+                                                   refazer_fotos=True),
         "clientes": lambda dados: importar_cliente(dados, sobrescrever=True),
         "cupons": importar_cupom,
         "pedidos": lambda dados: importar_pedido(dados, configuracao.dominio_loja),

@@ -964,6 +964,38 @@ como update aos marketplaces, mesmo sem outro campo mudado
 novas e apaga da loja (`fileDelete`) a midia com vinculo cuja foto saiu do hub ou teve
 a URL trocada; midia da loja sem vinculo fica. A Suri recebe a lista inteira no PUT.
 
+**Foto repetida** (`apps/core/imagens_iguais.py`): igual = mesmo conteudo do arquivo. As
+importacoes (Shopify, Woo, Suri) reaproveitam a foto que o produto ja tem; a do Shopify
+trava o produto ao gravar (webhooks simultaneos). `sincronizar_midias` casa pelo id e
+depois pelo arquivo, sem repetir. A mesma foto em duas variantes divide a url e sai uma
+vez em `Produto.imagens` (API Woo) e nos envios. A migration `loja 0030` juntou as
+repetidas antigas da mesma variante: nao apaga arquivo nem chama loja, leva os vinculos
+para a linha que fica e anota as outras em `metadados["fotos_repetidas"]`.
+
+**Fotos hub <-> Shopify pela referencia** (`apps/shopify/midias_apagadas.py`): o vinculo
+"midias" (id da MediaImage <-> linha) diz o que os dois lados ja combinaram. Sem vinculo e
+nova (o envio manda, a importacao baixa); com vinculo e faltando de um lado foi apagada
+la, e sai do outro.
+- Apagada no hub: o vinculo fica com `apagada_no_hub`, o update faz `fileDelete`, e nenhum
+  webhook atrasado a importa de novo. Excluir o produto inteiro nao marca.
+- Apagada na loja: a importacao pergunta a loja de novo (webhook pode ser velho) antes de
+  tirar a linha; so sai a que ja foi vista pronta la. O arquivo fica no MEDIA.
+- Sem laco: importar foto nao agenda envio; o eco nao grava nada (`visto` no vinculo: so o
+  que a loja mudou vem) e o eco que chega antes do vinculo casa pelo nome do arquivo (uuid).
+- Sem dobro: o envio reserva a foto (`produtos_midias_reserva.py`, indice unico) e a
+  importacao confere o vinculo depois da trava do produto.
+
+**Sincronizar refaz as fotos do zero** (so ele; webhook e edicao seguem pela referencia):
+- Importar: saem as fotos do hub e entram as da loja, por variacao
+  (`loja/services/midias_refazer.py`; `shopify/imagens_refazer.py`, `suri/imagens.py`,
+  `woocommerce/imagens.py`). Baixa tudo antes de apagar; arquivo antigo fica no MEDIA e o
+  igual e reaproveitado. Pedido que importa produto NAO refaz (`refazer_fotos`).
+- Exportar e botao do produto, no Shopify (`envio/produtos_midias_refazer.py`): manda as do
+  hub, espera ficarem prontas e apaga todas as antigas da loja; se nao ficam prontas, desfaz
+  e mantem as antigas. Suri e Woo ja recebem a galeria inteira em todo envio (no Woo, a
+  imagem que ja esta la vai pelo id: reenviar encheria a biblioteca de midia de copias).
+- Origem sem foto, foto que nao baixou ou em processamento: nada e apagado.
+
 **Simples na loja que virou variavel no hub** (`apps/shopify/envio/produtos_opcoes.py`):
 o produto da loja so tem a opcao padrao "Title" e as variantes novas chegam com
 "Tamanho". Antes do update das variantes, o `productOptionsCreate` (`LEAVE_AS_IS`) troca

@@ -6,6 +6,9 @@ marketplace tem o seu vinculo, e o registro do hub nao mistura dado de loja.
 metadata do vinculo:
 - "enviado_src": URL do hub mandada ao Shopify (a foto nasceu no hub);
 - "shopify_src": URL da CDN do Shopify vista na ultima importacao;
+- "visto": texto e posicao que a loja tinha na ultima importacao: so o que ela mudou
+  desde entao vem para o hub (o eco do proprio envio nao desfaz o que o hub mudou);
+- "apagada_no_hub": foto apagada no hub (midias_apagadas.py);
 - "imagem_id": id que a importacao viu para a mesma foto, quando nao e o do vinculo.
 
 O id do vinculo e o da MediaImage. O webhook traz o mesmo id em
@@ -14,6 +17,8 @@ com `"admin_graphql_api_id": "gid://shopify/MediaImage/1072273211"`): o numero d
 id REST e outro, entao ids so casam inteiros, nunca pelo numero.
 """
 
+import re
+from pathlib import PurePosixPath
 from urllib.parse import urljoin, urlsplit
 
 from apps.core.models import ExternalReference, Origin
@@ -57,6 +62,21 @@ def sem_versao(url):
     """URL da CDN sem a query (?v=...): a mesma foto volta com outra versao na query."""
     partes = urlsplit(url or "")
     return f"{partes.netloc}{partes.path}"
+
+
+def nome_do_arquivo(url):
+    return PurePosixPath(urlsplit(url or "").path).stem
+
+
+def e_o_arquivo(enviado, da_loja):
+    """A CDN guarda o nome do arquivo enviado; nome repetido ganha sufixo ("abc_a1b2")."""
+    nome, na_cdn = nome_do_arquivo(enviado), nome_do_arquivo(da_loja)
+    return bool(nome) and (na_cdn == nome or na_cdn.startswith(f"{nome}_"))
+
+
+def tem_nome_unico(url):
+    """Arquivo salvo pelo hub (uuid, apps/core/imagens.py): o nome identifica a foto."""
+    return bool(re.fullmatch(r"[0-9a-f]{32}", nome_do_arquivo(url)))
 
 
 def cliente_da_loja():

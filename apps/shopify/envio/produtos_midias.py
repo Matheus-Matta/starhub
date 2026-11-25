@@ -17,6 +17,8 @@ import logging
 from apps.loja.models import MidiaProduto
 from apps.shopify import midias as vinculos
 from apps.shopify.cliente import ShopifyErro
+from apps.shopify.envio import produtos_midias_reserva as reserva
+from apps.shopify.midias_apagadas import MARCA
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +28,7 @@ APAGAR = """mutation($fileIds: [ID!]!) {
 }"""
 
 
-def _imagens(produto):
+def fotos_do_hub(produto):
     return list(produto.midias.filter(tipo=MidiaProduto.Tipo.IMAGEM).order_by("posicao", "id"))
 
 
@@ -40,16 +42,17 @@ def _trocada(enviador, midia, vinculo):
 
 def trocadas(enviador, produto):
     """Vinculos das fotos trocadas no hub: a midia antiga sai da loja."""
-    todas = {str(m.pk): m for m in _imagens(produto)}
+    todas = {str(m.pk): m for m in fotos_do_hub(produto)}
     return [v for v in vinculos.do_produto(produto, todas.values())
             if _trocada(enviador, todas[v.object_id], v)]
 
 
 def pendentes(enviador, produto):
     """[(url publica, [midias com essa URL])] que ainda nao estao no Shopify."""
-    todas = _imagens(produto)
+    todas = fotos_do_hub(produto)
     velhas = {v.pk for v in trocadas(enviador, produto)}
-    ligadas = {r.object_id: r for r in vinculos.do_produto(produto, todas) if r.pk not in velhas}
+    ligadas = {r.object_id: r for r in vinculos.do_produto(produto, todas)
+                if r.pk not in velhas and not reserva.vencida(r)}
     na_loja = set()
     for midia in todas:
         referencia = ligadas.get(str(midia.pk))
@@ -88,6 +91,7 @@ def registrar(enviador, grupos, recebidas, produto_gid):
     for posicao, (url, midias) in enumerate(grupos):
         recebida = recebidas[posicao] if posicao < len(recebidas) else {}
         external_id = recebida.get("id") or f"{vinculos.PENDENTE}{midias[0].pk}"
+        reserva.devolver(midias[:1])
         criados.append(vinculos.vincular(midias[0], external_id, {"enviado_src": url},
                                          produto_gid))
     # Midia ainda em PROCESSING fica sem CDN: a importacao pergunta de novo (imagens.py).
@@ -109,10 +113,15 @@ def remover(enviador, produto, na_loja, velhas):
     existentes = {str(pk) for pk in produto.midias.values_list("pk", flat=True)}
     ids = set(na_loja)
     saem = [v for v in vinculos.referencias(produto.account_id).filter(external_id__in=ids)
-            if v.object_id not in existentes]
+            if v.object_id not in existentes and not (v.metadata or {}).get("removida_da_loja")]
     saem += [v for v in velhas if v.external_id in ids]
     if not saem:
         return
     gids = list(dict.fromkeys(v.external_id for v in saem))
     enviador.mutacao(APAGAR, {"fileIds": gids}, "fileDelete")
-    vinculos.referencias(produto.account_id).filter(pk__in=[v.pk for v in saem]).delete()
+    # O vinculo fica, marcado: webhook de antes do fileDelete ainda traz a foto. Sem a
+    # linha, ele nao apaga de novo nem deixa a importacao baixar.
+    for vinculo in saem:
+        vinculo.metadata = {**(vinculo.metadata or {}), MARCA: True, "removida_da_loja": True}
+        vinculo.object_id = ""
+        vinculo.save(update_fields=["object_id", "metadata", "updated_at"])
